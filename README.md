@@ -1,4 +1,4 @@
-# LogTimeLinyzer
+# LogToGraph
 
 ## How to Build :
 
