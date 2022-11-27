@@ -30,7 +30,11 @@
 #include <Helper/ThemeHelper.h>
 #include <Project/ProjectFile.h>
 #include <Contrib/FontIcons/CustomFont.h>
+
+#include <Headers/Globals.h>
 #include <Headers/LogTimeBuild.h>
+
+#include <Contrib/FontIcons/CustomFontToolBar.h>
 
 #include <imgui/imgui_internal.h>
 
@@ -53,21 +57,18 @@ MainFrame::MainFrame(GLFWwindow *vWin)
 
 MainFrame::~MainFrame()
 {
-#ifdef USE_SHADOW
-	AssetManager::Instance()->Clear();
-#endif
+
 }
 
 void MainFrame::Init()
 {
-	char buf[256];
-	snprintf(buf, 255, "LogTimelinyzer %s", LogTime_BuildId);
-	glfwSetWindowTitle(m_Window, buf);
+	SetAppTitle();
 
-	LayoutManager::Instance()->Init("Layouts", "Default Layout");
+	LayoutManager::Instance()->Init(ICON_NDPTB_DESKTOP_MAC " Layouts", "Default Layout");
 
-	LayoutManager::Instance()->SetPaneDisposalSize(PaneDisposal::LEFT, 100.0f);
+	LayoutManager::Instance()->SetPaneDisposalSize(PaneDisposal::LEFT, 200.0f);
 	LayoutManager::Instance()->SetPaneDisposalSize(PaneDisposal::RIGHT, 500.0f);
+	LayoutManager::Instance()->SetPaneDisposalSize(PaneDisposal::BOTTOM, 200.0f);
 
 	LayoutManager::Instance()->AddPane(ToolPane::Instance(), ICON_NDP2_CUBE_SCAN " Tool", "", PaneDisposal::LEFT, true, true);
 	LayoutManager::Instance()->AddPane(LogPane::Instance(), ICON_NDP2_FILE_DOCUMENT_BOX " Logs", "", PaneDisposal::RIGHT, true, false);
@@ -79,12 +80,11 @@ void MainFrame::Init()
 	Messaging::Instance();
 
 	LayoutManager::Instance()->InitPanes();
-	
-	ThemeHelper::Instance(); // default
+	ThemeHelper::Instance(); // default theme
+
 	LoadConfigFile("config.xml");
 
 	ThemeHelper::Instance()->ApplyStyle();
-
 	LuaEngine::Instance()->Init();
 
 	LoadProject(m_ProjectToLoad);
@@ -96,9 +96,8 @@ void MainFrame::Unit()
 
 	SaveConfigFile("config.xml");
 
-	LayoutManager::Instance()->UnitPanes();
-
 	LuaEngine::Instance()->Unit();
+	LayoutManager::Instance()->UnitPanes();
 }
 
 void MainFrame::NewProject(const std::string& vFilePathName)
@@ -324,12 +323,20 @@ void MainFrame::DisplayDialogsAndPopups()
 
 void MainFrame::SetAppTitle(const std::string& vFilePathName)
 {
-	auto ps = FileHelper::Instance()->ParsePathFileName(vFilePathName);
-	if (ps.isOk)
+	static char bufTitle[1024] = "";
+	if (vFilePathName.empty())
 	{
-		char bufTitle[1024];
-		snprintf(bufTitle, 1023, "LogTime %s - Project : %s.mdr", LogTime_BuildId, ps.name.c_str());
+		snprintf(bufTitle, 1023, "%s %s", APP_TITLE, LogTime_BuildId);
 		glfwSetWindowTitle(m_Window, bufTitle);
+	}
+	else
+	{
+		auto ps = FileHelper::Instance()->ParsePathFileName(vFilePathName);
+		if (ps.isOk)
+		{
+			snprintf(bufTitle, 1023, "%s %s - Project : %s.ltg", APP_TITLE, LogTime_BuildId, ps.name.c_str());
+			glfwSetWindowTitle(m_Window, bufTitle);
+		}
 	}
 }
 

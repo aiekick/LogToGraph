@@ -23,12 +23,11 @@ limitations under the License.
 #include <Panes/Abstract/AbstractPane.h>
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 
-
 class ProjectFile;
 class GraphPane : public AbstractPane, public conf::ConfigAbstract
 {
 private:
-	bool m_show_hide_x_axis = false;
+	bool m_show_hide_x_axis = true;
 	bool m_show_hide_y_axis = false;
 
 public:

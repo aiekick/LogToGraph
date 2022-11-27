@@ -1,5 +1,7 @@
 #pragma once
 
+#define APP_TITLE "LogToGraph"
+
 #include <string>
 
 typedef double SignalTime;

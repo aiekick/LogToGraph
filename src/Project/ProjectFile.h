@@ -27,12 +27,14 @@ class ProjectFile : public conf::ConfigAbstract
 public: // dont save
 	static constexpr ImVec4 m_DefaultGraphBarColor = ImVec4(0.2f, 0.5f, 0.8f, 0.5f);
 	static constexpr ImVec4 m_DefaultGraphHoveredTimeColor = ImVec4(0.8f, 0.8f, 0.2f, 0.8f);
+	static constexpr ImVec4 m_DefaultGraphMouseHoveredTimeColor = ImVec4(0.2f, 0.8f, 0.2f, 0.8f);
 
 public: // to save
 	std::string m_ProjectFilePathName;
 	std::string m_ProjectFilePath;
 	ImVec4 m_GraphBarColor = m_DefaultGraphBarColor;
 	ImVec4 m_GraphHoveredTimeColor = m_DefaultGraphHoveredTimeColor;
+	ImVec4 m_GraphMouseHoveredTimeColor = m_DefaultGraphMouseHoveredTimeColor;
 	bool m_CollapseLogSelection = false;
 	std::string m_SearchString;
 	bool m_HideSomeValues = false;

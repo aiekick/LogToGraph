@@ -47,7 +47,6 @@ endif()
 ## other define
 add_definitions(-DPROJECT_PATH="${CMAKE_SOURCE_DIR}")
 
-
 set(FINAL_BIN_DIR ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_INSTALL_PREFIX "${FINAL_BIN_DIR}")
 message("${PROJECT} => ${FINAL_BIN_DIR}")

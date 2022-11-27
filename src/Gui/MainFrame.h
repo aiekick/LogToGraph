@@ -164,19 +164,22 @@ public: // actions
 private: // actions
 	// view the window
 	void Action_Window_CloseApp();
+
 	// via the unsaved dialog
 	bool Action_UnSavedDialog_SaveProject();
 	void Action_UnSavedDialog_SaveAsProject();
 	void Action_UnSavedDialog_Cancel();
+
 	// others
 	void Action_OpenUnSavedDialog_IfNeeded();
 	void Action_Cancel();
+
 	// dialog funcs to be in actions
 	bool Display_OpenProjectDialog();
 	bool Display_SaveProjectDialog();
 
 private:
-	void SetAppTitle(const std::string& vFilePathName);
+	void SetAppTitle(const std::string& vFilePathName = "");
 
 public: // configuration
 	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "");

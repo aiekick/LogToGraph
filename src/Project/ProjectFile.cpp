@@ -187,6 +187,7 @@ std::string ProjectFile::getXml(const std::string& vOffset, const std::string& /
 	str += LogEngine::Instance()->getSignalVisibilty(vOffset + "\t", "project");
 	str += vOffset + "\t<graph_bar_colors>" + ct::toStrFromImVec4(m_GraphBarColor) + "</graph_bar_colors>\n";
 	str += vOffset + "\t<graph_current_time_colors>" + ct::toStrFromImVec4(m_GraphHoveredTimeColor) + "</graph_current_time_colors>\n";
+	str += vOffset + "\t<graph_mouse_current_time_colors>" + ct::toStrFromImVec4(m_GraphMouseHoveredTimeColor) + "</graph_mouse_current_time_colors>\n";
 	str += vOffset + "\t<selection_collapsing>" + (m_CollapseLogSelection ? "true" : "false") + "</selection_collapsing>\n";
 	str += vOffset + "\t<search_string>" + m_SearchString + "</search_string>\n";
 	str += vOffset + "\t<values_to_hide>" + m_ValuesToHide + "</values_to_hide>\n";
@@ -215,6 +216,8 @@ bool ProjectFile::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* 
 			m_GraphBarColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
 		else if (strName == "graph_current_time_colors")
 			m_GraphHoveredTimeColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
+		else if (strName == "graph_mouse_current_time_colors")
+			m_GraphMouseHoveredTimeColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
 		else if (strName == "selection_collapsing")
 			m_CollapseLogSelection = ct::ivariant(strValue).GetB();
 		else if (strName == "search_string")

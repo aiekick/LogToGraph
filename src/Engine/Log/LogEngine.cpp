@@ -25,11 +25,6 @@ void LogEngine::AddSignalValue(const std::string& vCategory, const std::string& 
 {
 	if (!vName.empty())
 	{
-		if (vName == "CLE AUT ASF1-2")
-		{
-			//CTOOL_DEBUG_BREAK;
-		}
-
 		LogDatas logDatas;
 		logDatas.category = vCategory;
 		logDatas.name = vName;

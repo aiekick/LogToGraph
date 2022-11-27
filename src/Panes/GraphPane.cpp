@@ -167,7 +167,6 @@ void GraphPane::DrawGraph()
 			ImGui::ColorEdit4("Bars Color##tBarColor",
 				&ProjectFile::Instance()->m_GraphBarColor.x, ImGuiColorEditFlags_NoInputs);
 
-
 			if (ImGui::ContrastedButton("R##ResetHoveredTimeBarColor"))
 			{
 				ProjectFile::Instance()->m_GraphHoveredTimeColor =
@@ -179,12 +178,23 @@ void GraphPane::DrawGraph()
 			ImGui::ColorEdit4("Current Time Color##HoveredTimeBarColor",
 				&ProjectFile::Instance()->m_GraphHoveredTimeColor.x, ImGuiColorEditFlags_NoInputs);
 
+			if (ImGui::ContrastedButton("R##ResetMouseHoveredTimeBarColor"))
+			{
+				ProjectFile::Instance()->m_GraphMouseHoveredTimeColor =
+					ProjectFile::Instance()->m_DefaultGraphMouseHoveredTimeColor;
+			}
+
+			ImGui::SameLine();
+
+			ImGui::ColorEdit4("Mouse Over Color##MouseHoveredTimeBarColor",
+				&ProjectFile::Instance()->m_GraphMouseHoveredTimeColor.x, ImGuiColorEditFlags_NoInputs);
+
 			ImGui::EndMenu();
 		}
 
 		if (ImGui::BeginMenu("Axis Labels"))
 		{
-			if (ImGui::MenuItem(m_show_hide_y_axis ? "Show X Axis LabelsR##GraphPaneDrawPanes" : "Hide X Axis LabelsR##GraphPaneDrawPanes"))
+			if (ImGui::MenuItem(m_show_hide_x_axis ? "Show X Axis LabelsR##GraphPaneDrawPanes" : "Hide X Axis LabelsR##GraphPaneDrawPanes"))
 			{
 				m_show_hide_x_axis = !m_show_hide_x_axis;
 				_need_show_hide_x_axis = true;
@@ -207,7 +217,8 @@ void GraphPane::DrawGraph()
 	ImPlot::GetStyle().Use24HourClock = false;
 
 	const ImU32 color_bars = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphBarColor);
-	const ImU32 color_green = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphHoveredTimeColor);
+	const ImU32 color_yellow = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphHoveredTimeColor);
+	const ImU32 color_green = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphMouseHoveredTimeColor);
 	ImVec2 last_value_pos, value_pos, hovered_min_pos, hovered_max_pos;
 	for (const auto& item_cat : *LogEngine::Instance())
 	{
@@ -241,9 +252,13 @@ void GraphPane::DrawGraph()
 					ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
 
 					ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, datas.min_date, datas.max_date);
-					ImPlot::SetupAxisFormat(ImAxis_Y1, "%.2f");
+					ImPlot::SetupAxisFormat(ImAxis_Y1, "%f");
 
 					ImDrawList* draw_list = ImPlot::GetPlotDrawList();
+
+					bool plotHovered = ImPlot::IsPlotHovered();
+					ImPlotPoint plotHoveredMouse = ImPlot::GetPlotMousePos();
+					//plotHoveredMouse.x = ImPlot::RoundTime(ImPlotTime::FromDouble(plotHoveredMouse.x), ImPlotTimeUnit_Day).ToDouble();
 
 					if (ImPlot::BeginItem(item_name.first.c_str()))
 					{
@@ -263,18 +278,32 @@ void GraphPane::DrawGraph()
 						{
 							float zero_y = (float)ImPlot::PlotToPixels(0.0, 0.0).y;
 							double last_time = datas.datas_times.at(0U), current_time;
+							double current_value;
 							last_value_pos = ImPlot::PlotToPixels(last_time, datas.datas_values.at(0U));
 							for (size_t i = 1U; i < datas.datas_values.size(); ++i)
 							{
 								current_time = datas.datas_times.at(i);
-								value_pos = ImPlot::PlotToPixels(current_time, datas.datas_values.at(i));
+								current_value = datas.datas_values.at(i);
+								value_pos = ImPlot::PlotToPixels(current_time, current_value);
 								draw_list->AddRectFilled(ImVec2(last_value_pos.x, zero_y), ImVec2(value_pos.x, last_value_pos.y), color_bars);
 
 								if (hovered_time >= last_time && hovered_time <= current_time)
 								{
 									hovered_min_pos = ImPlot::PlotToPixels(hovered_time, datas.min_value);
 									hovered_max_pos = ImPlot::PlotToPixels(hovered_time, datas.max_value);
-									draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_green, 5.0f);
+									draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_yellow, 5.0f);
+								}
+
+								if (plotHovered)
+								{
+									if (plotHoveredMouse.x >= last_time && plotHoveredMouse.x <= current_time)
+									{
+										hovered_min_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas.min_value);
+										hovered_max_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas.max_value);
+										draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_green, 5.0f);
+										draw_list->AddCircleFilled(ImVec2(hovered_min_pos.x, last_value_pos.y), 5.0f, color_yellow, 24);
+										ImGui::SetTooltip("v:%f", current_value);
+									}
 								}
 
 								last_value_pos = value_pos;
