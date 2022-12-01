@@ -164,7 +164,7 @@ void ToolPane::DrawTable()
 
 void ToolPane::DisplayItem(SignalDatas& vDatas)
 {
-	auto name_str = ct::toStr("%s (%u)", vDatas.name.c_str(), (uint32_t)vDatas.count_values);
+	auto name_str = ct::toStr("%s (%u)", vDatas.name.c_str(), (uint32_t)vDatas.count_base_records);
 	if (ImGui::Selectable(name_str.c_str(), vDatas.show))
 	{
 		vDatas.show = !vDatas.show;

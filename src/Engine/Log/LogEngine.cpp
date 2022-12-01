@@ -5,20 +5,27 @@
 #include <imgui/imgui_internal.h>
 
 
-void SignalDatas::AddValue(const SignalTime& vTime, const SignalValue& vValue)
+void SignalDatas::AddValue(const SignalValue& vValue, const bool& vIncBaseRecordsCount)
 {
-	min_date = ct::mini(min_date, vTime);
-	max_date = ct::maxi(max_date, vTime);
-	min_value = ct::mini(min_value, vValue);
-	max_value = ct::maxi(max_value, vValue);
-	datas_times.push_back(vTime);
+	range_value.x = ct::mini(range_value.x, vValue);
+	range_value.y = ct::maxi(range_value.y, vValue);
 	datas_values.push_back(vValue);
+
+	if (vIncBaseRecordsCount)
+	{
+		++count_base_records;
+	}
 }
 
 void LogEngine::Clear()
 {
-	m_GraphDatas.clear();
+	m_GraphTimes.clear();
+	m_DicoTimes.clear();
+	m_GraphTimes.clear();
+	range_date = ct::dvec2(0.5, -0.5) * DBL_MAX;
+	m_GraphValues.clear();
 	m_LogDatas.clear();
+	m_SignalsShowingForSave.clear();
 }
 
 void LogEngine::AddSignalValue(const std::string& vCategory, const std::string& vName, const double& vTime, const double& vValue)
@@ -34,14 +41,16 @@ void LogEngine::AddSignalValue(const std::string& vCategory, const std::string& 
 
 		if (m_DicoTimes.find(vTime) == m_DicoTimes.end())
 		{
-			m_DicoTimes[vTime] = m_ArrayTimes.size();
-			m_ArrayTimes.push_back(vTime);
+			m_DicoTimes[vTime] = m_GraphTimes.size();
+			m_GraphTimes.push_back(vTime);
+			range_date.x = ct::mini(range_date.x, m_GraphTimes.back());
+			range_date.y = ct::maxi(range_date.y, m_GraphTimes.back());
 		}
 
 		const auto current_count = m_DicoTimes.at(vTime);
 		
 		// ajout de la categorie
-		auto& _datas_cat = m_GraphDatas[vCategory];
+		auto& _datas_cat = m_GraphValues[vCategory];
 
 		if (_datas_cat.find(vName) == _datas_cat.end()) // first value of the signal
 		{
@@ -51,13 +60,12 @@ void LogEngine::AddSignalValue(const std::string& vCategory, const std::string& 
 
 			for (size_t idx = 0U; idx < current_count; ++idx)
 			{
-				_datas_name.AddValue(m_ArrayTimes[idx], 0.0);
+				_datas_name.AddValue(0.0);
 			}
 
 			// puis on set la frame
-			_datas_name.AddValue(vTime, vValue);
+			_datas_name.AddValue(vValue, true);
 			_datas_name.low_case_name_for_search = ct::toLower(vName); // save low case signal name for search
-			_datas_name.count_values++;
 			_datas_name.show = false;
 		}
 		else // deja existant
@@ -65,17 +73,16 @@ void LogEngine::AddSignalValue(const std::string& vCategory, const std::string& 
 			auto& _datas_name = _datas_cat[vName];
 			if (current_count)
 			{
-				const auto last_local_pos = _datas_name.datas_times.size() - 1U;
+				const auto last_local_pos = _datas_name.datas_values.size() - 1U;
 				const auto global_pos = current_count - 1U;
 				for (size_t idx = last_local_pos; idx < global_pos; ++idx)
 				{
-					_datas_name.AddValue(m_ArrayTimes[idx], _datas_name.datas_values[idx]);
+					_datas_name.AddValue(_datas_name.datas_values.at(idx));
 				}
 			}
 
 			// on set le time et la valeur de cette frame
-			_datas_name.AddValue(vTime, vValue);
-			_datas_name.count_values++;
+			_datas_name.AddValue(vValue, true);
 			_datas_name.show = false;
 		}
 	}
@@ -96,12 +103,12 @@ void LogEngine::Finalize()
 			for (auto& item_name : item_cat.second)
 			{
 				auto& datas = item_name.second;
-				const auto& last_index_local = m_DicoTimes.at(datas.datas_times.back());
+				const auto& last_index_local = m_DicoTimes.at(m_GraphTimes.at(datas.datas_values.size() - 1U));
 				if (last_index_global > last_index_local)
 				{
 					for (size_t idx = last_index_local; idx < last_index_global; ++idx)
 					{
-						datas.AddValue(m_ArrayTimes[idx], datas.datas_values[idx]);
+						datas.AddValue(datas.datas_values.at(idx));
 					}
 				}
 			}
@@ -111,19 +118,19 @@ void LogEngine::Finalize()
 
 SignalDatasContainer::iterator LogEngine::begin()
 {
-	return m_GraphDatas.begin();
+	return m_GraphValues.begin();
 }
 
 SignalDatasContainer::iterator LogEngine::end()
 {
-	return m_GraphDatas.end();
+	return m_GraphValues.end();
 }
 
 void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName)
 {
-	if (m_GraphDatas.find(vCategory) != m_GraphDatas.end())
+	if (m_GraphValues.find(vCategory) != m_GraphValues.end())
 	{
-		auto& cat = m_GraphDatas.at(vCategory);
+		auto& cat = m_GraphValues.at(vCategory);
 		if (cat.find(vName) != cat.end())
 		{
 			cat.at(vName).show = !cat.at(vName).show;
@@ -133,9 +140,9 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
 
 void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool& vFlag)
 {
-	if (m_GraphDatas.find(vCategory) != m_GraphDatas.end())
+	if (m_GraphValues.find(vCategory) != m_GraphValues.end())
 	{
-		auto& cat = m_GraphDatas.at(vCategory);
+		auto& cat = m_GraphValues.at(vCategory);
 		if (cat.find(vName) != cat.end())
 		{
 			cat.at(vName).show = vFlag;
@@ -145,9 +152,9 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
 
 bool LogEngine::isSignalShown(const SignalCategory& vCategory, const SignalName& vName)
 {
-	if (m_GraphDatas.find(vCategory) != m_GraphDatas.end())
+	if (m_GraphValues.find(vCategory) != m_GraphValues.end())
 	{
-		auto& cat = m_GraphDatas.at(vCategory);
+		auto& cat = m_GraphValues.at(vCategory);
 		if (cat.find(vName) != cat.end())
 		{
 			return cat.at(vName).show;
@@ -179,7 +186,9 @@ double LogEngine::GetHoveredTime()
 
 void LogEngine::PrepareForSave()
 {
-	for (const auto& item_cat : m_GraphDatas)
+	m_SignalsShowingForSave.clear();
+
+	for (const auto& item_cat : m_GraphValues)
 	{
 		for (const auto& item_name : item_cat.second)
 		{

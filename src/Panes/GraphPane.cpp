@@ -216,6 +216,9 @@ void GraphPane::DrawGraph()
 	ImPlot::GetStyle().UseISO8601 = false;
 	ImPlot::GetStyle().Use24HourClock = false;
 
+	auto time_range = LogEngine::Instance()->GetTimeRange();
+	auto time_serie = LogEngine::Instance()->GetTimes();
+
 	const ImU32 color_bars = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphBarColor);
 	const ImU32 color_yellow = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphHoveredTimeColor);
 	const ImU32 color_green = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphMouseHoveredTimeColor);
@@ -225,6 +228,9 @@ void GraphPane::DrawGraph()
 		for (const auto& item_name : item_cat.second)
 		{
 			const auto& datas = item_name.second;
+			
+			assert(time_serie.size() == datas.datas_values.size());
+
 			if (datas.show)
 			{
 				const auto& name_str = item_cat.first + " / " + item_name.first;
@@ -247,11 +253,11 @@ void GraphPane::DrawGraph()
 
 					ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit);
 
-					ImPlot::SetupAxesLimits(datas.min_date, datas.max_date, datas.min_value, datas.max_value);
+					ImPlot::SetupAxesLimits(time_range.x, time_range.y, datas.range_value.x, datas.range_value.y);
 
 					ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
 
-					ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, datas.min_date, datas.max_date);
+					ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, time_range.x, time_range.y);
 					ImPlot::SetupAxisFormat(ImAxis_Y1, "%.2f");
 
 					ImDrawList* draw_list = ImPlot::GetPlotDrawList();
@@ -267,7 +273,7 @@ void GraphPane::DrawGraph()
 						{
 							for (size_t i = 0; i < datas.datas_values.size(); ++i)
 							{
-								ImPlot::FitPoint(ImPlotPoint(datas.datas_times.at(i), datas.datas_values.at(i)));
+								ImPlot::FitPoint(ImPlotPoint(time_serie.at(i), datas.datas_values.at(i)));
 							}
 						}
 
@@ -277,20 +283,19 @@ void GraphPane::DrawGraph()
 						if (datas.datas_values.size() > 0U)
 						{
 							float zero_y = (float)ImPlot::PlotToPixels(0.0, 0.0).y;
-							double last_time = datas.datas_times.at(0U), current_time;
-							double current_value;
+							double last_time = time_serie.at(0U), current_time, current_value;
 							last_value_pos = ImPlot::PlotToPixels(last_time, datas.datas_values.at(0U));
 							for (size_t i = 1U; i < datas.datas_values.size(); ++i)
 							{
-								current_time = datas.datas_times.at(i);
+								current_time = time_serie.at(i);
 								current_value = datas.datas_values.at(i);
 								value_pos = ImPlot::PlotToPixels(current_time, current_value);
 								draw_list->AddRectFilled(ImVec2(last_value_pos.x, zero_y), ImVec2(value_pos.x, last_value_pos.y), color_bars);
 
 								if (hovered_time >= last_time && hovered_time <= current_time)
 								{
-									hovered_min_pos = ImPlot::PlotToPixels(hovered_time, datas.min_value);
-									hovered_max_pos = ImPlot::PlotToPixels(hovered_time, datas.max_value);
+									hovered_min_pos = ImPlot::PlotToPixels(hovered_time, datas.range_value.x);
+									hovered_max_pos = ImPlot::PlotToPixels(hovered_time, datas.range_value.y);
 									draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_yellow, 5.0f);
 								}
 
@@ -298,8 +303,8 @@ void GraphPane::DrawGraph()
 								{
 									if (plotHoveredMouse.x >= last_time && plotHoveredMouse.x <= current_time)
 									{
-										hovered_min_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas.min_value);
-										hovered_max_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas.max_value);
+										hovered_min_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas.range_value.x);
+										hovered_max_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas.range_value.y);
 										draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_green, 5.0f);
 										draw_list->AddCircleFilled(ImVec2(hovered_min_pos.x, last_value_pos.y), 5.0f, color_yellow, 24);
 										ImGui::SetTooltip("time : %f\nvalue : %f", current_time, current_value);

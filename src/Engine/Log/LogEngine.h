@@ -5,24 +5,21 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <ctools/cTools.h>
 #include <Headers/Globals.h>
 #include <tinyxml2/tinyxml2.h>
 
 struct SignalDatas
 {
-	size_t count_values = 0U; // nombre d'enregistrements. on peut pas utiliser datas_values
+	size_t count_base_records = 0U; // nombre d'enregistrements. on peut pas utiliser datas_values
 	std::string low_case_name_for_search;
 	bool show = false;
-	double min_date = DBL_MAX * 0.5;
-	double max_date = DBL_MAX * -0.5;
-	double min_value = DBL_MAX * 0.5;
-	double max_value = DBL_MAX * -0.5;
-	std::vector<SignalTime> datas_times;
+	ct::dvec2 range_value = ct::dvec2(0.5, -0.5) * DBL_MAX;
 	std::vector<SignalValue> datas_values;
 	SignalCategory category;
 	SignalName name;
 
-	void AddValue(const SignalTime& vTime, const SignalValue& vValue);
+	void AddValue(const SignalValue& vValue, const bool& vIncBaseRecordsCount = false);
 };
 
 typedef std::string SignalName;
@@ -42,12 +39,13 @@ typedef std::vector<LogDatas> LogDatasContainer;
 
 class LogEngine
 {
-private: // temproary for add vaalue in containers
+private: // add vaalue in containers
 	std::map<SignalTime, size_t> m_DicoTimes; // time to array index
-	std::vector<SignalTime> m_ArrayTimes; // array of time
 
 private:
-	SignalDatasContainer m_GraphDatas;
+	SignalDatasContainer m_GraphValues;
+	ct::dvec2 range_date = ct::dvec2(0.5, -0.5) * DBL_MAX;
+	std::vector<SignalTime> m_GraphTimes; // array of time
 	LogDatasContainer m_LogDatas;
 	double m_HoveredTime = 0.0;
 	std::unordered_map<SignalName, std::unordered_map<SignalCategory, bool>> m_SignalsShowingForSave;
@@ -65,7 +63,11 @@ public:
 	void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool& vFlag);
 	bool isSignalShown(const SignalCategory& vCategory, const SignalName& vName);
 
-	// gat LogDatasContainer
+	// get times
+	std::vector<SignalTime>& GetTimes() { return m_GraphTimes; }
+	const ct::dvec2& GetTimeRange() const { return range_date; }
+
+	// get LogDatasContainer
 	LogDatas& at(const size_t& vIdx);
 	size_t logDatasSize();
 
