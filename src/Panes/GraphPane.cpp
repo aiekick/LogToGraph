@@ -147,6 +147,15 @@ int BinarySearch(const T* arr, int l, int r, T x)
 	return -1;
 }
 
+// https://www.shadertoy.com/view/ld3fzf
+static ct::fvec4 GetRainBow(int32_t vIdx, int32_t vCount)
+{
+	float r = (float)(vIdx + 1U) / (float)vCount;
+	auto c = ct::cos(ct::fvec4(0.0f, 23.0f, 21.0f, 1.0f) + r * 6.3f) * 0.5f + 0.5f;
+	c.w = 0.75f;
+	return c;
+}
+
 void GraphPane::DrawGraph()
 {
 	bool _need_show_hide_x_axis = false;
@@ -219,20 +228,26 @@ void GraphPane::DrawGraph()
 	auto time_range = LogEngine::Instance()->GetTimeRange();
 	auto time_serie = LogEngine::Instance()->GetTimes();
 
-	const ImU32 color_bars = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphBarColor);
+	//const ImU32 color_bars = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphBarColor);
 	const ImU32 color_yellow = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphHoveredTimeColor);
 	const ImU32 color_green = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphMouseHoveredTimeColor);
 	ImVec2 last_value_pos, value_pos, hovered_min_pos, hovered_max_pos;
-	for (const auto& item_cat : *LogEngine::Instance())
+
+	auto visible_count = LogEngine::Instance()->GetVisibleCount();
+	
+	int32_t visible_idx = 0;
+	for (auto& item_cat : LogEngine::Instance()->GetGraphValues())
 	{
-		for (const auto& item_name : item_cat.second)
+		for (auto& item_name : item_cat.second)
 		{
-			const auto& datas = item_name.second;
+			auto& datas = item_name.second;
 			
 			assert(time_serie.size() == datas.datas_values.size());
 
 			if (datas.show)
 			{
+				datas.color = ImGui::GetColorU32(ct::toImVec4(GetRainBow(visible_idx, visible_count)));
+
 				const auto& name_str = item_cat.first + " / " + item_name.first;
 
 				if (ImPlot::BeginPlot(name_str.c_str(), ImVec2(-1, 200), ImPlotFlags_NoLegend/* | ImPlotFlags_Crosshairs*/))
@@ -290,13 +305,16 @@ void GraphPane::DrawGraph()
 								current_time = time_serie.at(i);
 								current_value = datas.datas_values.at(i);
 								value_pos = ImPlot::PlotToPixels(current_time, current_value);
-								draw_list->AddRectFilled(ImVec2(last_value_pos.x, zero_y), ImVec2(value_pos.x, last_value_pos.y), color_bars);
+
+								draw_list->AddLine(last_value_pos, ImVec2(value_pos.x, last_value_pos.y), datas.color, 2.0f);
+								draw_list->AddLine(ImVec2(value_pos.x, last_value_pos.y), value_pos, datas.color, 2.0f);
+								//draw_list->AddRectFilled(ImVec2(last_value_pos.x, zero_y), ImVec2(value_pos.x, last_value_pos.y), datas.color);
 
 								if (hovered_time >= last_time && hovered_time <= current_time)
 								{
 									hovered_min_pos = ImPlot::PlotToPixels(hovered_time, datas.range_value.x);
 									hovered_max_pos = ImPlot::PlotToPixels(hovered_time, datas.range_value.y);
-									draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_yellow, 5.0f);
+									draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_yellow, 4.0f);
 								}
 
 								if (plotHovered)
@@ -305,9 +323,20 @@ void GraphPane::DrawGraph()
 									{
 										hovered_min_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas.range_value.x);
 										hovered_max_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas.range_value.y);
-										draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_green, 5.0f);
-										draw_list->AddCircleFilled(ImVec2(hovered_min_pos.x, last_value_pos.y), 5.0f, color_yellow, 24);
-										ImGui::SetTooltip("time : %f\nvalue : %f", current_time, current_value);
+										draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_green, 2.0f);
+										auto pos = ImVec2(hovered_min_pos.x, last_value_pos.y);
+										draw_list->AddLine(pos - ImVec2(20.0f, 0.0f), pos + ImVec2(20.0f, 0.0f), color_green, 2.0f);
+										draw_list->AddCircle(pos, 5.0f, color_yellow, 24, 2.0f);
+
+										// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
+										double seconds = ct::fract(current_time); // 0.067365000
+										std::time_t _epoch_time = (std::time_t)current_time;
+										auto tm = std::localtime(&_epoch_time);
+										double _sec = (double)tm->tm_sec + seconds;
+										auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
+											tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
+											tm->tm_hour, tm->tm_min, _sec);
+										ImGui::SetTooltip("time : %f\ndate : %s\nvalue : %f", current_time, date_str.c_str(), current_value);
 									}
 								}
 
@@ -321,6 +350,8 @@ void GraphPane::DrawGraph()
 
 					ImPlot::EndPlot();
 				}
+
+				++visible_idx;
 			}
 		}
 	}

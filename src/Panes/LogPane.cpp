@@ -27,7 +27,6 @@ limitations under the License.
 #include <imgui/imgui_internal.h>
 #include <Panes/Manager/LayoutManager.h>
 #include <Contrib/ImWidgets/ImWidgets.h>
-
 #include <cinttypes> // printf zu
 
 static int GeneratorPaneWidgetId = 0;
@@ -188,17 +187,18 @@ void LogPane::DrawTable()
 	bool _need_re_preparation = false;
 
 	auto listViewID = ImGui::GetID("##LogPane_DrawTable");
-	if (ImGui::BeginTableEx("##LogPane_DrawTable", listViewID, 4, flags)) //-V112
+	if (ImGui::BeginTableEx("##LogPane_DrawTable", listViewID, 5, flags)) //-V112
 	{
 		ImGui::TableSetupScrollFreeze(0, 1); // Make header always visible
-		ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthStretch, -1, 0);
-		ImGui::TableSetupColumn("Category", ImGuiTableColumnFlags_WidthStretch, -1, 1);
-		ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, -1, 2);
-		ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, -1, 3);
+		ImGui::TableSetupColumn("Epoch Time", ImGuiTableColumnFlags_WidthStretch, -1, 0);
+		ImGui::TableSetupColumn("Date Time", ImGuiTableColumnFlags_WidthStretch, -1, 1);
+		ImGui::TableSetupColumn("Category", ImGuiTableColumnFlags_WidthStretch, -1, 2);
+		ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, -1, 3);
+		ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, -1, 4);
 
 		ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 
-		for (int column = 0; column < 4; column++) //-V112
+		for (int column = 0; column < 5; column++) //-V112
 		{
 			ImGui::TableSetColumnIndex(column);
 			const char* column_name = ImGui::TableGetColumnName(column); // Retrieve name passed to TableSetupColumn()
@@ -207,6 +207,8 @@ void LogPane::DrawTable()
 			ImGui::PopID();
 		}
 
+		uint32_t count_color_push = 0U;
+		ImU32 color = 0U;
 		bool selected = false;
 		m_LogListClipper.Begin((int)_count_logs, ImGui::GetTextLineHeightWithSpacing());
 		while (m_LogListClipper.Step())
@@ -219,17 +221,32 @@ void LogPane::DrawTable()
 
 				ImGui::TableNextRow();
 
+				selected = LogEngine::Instance()->isSignalShown(infos.category, infos.name, &color);
+				if (selected && color)
+				{
+					ImGui::PushStyleColor(ImGuiCol_Header, (ImU32)color);
+					ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
+					ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
+					count_color_push = 3U;
+					if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
+						ImGui::CustomStyle::Instance()->puContrastedTextColor,
+						ImGui::CustomStyle::Instance()->puContrastRatio))
+					{
+						count_color_push = 4U;
+					}
+				}
+				else
+				{
+					color = 0U;
+				}
+
 				if (ImGui::TableNextColumn()) // time
 				{
-					selected = LogEngine::Instance()->isSignalShown(infos.category, infos.name);
-					if (ImGui::Selectable(ct::toStr("%f", infos.time).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns))
-					{
-						//m_SelectedIndex = (size_t)i;
-					}
+					ImGui::Selectable(ct::toStr("%f", infos.time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
 
 					if (ImGui::IsItemHovered())
 					{
-						LogEngine::Instance()->SetHoveredTime(infos.time);
+						LogEngine::Instance()->SetHoveredTime(infos.time_epoch);
 
 						if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 						{
@@ -241,17 +258,26 @@ void LogPane::DrawTable()
 						}
 					}
 				}
+				if (ImGui::TableNextColumn()) // date time
+				{
+					ImGui::Selectable(infos.time_date_time.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+				}
 				if (ImGui::TableNextColumn()) // category
 				{
-					ImGui::Text("%s", infos.category.c_str());
+					ImGui::Selectable(infos.category.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
 				}
 				if (ImGui::TableNextColumn()) // name
 				{
-					ImGui::Text("%s ", infos.name.c_str());
+					ImGui::Selectable(infos.name.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
 				}
 				if (ImGui::TableNextColumn()) // value
 				{
 					ImGui::Text("%f", infos.value);
+				}
+
+				if (color)
+				{
+					ImGui::PopStyleColor(count_color_push);
 				}
 			}
 		}

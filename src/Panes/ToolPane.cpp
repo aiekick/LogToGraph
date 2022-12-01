@@ -251,7 +251,7 @@ void ToolPane::DrawTree()
 	else
 	{
 		// affichage arborescent ordonné par categorie
-		for (auto& item_cat : *LogEngine::Instance())
+		for (auto& item_cat : LogEngine::Instance()->GetGraphValues())
 		{
 			if (_collapse_all)
 			{
@@ -287,7 +287,7 @@ void ToolPane::PrepareLogAfterSearch(const std::string& vSearchString)
 	{
 		m_CategoryLessDatas.clear();
 
-		for (auto& item_cat : *LogEngine::Instance())
+		for (auto& item_cat : LogEngine::Instance()->GetGraphValues())
 		{
 			for (auto& item_name : item_cat.second)
 			{
@@ -306,7 +306,7 @@ void ToolPane::HideAllGraphs()
 {
 	bool _one_at_least = false;
 
-	for (auto& item_cat : *LogEngine::Instance())
+	for (auto& item_cat : LogEngine::Instance()->GetGraphValues())
 	{
 		for (auto& item_name : item_cat.second)
 		{

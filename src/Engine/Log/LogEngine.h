@@ -18,6 +18,7 @@ struct SignalDatas
 	std::vector<SignalValue> datas_values;
 	SignalCategory category;
 	SignalName name;
+	uint32_t color;
 
 	void AddValue(const SignalValue& vValue, const bool& vIncBaseRecordsCount = false);
 };
@@ -29,7 +30,8 @@ typedef std::map<SignalName, SignalDatas> OrderedCategoryLessSignalDatasContaine
 
 struct LogDatas
 {
-	SignalTime time;
+	SignalEpochTime time_epoch;
+	SignalDateTime time_date_time;
 	SignalCategory category;
 	SignalName name;
 	SignalValue value;
@@ -40,31 +42,31 @@ typedef std::vector<LogDatas> LogDatasContainer;
 class LogEngine
 {
 private: // add vaalue in containers
-	std::map<SignalTime, size_t> m_DicoTimes; // time to array index
+	std::map<SignalEpochTime, size_t> m_DicoTimes; // time to array index
 
 private:
 	SignalDatasContainer m_GraphValues;
 	ct::dvec2 range_date = ct::dvec2(0.5, -0.5) * DBL_MAX;
-	std::vector<SignalTime> m_GraphTimes; // array of time
+	std::vector<SignalEpochTime> m_GraphTimes; // array of time
 	LogDatasContainer m_LogDatas;
 	double m_HoveredTime = 0.0;
 	std::unordered_map<SignalName, std::unordered_map<SignalCategory, bool>> m_SignalsShowingForSave;
 	SignalCategory m_CurrentCategoryLoaded;
 
+	int32_t m_VisibleCount = 0;
+
 public:
 	void Clear();
-	void AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalTime& vDate, const SignalValue& vValue);
+	void AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue);
 	void Finalize();
 
 	// iter SignalDatasContainer
-	SignalDatasContainer::iterator begin();
-	SignalDatasContainer::iterator end();
 	void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName);
 	void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool& vFlag);
-	bool isSignalShown(const SignalCategory& vCategory, const SignalName& vName);
+	bool isSignalShown(const SignalCategory& vCategory, const SignalName& vName, SignalColor* vOutColorPtr = nullptr);
 
 	// get times
-	std::vector<SignalTime>& GetTimes() { return m_GraphTimes; }
+	std::vector<SignalEpochTime>& GetTimes() { return m_GraphTimes; }
 	const ct::dvec2& GetTimeRange() const { return range_date; }
 
 	// get LogDatasContainer
@@ -74,10 +76,13 @@ public:
 	void SetHoveredTime(const double& vValue);
 	double GetHoveredTime();
 
+	SignalDatasContainer& GetGraphValues() { return m_GraphValues; };
+
 	void PrepareForSave();
 	void PrepareAfterLoad();
 	bool setSignalVisibilty(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/);
 	std::string getSignalVisibilty(const std::string& vOffset, const std::string& /*vUserDatas*/);
+	const int32_t& GetVisibleCount() const { return m_VisibleCount; }
 
 public: // singleton
 	static std::shared_ptr<LogEngine> Instance()
