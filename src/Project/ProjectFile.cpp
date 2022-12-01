@@ -23,6 +23,7 @@
 #include <Panes/Manager/LayoutManager.h>
 #include <Engine/Lua/LuaEngine.h>
 #include <Engine/Log/LogEngine.h>
+#include <Panes/CodePane.h>
 
 /*ProjectFile::ProjectFile(const std::string & vFilePathName)
 {
@@ -86,6 +87,7 @@ bool ProjectFile::LoadAs(const std::string vFilePathName)
 			ProjectFile::Instance()->m_ProjectFilePath = ps.path;
 			LuaEngine::Instance()->ExecScriptOnFile();
 			LogEngine::Instance()->PrepareAfterLoad();
+			CodePane::Instance()->SetCodeFile(LuaEngine::Instance()->GetLuaFilePathName());
 		}
 		m_IsLoaded = true;
 		m_NeverSaved = false;

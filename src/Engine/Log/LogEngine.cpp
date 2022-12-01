@@ -39,7 +39,7 @@ void LogEngine::AddSignalValue(const std::string& vCategory, const std::string& 
 		}
 
 		const auto current_count = m_DicoTimes.at(vTime);
-
+		
 		// ajout de la categorie
 		auto& _datas_cat = m_GraphDatas[vCategory];
 
@@ -63,13 +63,14 @@ void LogEngine::AddSignalValue(const std::string& vCategory, const std::string& 
 		else // deja existant
 		{
 			auto& _datas_name = _datas_cat[vName];
-
-			const auto last_local_pos = _datas_name.datas_times.size() - 1U;
-			const auto global_pos = current_count - 1U;
-
-			for (size_t idx = last_local_pos; idx < global_pos; ++idx)
+			if (current_count)
 			{
-				_datas_name.AddValue(m_ArrayTimes[idx], _datas_name.datas_values[idx]);
+				const auto last_local_pos = _datas_name.datas_times.size() - 1U;
+				const auto global_pos = current_count - 1U;
+				for (size_t idx = last_local_pos; idx < global_pos; ++idx)
+				{
+					_datas_name.AddValue(m_ArrayTimes[idx], _datas_name.datas_values[idx]);
+				}
 			}
 
 			// on set le time et la valeur de cette frame
@@ -85,20 +86,23 @@ void LogEngine::Finalize()
 	// on va remplir la fin de cahque champs
 
 	// last index
-	const auto& last_index_global = m_DicoTimes.at(m_LogDatas.back().time);
-
-	// on va ajouter les tick manquant a la fin
-	for (auto& item_cat : *LogEngine::Instance())
+	if (!m_DicoTimes.empty() && !m_LogDatas.empty())
 	{
-		for (auto& item_name : item_cat.second)
+		const auto& last_index_global = m_DicoTimes.at(m_LogDatas.back().time);
+
+		// on va ajouter les tick manquant a la fin
+		for (auto& item_cat : *LogEngine::Instance())
 		{
-			auto& datas = item_name.second;
-			const auto& last_index_local = m_DicoTimes.at(datas.datas_times.back());
-			if (last_index_global > last_index_local)
+			for (auto& item_name : item_cat.second)
 			{
-				for (size_t idx = last_index_local; idx < last_index_global; ++idx)
+				auto& datas = item_name.second;
+				const auto& last_index_local = m_DicoTimes.at(datas.datas_times.back());
+				if (last_index_global > last_index_local)
 				{
-					datas.AddValue(m_ArrayTimes[idx], datas.datas_values[idx]);
+					for (size_t idx = last_index_local; idx < last_index_global; ++idx)
+					{
+						datas.AddValue(m_ArrayTimes[idx], datas.datas_values[idx]);
+					}
 				}
 			}
 		}

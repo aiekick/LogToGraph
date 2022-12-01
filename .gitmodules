@@ -46,3 +46,7 @@
 	path = 3rdparty/BuildInc
 	url = https://github.com/aiekick/buildinc.git
 	branch = master
+[submodule "3rdparty/ImGuiColorTextEdit"]
+	path = 3rdparty/ImGuiColorTextEdit
+	url = https://github.com/aiekick/ImGuiColorTextEdit.git
+	branch = master

@@ -121,6 +121,8 @@ int main(int, char**argv)
     ImGui::GetIO().Fonts->AddFontFromMemoryCompressedBase85TTF(FONT_ICON_BUFFER_NAME_NDP, 15.0f, &icons_config, icons_ranges);
     static const ImWchar icons_ranges2[] = {ICON_MIN_NDP2, ICON_MAX_NDP2, 0};
     ImGui::GetIO().Fonts->AddFontFromMemoryCompressedBase85TTF(FONT_ICON_BUFFER_NAME_NDP2, 15.0f, &icons_config, icons_ranges2);
+    static const ImWchar icons_ranges3[] = {ICON_MIN_NDPTB, ICON_MAX_NDPTB, 0};
+    ImGui::GetIO().Fonts->AddFontFromMemoryCompressedBase85TTF(FONT_ICON_BUFFER_NAME_NDPTB, 15.0f, &icons_config, icons_ranges3);
 
 	MainFrame::Instance(mainWindow)->Init();
 

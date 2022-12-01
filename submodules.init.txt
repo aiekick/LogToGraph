@@ -8,3 +8,4 @@ git submodule add --force -b "docking" https://github.com/ocornut/imgui.git 3rdp
 git submodule add --force -b "master" https://github.com/epezent/implot.git 3rdparty/implot
 git submodule add --force -b "master" https://github.com/freetype/freetype2.git 3rdparty/freetype2
 git submodule add --force -b "master" https://github.com/aiekick/buildinc.git 3rdparty/BuildInc
+git submodule add --force -b "master" https://github.com/aiekick/ImGuiColorTextEdit.git 3rdparty/ImGuiColorTextEdit

@@ -6,14 +6,15 @@ if (CMAKE_SYSTEM_NAME STREQUAL Linux)
 endif ()
 
 ## contrib
+include(cmake/stb.cmake)
+include(cmake/lua.cmake)
 include(cmake/glad.cmake)
 include(cmake/glfw.cmake)
-include(cmake/stb.cmake)
-include(cmake/implot.cmake)
 include(cmake/imgui.cmake)
+include(cmake/implot.cmake)
 include(cmake/tinyxml2.cmake)
 include(cmake/freetype.cmake)
-include(cmake/lua.cmake)
+include(cmake/imguicolortextedit.cmake)
 
 ## aiekick
 include(cmake/ctools.cmake)

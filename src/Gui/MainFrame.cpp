@@ -42,6 +42,7 @@
 #include <Panes/LogPane.h>
 #include <Panes/GraphPane.h>
 #include <Panes/ConsolePane.h>
+#include <Panes/CodePane.h>
 
 #include <Engine/Lua/LuaEngine.h>
 
@@ -74,6 +75,7 @@ void MainFrame::Init()
 	LayoutManager::Instance()->AddPane(LogPane::Instance(), ICON_NDP2_FILE_DOCUMENT_BOX " Logs", "", PaneDisposal::RIGHT, true, false);
 	LayoutManager::Instance()->AddPane(GraphPane::Instance(), ICON_NDP2_CHART_LINE " Graphs", "", PaneDisposal::CENTRAL, true, false);
 	LayoutManager::Instance()->AddPane(ConsolePane::Instance(), ICON_NDP2_COMMENT_TEXT_MULTIPLE " Console", "", PaneDisposal::BOTTOM, false, false);
+	LayoutManager::Instance()->AddPane(CodePane::Instance(), ICON_NDP2_COMMENT_TEXT " Code", "", PaneDisposal::RIGHT, false, false);
 
 	// ConsolePane have a flag only after AddPane() call
 	Messaging::sMessagePaneId = ConsolePane::Instance()->GetPaneFlag();
@@ -208,10 +210,6 @@ void MainFrame::Display(ImVec2 vPos, ImVec2 vSize)
 
 void MainFrame::DrawMainMenuBar()
 {
-	ImGui::Text("%.1f f/s", ImGui::GetIO().Framerate);
-
-	ImGui::Spacing();
-
 	if (ImGui::BeginMenu(ICON_NDP_DOT_CIRCLE_O " Project"))
 	{
 		if (ImGui::MenuItem(ICON_NDP2_FILE " New"))
@@ -271,11 +269,6 @@ void MainFrame::DrawMainMenuBar()
 
 	if (ImGui::BeginMenu(ICON_NDP_COG " Settings"))
 	{
-		/*if (ImGui::MenuItem("Settings"))
-		{
-			//SettingsDlg::Instance()->OpenDialog();
-		}*/
-
 		if (ImGui::BeginMenu(ICON_NDP_PENCIL_SQUARE " Styles"))
 		{
 			ThemeHelper::Instance()->DrawMenu();
@@ -453,7 +446,7 @@ open project :
 		{
 			CloseUnSavedDialog(); 
 			ImGuiFileDialog::Instance()->OpenDialog(
-				"OpenProjectDlg", "Open Project File", "Project File{.lt}", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
+				"OpenProjectDlg", "Open Project File", "Project File{.ltg}", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
 			return true;
 		});
 	m_ActionSystem.Add([this]()
@@ -497,7 +490,7 @@ save project :
 			{
 				CloseUnSavedDialog();
 				ImGuiFileDialog::Instance()->OpenDialog(
-					"SaveProjectDlg", "Save Project File", "Project File{.lt}", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
+					"SaveProjectDlg", "Save Project File", "Project File{.ltg}", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
 			}
 			return true;
 		});
@@ -518,7 +511,7 @@ save as project :
 		{
 			CloseUnSavedDialog();
 			ImGuiFileDialog::Instance()->OpenDialog(
-				"SaveProjectDlg", "Save Project File", "Project File{.lt}", ".",
+				"SaveProjectDlg", "Save Project File", "Project File{.ltg}", ".",
 				1, nullptr, ImGuiFileDialogFlags_ConfirmOverwrite | ImGuiFileDialogFlags_Modal);
 			return true;
 		});
@@ -606,7 +599,7 @@ bool MainFrame::Action_UnSavedDialog_SaveProject()
 			{
 				CloseUnSavedDialog();
 				ImGuiFileDialog::Instance()->OpenDialog(
-					"SaveProjectDlg", "Save Project File", "Project File{.lt}",
+					"SaveProjectDlg", "Save Project File", "Project File{.ltg}",
 					".", 1, nullptr, ImGuiFileDialogFlags_ConfirmOverwrite | ImGuiFileDialogFlags_Modal);
 				return true;
 			});
@@ -624,7 +617,7 @@ void MainFrame::Action_UnSavedDialog_SaveAsProject()
 		{
 			CloseUnSavedDialog();
 			ImGuiFileDialog::Instance()->OpenDialog(
-				"SaveProjectDlg", "Save Project File", "Project File{.lt}",
+				"SaveProjectDlg", "Save Project File", "Project File{.ltg}",
 				".", 1, nullptr, ImGuiFileDialogFlags_ConfirmOverwrite | ImGuiFileDialogFlags_Modal);
 			return true;
 		});
@@ -732,7 +725,7 @@ void MainFrame::JustDropFiles(int /*count*/, const char** /*paths*/)
 		{
 			dicoFont[f] = f;
 		}
-		if (f_opt.find(".lt") != std::string::npos)
+		if (f_opt.find(".ltg") != std::string::npos)
 		{
 			prj = f;
 		}

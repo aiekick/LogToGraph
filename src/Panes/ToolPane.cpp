@@ -31,6 +31,7 @@ limitations under the License.
 #include <Engine/Log/LogEngine.h>
 #include <cinttypes> // printf zu
 #include <Panes/LogPane.h>
+#include <Panes/CodePane.h>
 
 static int SourcePane_WidgetId = 0;
 
@@ -98,6 +99,7 @@ void ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, std::stri
 			if (ImGuiFileDialog::Instance()->IsOk())
 			{
 				LuaEngine::Instance()->SetLuaFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
+				CodePane::Instance()->SetCodeFile(ImGuiFileDialog::Instance()->GetFilePathName());
 				ProjectFile::Instance()->SetProjectChange();
 			}
 
@@ -132,22 +134,22 @@ void ToolPane::UpdateTree()
 void ToolPane::DrawTable()
 {
 	ImGui::Header("Lua Script File");
-	ImGui::Text(LuaEngine::Instance()->GetLuaFilePathName().c_str());
 	if (ImGui::ContrastedButton("Choose a Lua Script File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
 	{
-		ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Lua Script File", ".*,.lua",
+		ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Lua Script File", ".lua,.*",
 			LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
 	}
+	ImGui::TextWrapped(LuaEngine::Instance()->GetLuaFilePathName().c_str());
 
 	ImGui::Separator();
 
 	ImGui::Header("Log File");
-	ImGui::Text(LuaEngine::Instance()->GetLogFilePathName().c_str());
 	if (ImGui::ContrastedButton("Choose a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
 	{
 		ImGuiFileDialog::Instance()->OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*",
 			LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
 	}
+	ImGui::TextWrapped(LuaEngine::Instance()->GetLogFilePathName().c_str());
 
 	ImGui::Separator();
 

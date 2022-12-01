@@ -229,7 +229,7 @@ void GraphPane::DrawGraph()
 			{
 				const auto& name_str = item_cat.first + " / " + item_name.first;
 
-				if (ImPlot::BeginPlot(name_str.c_str(), ImVec2(-1, 150), ImPlotFlags_NoLegend/* | ImPlotFlags_Crosshairs*/))
+				if (ImPlot::BeginPlot(name_str.c_str(), ImVec2(-1, 200), ImPlotFlags_NoLegend/* | ImPlotFlags_Crosshairs*/))
 				{
 					if (_need_show_hide_x_axis)
 					{
@@ -252,7 +252,7 @@ void GraphPane::DrawGraph()
 					ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
 
 					ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, datas.min_date, datas.max_date);
-					ImPlot::SetupAxisFormat(ImAxis_Y1, "%f");
+					ImPlot::SetupAxisFormat(ImAxis_Y1, "%.2f");
 
 					ImDrawList* draw_list = ImPlot::GetPlotDrawList();
 
@@ -302,7 +302,7 @@ void GraphPane::DrawGraph()
 										hovered_max_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas.max_value);
 										draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_green, 5.0f);
 										draw_list->AddCircleFilled(ImVec2(hovered_min_pos.x, last_value_pos.y), 5.0f, color_yellow, 24);
-										ImGui::SetTooltip("v:%f", current_value);
+										ImGui::SetTooltip("time : %f\nvalue : %f", current_time, current_value);
 									}
 								}
 

@@ -31,6 +31,7 @@ public:
 	void Unit();
 
 	bool ExecScriptOnFile();
+	bool ExecScriptCode(const std::string& vCode, std::string& vErrors);
 
 	void SetInfos(const std::string& vInfos);
 	void SetBufferNameForCurrentLine(const std::string& vName);

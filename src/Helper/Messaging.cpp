@@ -614,5 +614,6 @@ void Messaging::ClearInfos()
 void Messaging::Clear()
 {
 	puMessages.clear();
-	puMessageExistFlags = MESSAGE_EXIST_NONE;
+	puFilteredMessages.clear();
+	//puMessageExistFlags = MESSAGE_EXIST_NONE;
 }

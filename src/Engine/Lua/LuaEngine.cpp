@@ -21,6 +21,34 @@ extern "C"
 /// CUSTOM LUA FUNCTIONS //////////////////////////
 ///////////////////////////////////////////////////
 
+// custom print for output redirection
+// based on luaB_print in lbaselib.c
+static int lua_int_print_args(lua_State* L) 
+{
+    std::string res;
+
+    int n = lua_gettop(L);
+    for (int i = 1; i <= n; i++) 
+    {
+        size_t l;
+        const char* s = luaL_tolstring(L, i, &l);  /* convert it to string */
+        if (i > 1)  /* not the first element? */
+        {
+            res += '\t';
+            //fwrite(("\t"), sizeof(char), (1), stdout); /* add a tab before it */
+        }
+        res += std::string(s, l);
+        //fwrite((s), sizeof(char), (l), stdout); /* print it */
+        lua_settop(L, -(n)-1);  /* pop result */
+    }
+    res += '\n';
+    //fwrite(("\n"), sizeof(char), (1), stdout);
+    LogVarLightInfo("%s", res.c_str());
+   // fflush(stdout);
+    return 0;
+}
+
+
 // Test function
 static int Lua_void_SetInfos_string(lua_State* L)
 {
@@ -225,6 +253,7 @@ bool LuaEngine::Init()
         luaL_openlibs(m_LuaState); // lua access to basic libraries
 
         // register custom functions
+        lua_register(m_LuaState, "print", lua_int_print_args);
         lua_register(m_LuaState, "LogInfo", Lua_void_LogInfo_string);
         lua_register(m_LuaState, "LogWarning", Lua_void_LogWarning_string);
         lua_register(m_LuaState, "LogError", Lua_void_LogError_string);
@@ -330,6 +359,20 @@ bool LuaEngine::ExecScriptOnFile()
     }
 
     return false;
+}
+
+bool LuaEngine::ExecScriptCode(const std::string& vCode, std::string& vErrors)
+{
+    if (luaL_dostring(m_LuaState, vCode.c_str()) != LUA_OK)
+    {
+        vErrors = std::string(lua_tostring(m_LuaState, -1));
+
+        LogVarLightError("%s", vErrors.c_str());
+
+        return false;
+    }
+
+    return true;
 }
 
 void LuaEngine::SetInfos(const std::string& vInfos)
