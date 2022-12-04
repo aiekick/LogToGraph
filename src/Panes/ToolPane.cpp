@@ -230,55 +230,59 @@ void ToolPane::DrawTree()
 		PrepareLogAfterSearch(search_string);
 	}
 
-	if (!search_string.empty())
+	if (ImGui::BeginChild("##ItemsToolPaneDrawTree"))
 	{
-		// if first frame is not built
-		if (m_CategoryLessDatas.empty())
+		if (!search_string.empty())
 		{
-			PrepareLogAfterSearch(search_string);
-		}
-
-		ImGui::Indent();
-
-		// affichage ordonné sans les categorie
-		for (auto& item_name : m_CategoryLessDatas)
-		{
-			DisplayItem(item_name.second);
-		}
-
-		ImGui::Unindent();
-	}
-	else
-	{
-		// affichage arborescent ordonné par categorie
-		for (auto& item_cat : LogEngine::Instance()->GetGraphValues())
-		{
-			if (_collapse_all)
+			// if first frame is not built
+			if (m_CategoryLessDatas.empty())
 			{
-				ImGui::SetNextItemOpen(false);
+				PrepareLogAfterSearch(search_string);
 			}
 
-			if (_expand_all)
+			ImGui::Indent();
+
+			// affichage ordonné sans les categorie
+			for (auto& item_name : m_CategoryLessDatas)
 			{
-				ImGui::SetNextItemOpen(true);
+				DisplayItem(item_name.second);
 			}
 
-			auto cat_str = ct::toStr("%s (%u)", item_cat.first.c_str(), (uint32_t)item_cat.second.size());
-			if (ImGui::TreeNode(cat_str.c_str()))
+			ImGui::Unindent();
+		}
+		else
+		{
+			// affichage arborescent ordonné par categorie
+			for (auto& item_cat : LogEngine::Instance()->GetGraphValues())
 			{
-				ImGui::Indent();
-
-				for (auto& item_name : item_cat.second)
+				if (_collapse_all)
 				{
-					DisplayItem(item_name.second);
+					ImGui::SetNextItemOpen(false);
 				}
 
-				ImGui::Unindent();
+				if (_expand_all)
+				{
+					ImGui::SetNextItemOpen(true);
+				}
 
-				ImGui::TreePop();
+				auto cat_str = ct::toStr("%s (%u)", item_cat.first.c_str(), (uint32_t)item_cat.second.size());
+				if (ImGui::TreeNode(cat_str.c_str()))
+				{
+					ImGui::Indent();
+
+					for (auto& item_name : item_cat.second)
+					{
+						DisplayItem(item_name.second);
+					}
+
+					ImGui::Unindent();
+
+					ImGui::TreePop();
+				}
 			}
 		}
 	}
+	ImGui::EndChild();
 }
 
 void ToolPane::PrepareLogAfterSearch(const std::string& vSearchString)
