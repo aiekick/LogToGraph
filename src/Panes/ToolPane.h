@@ -29,7 +29,7 @@ class ToolPane : public AbstractPane
 {
 private:
 	ImGuiListClipper m_FileListClipper;
-	OrderedCategoryLessSignalDatasContainer m_CategoryLessDatas;
+	std::map<SignalName, SignalSerieWeak> m_SignalSeries;
 
 public:
 	bool Init() override;
@@ -55,7 +55,7 @@ public:
 
 private:
 	void DrawTable();
-	void DisplayItem(SignalDatas& vDatas);
+	void DisplayItem(SignalSerieWeak vDatasSerie);
 	void DrawTree();
 	void PrepareLogAfterSearch(const std::string& vSearchString);
 	void HideAllGraphs();

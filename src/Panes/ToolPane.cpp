@@ -27,11 +27,14 @@ limitations under the License.
 #include <imgui/imgui_internal.h>
 #include <Panes/Manager/LayoutManager.h>
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
-#include <Engine/Lua/LuaEngine.h>
-#include <Engine/Log/LogEngine.h>
 #include <cinttypes> // printf zu
 #include <Panes/LogPane.h>
 #include <Panes/CodePane.h>
+
+#include <Engine/Lua/LuaEngine.h>
+#include <Engine/Log/LogEngine.h>
+#include <Engine/Log/SignalSerie.h>
+#include <Engine/Log/SignalTick.h>
 
 static int SourcePane_WidgetId = 0;
 
@@ -162,22 +165,29 @@ void ToolPane::DrawTable()
 	}
 }
 
-void ToolPane::DisplayItem(SignalDatas& vDatas)
+void ToolPane::DisplayItem(SignalSerieWeak vDatasSerie)
 {
-	auto name_str = ct::toStr("%s (%u)", vDatas.name.c_str(), (uint32_t)vDatas.count_base_records);
-	if (ImGui::Selectable(name_str.c_str(), vDatas.show))
+	if (!vDatasSerie.expired())
 	{
-		vDatas.show = !vDatas.show;
-
-		LogEngine::Instance()->ShowHideSignal(
-			vDatas.category, vDatas.name, vDatas.show);
-
-		if (ProjectFile::Instance()->m_CollapseLogSelection)
+		auto ptr = vDatasSerie.lock();
+		if (ptr)
 		{
-			LogPane::Instance()->PrepareLog();
-		}
+			auto name_str = ct::toStr("%s (%u)", ptr->name.c_str(), (uint32_t)ptr->count_base_records);
+			if (ImGui::Selectable(name_str.c_str(), ptr->show))
+			{
+				ptr->show = !ptr->show;
 
-		ProjectFile::Instance()->SetProjectChange();
+				LogEngine::Instance()->ShowHideSignal(
+					ptr->category, ptr->name, ptr->show);
+
+				if (ProjectFile::Instance()->m_CollapseLogSelection)
+				{
+					LogPane::Instance()->PrepareLog();
+				}
+
+				ProjectFile::Instance()->SetProjectChange();
+			}
+		}
 	}
 }
 
@@ -235,7 +245,7 @@ void ToolPane::DrawTree()
 		if (!search_string.empty())
 		{
 			// if first frame is not built
-			if (m_CategoryLessDatas.empty())
+			if (m_SignalSeries.empty())
 			{
 				PrepareLogAfterSearch(search_string);
 			}
@@ -243,7 +253,7 @@ void ToolPane::DrawTree()
 			ImGui::Indent();
 
 			// affichage ordonné sans les categorie
-			for (auto& item_name : m_CategoryLessDatas)
+			for (auto& item_name : m_SignalSeries)
 			{
 				DisplayItem(item_name.second);
 			}
@@ -253,7 +263,7 @@ void ToolPane::DrawTree()
 		else
 		{
 			// affichage arborescent ordonné par categorie
-			for (auto& item_cat : LogEngine::Instance()->GetGraphValues())
+			for (auto& item_cat : LogEngine::Instance()->GetSignalSeries())
 			{
 				if (_collapse_all)
 				{
@@ -289,18 +299,21 @@ void ToolPane::PrepareLogAfterSearch(const std::string& vSearchString)
 {
 	if (!vSearchString.empty())
 	{
-		m_CategoryLessDatas.clear();
+		m_SignalSeries.clear();
 
-		for (auto& item_cat : LogEngine::Instance()->GetGraphValues())
+		for (auto& item_cat : LogEngine::Instance()->GetSignalSeries())
 		{
 			for (auto& item_name : item_cat.second)
 			{
-				if (item_name.second.low_case_name_for_search.find(vSearchString) == std::string::npos)
+				if (item_name.second)
 				{
-					continue;
-				}
+					if (item_name.second->low_case_name_for_search.find(vSearchString) == std::string::npos)
+					{
+						continue;
+					}
 
-				m_CategoryLessDatas[item_name.first] = item_name.second;
+					m_SignalSeries[item_name.first] = item_name.second;
+				}
 			}
 		}
 	}
@@ -310,19 +323,22 @@ void ToolPane::HideAllGraphs()
 {
 	bool _one_at_least = false;
 
-	for (auto& item_cat : LogEngine::Instance()->GetGraphValues())
+	for (auto& item_cat : LogEngine::Instance()->GetSignalSeries())
 	{
 		for (auto& item_name : item_cat.second)
 		{
-			if (item_name.second.show)
+			if (item_name.second)
 			{
-				_one_at_least = true;
-			}
+				if (item_name.second->show)
+				{
+					_one_at_least = true;
+				}
 
-			LogEngine::Instance()->ShowHideSignal(
-				item_name.second.category, 
-				item_name.second.name, 
-				false);
+				LogEngine::Instance()->ShowHideSignal(
+					item_name.second->category,
+					item_name.second->name,
+					false);
+			}
 		}
 	}
 

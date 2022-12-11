@@ -16,19 +16,19 @@ limitations under the License.
 
 #pragma once
 
-#include <string>
-#include <vector>
-#include <map>
-#include <ctools/ConfigAbstract.h>
 #include <Panes/Abstract/AbstractPane.h>
-#include <ImGuiFileDialog/ImGuiFileDialog.h>
+#include <Engine/Log/LogEngine.h>
+#include <imgui/imgui.h>
+#include <stdint.h>
+#include <string>
+#include <memory>
+#include <map>
 
 class ProjectFile;
-class GraphPane : public AbstractPane, public conf::ConfigAbstract
+class GraphGroupPane : public AbstractPane
 {
 private:
-	bool m_show_hide_x_axis = true;
-	bool m_show_hide_y_axis = false;
+	ImGuiListClipper m_FileListClipper;
 
 public:
 	bool Init() override;
@@ -37,26 +37,19 @@ public:
 	void DrawDialogsAndPopups(const uint32_t& vCurrentFrame, std::string vUserDatas) override;
 	int DrawWidgets(const uint32_t& vCurrentFrame, int vWidgetId, std::string vUserDatas) override;
 
-public:
-	// configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
-	
 private:
-	void DrawGraph_ImPlot();
-	void DrawGraph_Custom();
+	void DrawTable();
 
 public: // singleton
-	static std::shared_ptr<GraphPane> Instance()
+	static std::shared_ptr<GraphGroupPane> Instance()
 	{
-		static auto _instance = std::make_shared<GraphPane>();
+		static auto _instance = std::make_shared<GraphGroupPane>();
 		return _instance;
 	}
 
 public:
-	GraphPane() = default; // Prevent construction
-	GraphPane(const GraphPane&) = default; // Prevent construction by copying
-	GraphPane& operator =(const GraphPane&) { return *this; }; // Prevent assignment
-	~GraphPane() = default; // Prevent unwanted destruction};
+	GraphGroupPane() = default; // Prevent construction
+	GraphGroupPane(const GraphGroupPane&) = default; // Prevent construction by copying
+	GraphGroupPane& operator =(const GraphGroupPane&) { return *this; }; // Prevent assignment
+	~GraphGroupPane() = default; // Prevent unwanted destruction};
 };
-

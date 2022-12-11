@@ -38,11 +38,12 @@
 
 #include <imgui/imgui_internal.h>
 
-#include <Panes/ToolPane.h>
 #include <Panes/LogPane.h>
+#include <Panes/CodePane.h>
+#include <Panes/ToolPane.h>
 #include <Panes/GraphPane.h>
 #include <Panes/ConsolePane.h>
-#include <Panes/CodePane.h>
+#include <Panes/GraphGroupPane.h>
 
 #include <Engine/Lua/LuaEngine.h>
 
@@ -76,6 +77,7 @@ void MainFrame::Init()
 	LayoutManager::Instance()->AddPane(GraphPane::Instance(), ICON_NDP2_CHART_LINE " Graphs", "", PaneDisposal::CENTRAL, true, false);
 	LayoutManager::Instance()->AddPane(ConsolePane::Instance(), ICON_NDP2_COMMENT_TEXT_MULTIPLE " Console", "", PaneDisposal::BOTTOM, false, false);
 	LayoutManager::Instance()->AddPane(CodePane::Instance(), ICON_NDP2_COMMENT_TEXT " Code", "", PaneDisposal::RIGHT, false, false);
+	LayoutManager::Instance()->AddPane(GraphGroupPane::Instance(), ICON_NDP2_BUFFER " Graph Groups", "", PaneDisposal::BOTTOM, false, false);
 
 	// ConsolePane have a flag only after AddPane() call
 	Messaging::sMessagePaneId = ConsolePane::Instance()->GetPaneFlag();
@@ -158,7 +160,7 @@ void MainFrame::Display(ImVec2 vPos, ImVec2 vSize)
 			DrawMainMenuBar();
 
 			// ImGui Infos
-			auto io = ImGui::GetIO();
+			auto& io = ImGui::GetIO();
 			const auto label = ct::toStr("Dear ImGui %s (Docking)", ImGui::GetVersion());
 			const auto size = ImGui::CalcTextSize(label.c_str());
 			ImGui::Spacing(ImGui::GetContentRegionAvail().x - size.x - ImGui::GetStyle().FramePadding.x * 2.0f);
@@ -174,7 +176,7 @@ void MainFrame::Display(ImVec2 vPos, ImVec2 vSize)
 			Messaging::Instance()->DrawBar();
 
 			// ImGui Infos
-			const auto io = ImGui::GetIO();
+			const auto& io = ImGui::GetIO();
 			const auto fps = ct::toStr("%.1f ms/frame (%.1f fps)", 1000.0f / io.Framerate, io.Framerate);
 			const auto size = ImGui::CalcTextSize(fps.c_str());
 			ImGui::Spacing(ImGui::GetContentRegionAvail().x - size.x - ImGui::GetStyle().FramePadding.x * 2.0f);

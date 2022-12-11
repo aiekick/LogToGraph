@@ -5,184 +5,168 @@
 #include <Contrib/ImWidgets/ImWidgets.h>
 #include <imgui/imgui_internal.h>
 
-
-void SignalDatas::AddValue(const SignalValue& vValue, const bool& vIncBaseRecordsCount)
-{
-	range_value.x = ct::mini(range_value.x, vValue);
-	range_value.y = ct::maxi(range_value.y, vValue);
-	datas_values.push_back(vValue);
-
-	if (vIncBaseRecordsCount)
-	{
-		++count_base_records;
-	}
-}
+#include <Engine/Log/SignalSerie.h>
+#include <Engine/Log/SignalTick.h>
+#include <Engine/Graphs/GraphView.h>
 
 void LogEngine::Clear()
 {
-	m_GraphTimes.clear();
-	m_DicoTimes.clear();
-	m_GraphTimes.clear();
-	range_date = ct::dvec2(0.5, -0.5) * DBL_MAX;
-	m_GraphValues.clear();
-	m_LogDatas.clear();
+	m_Range_ticks_time = SignalValueRange(0.5, -0.5) * DBL_MAX;
+	m_SignalSeries.clear();
+	m_SignalTicks.clear();
 	m_VisibleCount = 0;
 }
 
-void LogEngine::AddSignalValue(const std::string& vCategory, const std::string& vName, const double& vTime, const double& vValue)
+void LogEngine::AddSignalTick(const std::string& vCategory, const std::string& vName, const double& vTime, const double& vValue)
 {
 	if (!vName.empty())
 	{
-		LogDatas logDatas;
-		logDatas.category = vCategory;
-		logDatas.name = vName;
-		logDatas.time_epoch = vTime;
+		auto tick_Ptr = SignalTick::Create();
+		tick_Ptr->category = vCategory;
+		tick_Ptr->name = vName;
+		tick_Ptr->time_epoch = vTime;
 
 		// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
 		double seconds = ct::fract(vTime); // 0.067365000
 		std::time_t _epoch_time = (std::time_t)vTime;
 		auto tm = std::localtime(&_epoch_time);
 		double _sec = (double)tm->tm_sec + seconds;
-		logDatas.time_date_time = ct::toStr("%i/%i/%i %i:%i:%f", 
+		tick_Ptr->time_date_time = ct::toStr("%i/%i/%i %i:%i:%f",
 			tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, 
 			tm->tm_hour, tm->tm_min, _sec);
 
-		logDatas.value = vValue;
+		tick_Ptr->value = vValue;
 
-		if (m_DicoTimes.find(vTime) == m_DicoTimes.end())
-		{
-			m_DicoTimes[vTime] = m_GraphTimes.size();
-			m_GraphTimes.push_back(vTime);
-			range_date.x = ct::mini(range_date.x, m_GraphTimes.back());
-			range_date.y = ct::maxi(range_date.y, m_GraphTimes.back());
-		}
+		m_Range_ticks_time.x = ct::mini(m_Range_ticks_time.x, vTime);
+		m_Range_ticks_time.y = ct::maxi(m_Range_ticks_time.y, vTime);
 
-		const auto current_count = m_DicoTimes.at(vTime);
+		m_SignalTicks.push_back(tick_Ptr);
 		
 		// ajout de la categorie
-		auto& _datas_cat = m_GraphValues[vCategory];
+		auto& _datas_cat = m_SignalSeries[vCategory];
 
 		if (_datas_cat.find(vName) == _datas_cat.end()) // first value of the signal
 		{
-			auto& _datas_name = _datas_cat[vName];
-			_datas_name.category = vCategory;
-			_datas_name.name = vName;
-
-			for (size_t idx = 0U; idx < current_count; ++idx)
+			auto _datas_name_ptr = _datas_cat[vName] = SignalSerie::Create();
+			if (_datas_name_ptr)
 			{
-				_datas_name.AddValue(0.0);
+				_datas_name_ptr->category = vCategory;
+				_datas_name_ptr->name = vName;
+				_datas_name_ptr->AddTick(tick_Ptr, true);
+				_datas_name_ptr->low_case_name_for_search = ct::toLower(vName); // save low case signal name for search
+				_datas_name_ptr->show = false;
 			}
-
-			// puis on set la frame
-			_datas_name.AddValue(vValue, true);
-			_datas_name.low_case_name_for_search = ct::toLower(vName); // save low case signal name for search
-			_datas_name.show = false;
 		}
 		else // deja existant
 		{
-			auto& _datas_name = _datas_cat[vName];
-			if (current_count)
+			auto _datas_name_ptr = _datas_cat.at(vName);
+			if (_datas_name_ptr)
 			{
-				const auto last_local_pos = _datas_name.datas_values.size() - 1U;
-				const auto global_pos = current_count - 1U;
-				for (size_t idx = last_local_pos; idx < global_pos; ++idx)
-				{
-					_datas_name.AddValue(_datas_name.datas_values.at(idx));
-				}
+				// on set le time et la valeur de cette frame
+				_datas_name_ptr->AddTick(tick_Ptr, true);
+				// by default not visible
+				_datas_name_ptr->show = false;
 			}
-
-			// on set le time et la valeur de cette frame
-			_datas_name.AddValue(vValue, true);
-			_datas_name.show = false;
 		}
-
-		m_LogDatas.push_back(logDatas);
 	}
 }
 
 void LogEngine::Finalize()
 {
-	// on va remplir la fin de cahque champs
-
-	// last index
-	if (!m_DicoTimes.empty() && !m_LogDatas.empty())
-	{
-		const auto& last_index_global = m_DicoTimes.at(m_LogDatas.back().time_epoch);
-
-		// on va ajouter les tick manquant a la fin
-		for (auto& item_cat : LogEngine::Instance()->GetGraphValues())
-		{
-			for (auto& item_name : item_cat.second)
-			{
-				auto& datas = item_name.second;
-				const auto& last_index_local = m_DicoTimes.at(m_GraphTimes.at(datas.datas_values.size() - 1U));
-				if (last_index_global > last_index_local)
-				{
-					for (size_t idx = last_index_local; idx < last_index_global; ++idx)
-					{
-						datas.AddValue(datas.datas_values.at(idx));
-					}
-				}
-			}
-		}
-	}
+	
 }
 
 void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName)
 {
-	if (m_GraphValues.find(vCategory) != m_GraphValues.end())
+	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
 	{
-		auto& cat = m_GraphValues.at(vCategory);
+		auto& cat = m_SignalSeries.at(vCategory);
 		if (cat.find(vName) != cat.end())
 		{
-			cat.at(vName).show = !cat.at(vName).show;
-			m_VisibleCount += cat.at(vName).show? 1 : -1;
-			m_VisibleCount = ct::maxi(m_VisibleCount, 0);
+			auto ptr = cat.at(vName);
+			if (ptr)
+			{
+				ptr->show = !ptr->show;
+				m_VisibleCount += ptr->show ? 1 : -1;
+				m_VisibleCount = ct::maxi(m_VisibleCount, 0);
+
+				if (ptr->show)
+				{
+					GraphView::Instance()->AddSerieToGroup(ptr, 0U);
+				}
+				else
+				{
+					GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_idx);
+				}
+			}
 		}
 	}
 }
 
 void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool& vFlag)
 {
-	if (m_GraphValues.find(vCategory) != m_GraphValues.end())
+	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
 	{
-		auto& cat = m_GraphValues.at(vCategory);
+		auto& cat = m_SignalSeries.at(vCategory);
 		if (cat.find(vName) != cat.end())
 		{
-			cat.at(vName).show = vFlag;
-			m_VisibleCount += vFlag ? 1 : -1;
-			m_VisibleCount = ct::maxi(m_VisibleCount, 0);
+			auto ptr = cat.at(vName);
+			if (ptr)
+			{
+				ptr->show = vFlag;
+				m_VisibleCount += vFlag ? 1 : -1;
+				m_VisibleCount = ct::maxi(m_VisibleCount, 0);
+
+				if (ptr->show)
+				{
+					GraphView::Instance()->AddSerieToGroup(ptr, 0U);
+				}
+				else
+				{
+					GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_idx);
+				}
+			}
 		}
 	}
 }
 
 bool LogEngine::isSignalShown(const SignalCategory& vCategory, const SignalName& vName, SignalColor* vOutColorPtr)
 {
-	if (m_GraphValues.find(vCategory) != m_GraphValues.end())
+	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
 	{
-		auto& cat = m_GraphValues.at(vCategory);
+		auto& cat = m_SignalSeries.at(vCategory);
 		if (cat.find(vName) != cat.end())
 		{
-			auto& c = cat.at(vName);
-			if (vOutColorPtr)
+			auto ptr = cat.at(vName);
+			if (ptr)
 			{
-				*vOutColorPtr = c.color;
+				if (vOutColorPtr)
+				{
+					*vOutColorPtr = ptr->color_u32;
+				}
+
+				return ptr->show;
 			}
-			return c.show;
 		}
 	}
 
 	return false;
 }
 
-LogDatas& LogEngine::at(const size_t& vIdx)
-{
-	return m_LogDatas.at(vIdx);
+// get tick times
+SignalValueRangeConstRef LogEngine::GetTicksTimeSerieRange() const
+{ 
+	return m_Range_ticks_time;
 }
 
-size_t LogEngine::logDatasSize()
+// get SignalTicksContainer
+SignalTicksContainerRef LogEngine::GetSignalTicks()
 {
-	return m_LogDatas.size();
+	return m_SignalTicks; 
+}
+SignalSeriesContainerRef LogEngine::GetSignalSeries()
+{ 
+	return m_SignalSeries; 
 }
 
 void LogEngine::SetHoveredTime(const double& vValue)
@@ -197,13 +181,16 @@ double LogEngine::GetHoveredTime()
 
 void LogEngine::PrepareForSave()
 {
-	m_SignalsShowingForSave.clear();
+	m_SignalsVisibility.clear();
 
-	for (const auto& item_cat : m_GraphValues)
+	for (const auto& item_cat : m_SignalSeries)
 	{
 		for (const auto& item_name : item_cat.second)
 		{
-			m_SignalsShowingForSave[item_cat.first][item_name.first] = item_name.second.show;
+			if (item_name.second)
+			{
+				m_SignalsVisibility[item_cat.first][item_name.first] = item_name.second->show;
+			}
 		}
 	}
 }
@@ -212,7 +199,7 @@ void LogEngine::PrepareAfterLoad()
 {
 	m_VisibleCount = 0;
 
-	for (const auto& item_cat : m_SignalsShowingForSave)
+	for (const auto& item_cat : m_SignalsVisibility)
 	{
 		for (const auto& item_name : item_cat.second)
 		{
@@ -257,7 +244,7 @@ bool LogEngine::setSignalVisibilty(tinyxml2::XMLElement* vElem, tinyxml2::XMLEle
 				}
 
 				/// m_CurrentCategoryLoaded peut etre vide et c'est pas grave
-				m_SignalsShowingForSave[_signal_category][_signal_name] = _signal_visibility;
+				m_SignalsVisibility[_signal_category][_signal_name] = _signal_visibility;
 			}
 		}
 	}
@@ -271,7 +258,7 @@ std::string LogEngine::getSignalVisibilty(const std::string& vOffset, const std:
 
 	str += vOffset + "<signals_visibility>\n";
 
-	for (const auto& item_cat : m_SignalsShowingForSave)
+	for (const auto& item_cat : m_SignalsVisibility)
 	{
 		for (const auto& item_name : item_cat.second)
 		{
@@ -287,4 +274,9 @@ std::string LogEngine::getSignalVisibilty(const std::string& vOffset, const std:
 	str += vOffset + "</signals_visibility>\n";
 
 	return str;
+}
+
+const int32_t& LogEngine::GetVisibleCount() const
+{
+	return m_VisibleCount; 
 }

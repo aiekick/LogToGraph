@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <string>
 #include <imgui/imgui.h>
-#include <Engine/Log/LogEngine.h>
+#include <Headers/Globals.h>
 #include <ctools/ConfigAbstract.h>
 #include <Panes/Abstract/AbstractPane.h>
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
@@ -28,7 +28,7 @@ class LogPane : public AbstractPane, public conf::ConfigAbstract
 {
 private:
 	ImGuiListClipper m_LogListClipper;
-	LogDatasContainer m_LogDatas;
+	SignalTicksWeakContainer m_LogDatas;
 	std::vector<double> m_ValuesToHide;
 
 public:

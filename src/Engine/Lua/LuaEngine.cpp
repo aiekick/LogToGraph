@@ -235,7 +235,7 @@ static int Lua_void_AddSignalValue_category_name_date_value(lua_State* L)
     }
     else
     {
-        LogEngine::Instance()->AddSignalValue(arg_0_category, arg_1_name, arg_2_date, arg_2_value);
+        LogEngine::Instance()->AddSignalTick(arg_0_category, arg_1_name, arg_2_date, arg_2_value);
     }
 
     return 0;

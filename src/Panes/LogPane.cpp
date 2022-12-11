@@ -29,6 +29,10 @@ limitations under the License.
 #include <Contrib/ImWidgets/ImWidgets.h>
 #include <cinttypes> // printf zu
 
+#include <Engine/Log/LogEngine.h>
+#include <Engine/Log/SignalSerie.h>
+#include <Engine/Log/SignalTick.h>
+
 static int GeneratorPaneWidgetId = 0;
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -167,7 +171,6 @@ void LogPane::DrawTable()
 		ImGui::EndMenuBar();
 	}
 
-
 	static ImGuiTableFlags flags =
 		ImGuiTableFlags_SizingFixedFit | 
 		ImGuiTableFlags_RowBg |
@@ -217,67 +220,69 @@ void LogPane::DrawTable()
 			{
 				if (i < 0) continue;
 
-				const auto& infos = m_LogDatas.at((size_t)i);
-
-				ImGui::TableNextRow();
-
-				selected = LogEngine::Instance()->isSignalShown(infos.category, infos.name, &color);
-				if (selected && color)
+				const auto infos_ptr = m_LogDatas.at((size_t)i).lock();
+				if (infos_ptr)
 				{
-					ImGui::PushStyleColor(ImGuiCol_Header, (ImU32)color);
-					ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
-					ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
-					count_color_push = 3U;
-					if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
-						ImGui::CustomStyle::Instance()->puContrastedTextColor,
-						ImGui::CustomStyle::Instance()->puContrastRatio))
+					ImGui::TableNextRow();
+
+					selected = LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name, &color);
+					if (selected && color)
 					{
-						count_color_push = 4U;
-					}
-				}
-				else
-				{
-					color = 0U;
-				}
-
-				if (ImGui::TableNextColumn()) // time
-				{
-					ImGui::Selectable(ct::toStr("%f", infos.time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
-
-					if (ImGui::IsItemHovered())
-					{
-						LogEngine::Instance()->SetHoveredTime(infos.time_epoch);
-
-						if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+						ImGui::PushStyleColor(ImGuiCol_Header, (ImU32)color);
+						ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
+						ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
+						count_color_push = 3U;
+						if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
+							ImGui::CustomStyle::Instance()->puContrastedTextColor,
+							ImGui::CustomStyle::Instance()->puContrastRatio))
 						{
-							LogEngine::Instance()->ShowHideSignal(infos.category, infos.name);
-							ProjectFile::Instance()->SetProjectChange();
-							ToolPane::Instance()->UpdateTree();
-
-							_need_re_preparation = true;
+							count_color_push = 4U;
 						}
 					}
-				}
-				if (ImGui::TableNextColumn()) // date time
-				{
-					ImGui::Selectable(infos.time_date_time.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
-				}
-				if (ImGui::TableNextColumn()) // category
-				{
-					ImGui::Selectable(infos.category.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
-				}
-				if (ImGui::TableNextColumn()) // name
-				{
-					ImGui::Selectable(infos.name.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
-				}
-				if (ImGui::TableNextColumn()) // value
-				{
-					ImGui::Text("%f", infos.value);
-				}
+					else
+					{
+						color = 0U;
+					}
 
-				if (color)
-				{
-					ImGui::PopStyleColor(count_color_push);
+					if (ImGui::TableNextColumn()) // time
+					{
+						ImGui::Selectable(ct::toStr("%f", infos_ptr->time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+
+						if (ImGui::IsItemHovered())
+						{
+							LogEngine::Instance()->SetHoveredTime(infos_ptr->time_epoch);
+
+							if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+							{
+								LogEngine::Instance()->ShowHideSignal(infos_ptr->category, infos_ptr->name);
+								ProjectFile::Instance()->SetProjectChange();
+								ToolPane::Instance()->UpdateTree();
+
+								_need_re_preparation = true;
+							}
+						}
+					}
+					if (ImGui::TableNextColumn()) // date time
+					{
+						ImGui::Selectable(infos_ptr->time_date_time.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+					}
+					if (ImGui::TableNextColumn()) // category
+					{
+						ImGui::Selectable(infos_ptr->category.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+					}
+					if (ImGui::TableNextColumn()) // name
+					{
+						ImGui::Selectable(infos_ptr->name.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+					}
+					if (ImGui::TableNextColumn()) // value
+					{
+						ImGui::Text("%f", infos_ptr->value);
+					}
+
+					if (color)
+					{
+						ImGui::PopStyleColor(count_color_push);
+					}
 				}
 			}
 		}
@@ -306,36 +311,38 @@ void LogPane::PrepareLog()
 		}
 	}
 
-	const auto _count_logs = LogEngine::Instance()->logDatasSize();
+	const auto _count_logs = LogEngine::Instance()->GetSignalTicks().size();
 	const auto _collapseSelection = ProjectFile::Instance()->m_CollapseLogSelection;
 
 	for (size_t idx = 0U; idx < _count_logs; ++idx)
 	{
-		const auto& infos = LogEngine::Instance()->at(idx);
-
-		auto selected = LogEngine::Instance()->isSignalShown(infos.category, infos.name);
-		if (_collapseSelection && !selected)
-			continue;
-
-		if (ProjectFile::Instance()->m_HideSomeValues)
+		const auto& infos_ptr = LogEngine::Instance()->GetSignalTicks().at(idx);
+		if (infos_ptr)
 		{
-			bool found = false;
+			auto selected = LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name);
+			if (_collapseSelection && !selected)
+				continue;
 
-			for (const auto& a : m_ValuesToHide)
+			if (ProjectFile::Instance()->m_HideSomeValues)
 			{
-				if (IS_DOUBLE_EQUAL(a, infos.value))
+				bool found = false;
+
+				for (const auto& a : m_ValuesToHide)
 				{
-					found = true;
-					break;
+					if (IS_DOUBLE_EQUAL(a, infos_ptr->value))
+					{
+						found = true;
+						break;
+					}
+				}
+
+				if (found)
+				{
+					continue;
 				}
 			}
 
-			if (found)
-			{
-				continue;
-			}
+			m_LogDatas.push_back(infos_ptr);
 		}
-
-		m_LogDatas.push_back(infos);
 	}
 }
