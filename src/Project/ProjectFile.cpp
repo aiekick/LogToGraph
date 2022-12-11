@@ -191,6 +191,7 @@ std::string ProjectFile::getXml(const std::string& vOffset, const std::string& /
 	str += vOffset + "\t<graph_current_time_colors>" + ct::toStrFromImVec4(m_GraphHoveredTimeColor) + "</graph_current_time_colors>\n";
 	str += vOffset + "\t<graph_mouse_current_time_colors>" + ct::toStrFromImVec4(m_GraphMouseHoveredTimeColor) + "</graph_mouse_current_time_colors>\n";
 	str += vOffset + "\t<selection_collapsing>" + (m_CollapseLogSelection ? "true" : "false") + "</selection_collapsing>\n";
+	str += vOffset + "\t<auto_colorize>" + (m_AutoColorize ? "true" : "false") + "</auto_colorize>\n";
 	str += vOffset + "\t<search_string>" + m_SearchString + "</search_string>\n";
 	str += vOffset + "\t<values_to_hide>" + m_ValuesToHide + "</values_to_hide>\n";
 	str += vOffset + "\t<hide_some_values>" + (m_HideSomeValues  ? "true" : "false") + "</hide_some_values>\n";
@@ -222,6 +223,8 @@ bool ProjectFile::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* 
 			m_GraphMouseHoveredTimeColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
 		else if (strName == "selection_collapsing")
 			m_CollapseLogSelection = ct::ivariant(strValue).GetB();
+		else if (strName == "auto_colorize")
+			m_AutoColorize = ct::ivariant(strValue).GetB();
 		else if (strName == "search_string")
 			m_SearchString = strValue;
 		else if (strName == "values_to_hide")

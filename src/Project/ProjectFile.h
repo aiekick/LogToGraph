@@ -39,6 +39,7 @@ public: // to save
 	std::string m_SearchString;
 	bool m_HideSomeValues = false;
 	std::string m_ValuesToHide;
+	bool m_AutoColorize = true;
 
 private: // dont save
 	bool m_IsLoaded = false;

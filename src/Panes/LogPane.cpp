@@ -287,9 +287,9 @@ void LogPane::DrawTable()
 			}
 		}
 		m_LogListClipper.End();
-	}
 
-	ImGui::EndTable();
+		ImGui::EndTable();
+	}
 
 	if (_need_re_preparation)
 	{

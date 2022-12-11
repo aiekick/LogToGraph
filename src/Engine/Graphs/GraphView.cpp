@@ -102,14 +102,9 @@ GraphGroupsRef GraphView::GetGraphGroups()
 
 void GraphView::DrawGraphGroupTable()
 {
-	bool _recolorize = false;
-
 	if (ImGui::BeginMenuBar())
 	{
-		if (ImGui::MenuItem("ReColorize (Rainbow)"))
-		{
-			_recolorize = true;
-		}
+		ImGui::MenuItem("ReColorize (Rainbow)", nullptr, &ProjectFile::Instance()->m_AutoColorize);
 
 		ImGui::EndMenuBar();
 	}
@@ -117,23 +112,21 @@ void GraphView::DrawGraphGroupTable()
 	static ImGuiTableFlags flags =
 		ImGuiTableFlags_SizingFixedFit |
 		ImGuiTableFlags_RowBg |
-		ImGuiTableFlags_Hideable |
 		ImGuiTableFlags_ScrollY |
-		ImGuiTableFlags_NoHostExtendY |
-		ImGuiTableFlags_Resizable;
+		ImGuiTableFlags_NoHostExtendY;
 
 	const int32_t _column_count = (int32_t)m_GraphGroups.size();
 	auto listViewID = ImGui::GetID("##GraphView_DrawGraphGroupTable");
 	if (ImGui::BeginTableEx("##GraphView_DrawGraphGroupTable", listViewID, 2U + _column_count, flags)) //-V112
 	{
 		ImGui::TableSetupScrollFreeze(0, 1); // Make header always visible
-		ImGui::TableSetupColumn("Col", ImGuiTableColumnFlags_WidthFixed);
-		ImGui::TableSetupColumn("Signal", ImGuiTableColumnFlags_WidthStretch);
-		ImGui::TableSetupColumn("GDef", ImGuiTableColumnFlags_WidthFixed);
+		ImGui::TableSetupColumn("Col", ImGuiTableColumnFlags_WidthFixed, -1);
+		ImGui::TableSetupColumn("Signal", ImGuiTableColumnFlags_WidthStretch, -1);
+		ImGui::TableSetupColumn("GDef", ImGuiTableColumnFlags_WidthFixed, -1);
 		for (int32_t _col_idx = 1; _col_idx < _column_count; ++_col_idx)
 		{
 			auto str = ct::toStr("G%i", _col_idx - 1);
-			ImGui::TableSetupColumn(str.c_str(), ImGuiTableColumnFlags_WidthFixed);
+			ImGui::TableSetupColumn(str.c_str(), ImGuiTableColumnFlags_WidthFixed, -1);
 		}
 		ImGui::TableHeadersRow();
 
@@ -149,7 +142,7 @@ void GraphView::DrawGraphGroupTable()
 				{
 					if (datas_ptr->show)
 					{
-						if (_recolorize)
+						if (ProjectFile::Instance()->m_AutoColorize)
 						{
 							datas_ptr->color_u32 = ImGui::GetColorU32(ct::toImVec4(GetRainBow(visible_idx, visible_count)));
 							datas_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(datas_ptr->color_u32);
@@ -163,6 +156,7 @@ void GraphView::DrawGraphGroupTable()
 							if (ImGui::ColorEdit3("##colors", &datas_ptr->color_v4.x, ImGuiColorEditFlags_NoInputs))
 							{
 								datas_ptr->color_u32 = ImGui::GetColorU32(datas_ptr->color_v4);
+								ProjectFile::Instance()->m_AutoColorize = false;
 							}
 
 							ImGui::TableSetColumnIndex(1);
@@ -190,9 +184,9 @@ void GraphView::DrawGraphGroupTable()
 				}
 			}
 		}
-	}
 
-	ImGui::EndTable();
+		ImGui::EndTable();
+	}
 }
 
 void GraphView::DrawGraphs()
@@ -273,12 +267,6 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 			if (ImPlot::BeginItem(datas_ptr->name.c_str()))
 			{
 				ImPlot::GetCurrentItem()->Color = IM_COL32(64, 64, 64, 255);
-				if (ImPlot::FitThisFrame())
-				{
-					auto offset = (datas_ptr->range_value.y - datas_ptr->range_value.x) * 0.1; // offset of 10%
-					//ImPlot::FitPoint(ImPlotPoint(time_range.x, datas_ptr->range_value.x - offset)); // inf, inf
-					//ImPlot::FitPoint(ImPlotPoint(time_range.y, datas_ptr->range_value.y + offset)); // sup, sup
-				}
 
 				double hovered_time = LogEngine::Instance()->GetHoveredTime();
 
@@ -296,6 +284,8 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 							auto _data_ptr_i = datas_ptr->datas_values.at(i).lock();
 							if (_data_ptr_i)
 							{
+								ImPlot::FitPoint(ImPlotPoint(_data_ptr_i->time_epoch, _data_ptr_i->value));
+
 								current_time = _data_ptr_i->time_epoch;
 								current_value = _data_ptr_i->value;
 								value_pos = ImPlot::PlotToPixels(current_time, current_value);
@@ -541,6 +531,8 @@ void GraphView::prDrawGraph_NewSystem()
 													auto _data_ptr_i = datas_ptr->datas_values.at(i).lock();
 													if (_data_ptr_i)
 													{
+														ImPlot::FitPoint(ImPlotPoint(_data_ptr_i->time_epoch, _data_ptr_i->value));
+
 														current_time = _data_ptr_i->time_epoch;
 														current_value = _data_ptr_i->value;
 														value_pos = ImPlot::PlotToPixels(current_time, current_value);
