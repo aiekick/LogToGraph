@@ -34,3 +34,26 @@ void SignalSerie::AddTick(SignalTickWeak vTick, const bool& vIncBaseRecordsCount
 		}
 	}
 }
+
+std::string SignalSerie::getXml(const std::string& vOffset, const std::string& /*vUserDatas*/)
+{
+	std::string str;
+
+	return str;
+}
+
+bool SignalSerie::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
+{
+	// The value of this child identifies the name of this element
+	std::string strName;
+	std::string strValue;
+	std::string strParentName;
+
+	strName = vElem->Value();
+	if (vElem->GetText())
+		strValue = vElem->GetText();
+	if (vParent != nullptr)
+		strParentName = vParent->Value();
+
+	return true;
+}

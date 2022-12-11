@@ -7,8 +7,9 @@
 #include <ctools/cTools.h>
 #include <Headers/Globals.h>
 #include <tinyxml2/tinyxml2.h>
+#include <ctools/ConfigAbstract.h>
 
-class GraphGroup
+class GraphGroup : public conf::ConfigAbstract
 {
 public:
 	static GraphGroupPtr Create();
@@ -24,6 +25,10 @@ public:
 	void RemoveSignalSerie(SignalSerieWeak vSerie);
 	SignalSeriesWeakContainerRef GetSignalSeries();
 	SignalValueRangeConstRef GetSignalSeriesRange() const;
+
+public:
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
 
 public: // singleton
 	static std::shared_ptr<GraphGroup> Instance()

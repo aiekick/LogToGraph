@@ -19,6 +19,8 @@
 
 #include <ctools/Logger.h>
 
+#include <Panes/LogPane.h>
+
 // https://www.shadertoy.com/view/ld3fzf
 ct::fvec4 GraphView::GetRainBow(const int32_t& vIdx, const int32_t& vCount)
 {
@@ -157,12 +159,26 @@ void GraphView::DrawGraphGroupTable()
 							{
 								datas_ptr->color_u32 = ImGui::GetColorU32(datas_ptr->color_v4);
 								ProjectFile::Instance()->m_AutoColorize = false;
+								ProjectFile::Instance()->SetProjectChange();
 							}
 
 							ImGui::TableSetColumnIndex(1);
-							ImGui::Selectable(datas_ptr->name.c_str(), false,
+							if (ImGui::Selectable(datas_ptr->name.c_str(), false,
 								ImGuiSelectableFlags_SpanAllColumns |
-								ImGuiSelectableFlags_AllowItemOverlap);
+								ImGuiSelectableFlags_AllowItemOverlap))
+							{
+								datas_ptr->show = !datas_ptr->show;
+
+								LogEngine::Instance()->ShowHideSignal(
+									datas_ptr->category, datas_ptr->name, datas_ptr->show);
+
+								if (ProjectFile::Instance()->m_CollapseLogSelection)
+								{
+									LogPane::Instance()->PrepareLog();
+								}
+
+								ProjectFile::Instance()->SetProjectChange();
+							}
 
 							for (int32_t _col_idx = 0; _col_idx < _column_count; ++_col_idx)
 							{
@@ -172,6 +188,7 @@ void GraphView::DrawGraphGroupTable()
 									if (ImGui::RadioButtonLabeled(ImGui::GetFrameHeight(), "x", datas_ptr->graph_groupd_idx == _col_idx, false))
 									{
 										MoveSerieFromGroupToGroup(datas_ptr, datas_ptr->graph_groupd_idx, _col_idx);
+										ProjectFile::Instance()->SetProjectChange();
 									}
 								}
 								ImGui::PopID();
@@ -277,7 +294,8 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 					auto _data_ptr_0 = datas_ptr->datas_values.at(0U).lock();
 					if (_data_ptr_0)
 					{
-						double last_time = _data_ptr_0->time_epoch, current_time, current_value;
+						double last_time = _data_ptr_0->time_epoch, current_time;
+						double last_value = _data_ptr_0->value, current_value;
 						last_value_pos = ImPlot::PlotToPixels(last_time, _data_ptr_0->value);
 						for (size_t i = 1U; i < datas_ptr->datas_values.size(); ++i)
 						{
@@ -321,11 +339,12 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 									auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
 										tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
 										tm->tm_hour, tm->tm_min, _sec);
-									ImGui::SetTooltip("time : %f\ndate : %s\nvalue : %f", plotHoveredMouse.x, date_str.c_str(), current_value);
+									ImGui::SetTooltip("time : %f\ndate : %s\nvalue : %f", plotHoveredMouse.x, date_str.c_str(), last_value);
 								}
 
 								last_value_pos = value_pos;
 								last_time = current_time;
+								last_value = current_value;
 							}
 						}
 					}
@@ -524,7 +543,8 @@ void GraphView::prDrawGraph_NewSystem()
 											auto _data_ptr_0 = datas_ptr->datas_values.at(0U).lock();
 											if (_data_ptr_0)
 											{
-												double last_time = _data_ptr_0->time_epoch, current_time, current_value;
+												double last_time = _data_ptr_0->time_epoch, current_time;
+												double last_value = _data_ptr_0->value, current_value;
 												last_value_pos = ImPlot::PlotToPixels(last_time, _data_ptr_0->value);
 												for (size_t i = 1U; i < datas_ptr->datas_values.size(); ++i)
 												{
@@ -568,11 +588,12 @@ void GraphView::prDrawGraph_NewSystem()
 															auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
 																tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
 																tm->tm_hour, tm->tm_min, _sec);
-															ImGui::SetTooltip("time : %f\ndate : %s\nvalue : %f", plotHoveredMouse.x, date_str.c_str(), current_value);
+															ImGui::SetTooltip("time : %f\ndate : %s\nvalue : %f", plotHoveredMouse.x, date_str.c_str(), last_value);
 														}
 
 														last_value_pos = value_pos;
 														last_time = current_time;
+														last_value = current_value;
 													}
 												}
 											}
@@ -593,4 +614,27 @@ void GraphView::prDrawGraph_NewSystem()
 
 		++idx;
 	}
+}
+
+std::string GraphView::getXml(const std::string& vOffset, const std::string& /*vUserDatas*/)
+{
+	std::string str;
+
+	return str;
+}
+
+bool GraphView::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
+{
+	// The value of this child identifies the name of this element
+	std::string strName;
+	std::string strValue;
+	std::string strParentName;
+
+	strName = vElem->Value();
+	if (vElem->GetText())
+		strValue = vElem->GetText();
+	if (vParent != nullptr)
+		strParentName = vParent->Value();
+
+	return true;
 }

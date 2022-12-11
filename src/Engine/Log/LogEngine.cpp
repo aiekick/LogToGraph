@@ -181,7 +181,7 @@ double LogEngine::GetHoveredTime()
 
 void LogEngine::PrepareForSave()
 {
-	m_SignalsVisibility.clear();
+	m_SignalSettings.clear();
 
 	for (const auto& item_cat : m_SignalSeries)
 	{
@@ -189,7 +189,11 @@ void LogEngine::PrepareForSave()
 		{
 			if (item_name.second)
 			{
-				m_SignalsVisibility[item_cat.first][item_name.first] = item_name.second->show;
+				SignalSetting ss;
+				ss.visibility = item_name.second->show;
+				ss.color = item_name.second->color_u32;
+				ss.group = item_name.second->graph_groupd_idx;
+				m_SignalSettings[item_cat.first][item_name.first] = ss;
 			}
 		}
 	}
@@ -199,11 +203,11 @@ void LogEngine::PrepareAfterLoad()
 {
 	m_VisibleCount = 0;
 
-	for (const auto& item_cat : m_SignalsVisibility)
+	for (const auto& item_cat : m_SignalSettings)
 	{
 		for (const auto& item_name : item_cat.second)
 		{
-			ShowHideSignal(item_cat.first, item_name.first, item_name.second);
+			SetSignalSetting(item_cat.first, item_name.first, item_name.second);
 		}
 	}
 }
@@ -223,12 +227,15 @@ bool LogEngine::setSignalVisibilty(tinyxml2::XMLElement* vElem, tinyxml2::XMLEle
 
 	if (vUserDatas == "project")
 	{
-		if (strParentName == "signals_visibility")
+		if (strParentName == "signals_settings")
 		{
 			if (strName == "signal")
 			{
-				SignalCategory _signal_category;
 				SignalName _signal_name;
+				SignalColor _signal_color = 0U;
+				uint32_t _signal_group = 0U;
+				SignalCategory _signal_category;
+
 				bool _signal_visibility = false;
 				for (const tinyxml2::XMLAttribute* attr = vElem->FirstAttribute(); attr != nullptr; attr = attr->Next())
 				{
@@ -241,10 +248,18 @@ bool LogEngine::setSignalVisibilty(tinyxml2::XMLElement* vElem, tinyxml2::XMLEle
 						_signal_name = attValue;
 					else if (attName == "visibility")
 						_signal_visibility = ct::ivariant(attValue).GetB();
+					else if (attName == "color")
+						_signal_color = ct::ivariant(attValue).GetU();
+					else if (attName == "group")
+						_signal_group = ct::ivariant(attValue).GetU();
 				}
 
 				/// m_CurrentCategoryLoaded peut etre vide et c'est pas grave
-				m_SignalsVisibility[_signal_category][_signal_name] = _signal_visibility;
+				SignalSetting ss;
+				ss.visibility = _signal_visibility;
+				ss.color = _signal_color;
+				ss.group = _signal_group;
+				m_SignalSettings[_signal_category][_signal_name] = ss;
 			}
 		}
 	}
@@ -256,22 +271,24 @@ std::string LogEngine::getSignalVisibilty(const std::string& vOffset, const std:
 {
 	std::string str;
 
-	str += vOffset + "<signals_visibility>\n";
+	str += vOffset + "<signals_settings>\n";
 
-	for (const auto& item_cat : m_SignalsVisibility)
+	for (const auto& item_cat : m_SignalSettings)
 	{
 		for (const auto& item_name : item_cat.second)
 		{
-			if (item_name.second) // par defaut c'est false, alors on sauve que ceux qui sont visibles
+			if (item_name.second.visibility) // par defaut c'est false, alors on sauve que ceux qui sont visibles
 			{
 				str += vOffset + "\t<signal category = \"" + item_cat.first + 
 					"\" name = \"" + item_name.first + 
-					"\" visibility = \"" + (item_name.second ? "true" : "false") + "\" />\n";
+					"\" visibility = \"" + (item_name.second.visibility ? "true" : "false") +
+					"\" color = \"" + ct::toStr(item_name.second.color) +
+					"\" group = \"" + ct::toStr(item_name.second.group) + "\" />\n";
 			}
 		}
 	}
 
-	str += vOffset + "</signals_visibility>\n";
+	str += vOffset + "</signals_settings>\n";
 
 	return str;
 }
@@ -279,4 +296,60 @@ std::string LogEngine::getSignalVisibilty(const std::string& vOffset, const std:
 const int32_t& LogEngine::GetVisibleCount() const
 {
 	return m_VisibleCount; 
+}
+
+void LogEngine::SetSignalSetting(const SignalCategory& vCategory, const SignalName& vName, const SignalSetting& vSignalSetting)
+{
+	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
+	{
+		auto& cat = m_SignalSeries.at(vCategory);
+		if (cat.find(vName) != cat.end())
+		{
+			auto ptr = cat.at(vName);
+			if (ptr)
+			{
+				// show
+				ptr->show = vSignalSetting.visibility;
+				m_VisibleCount += vSignalSetting.visibility ? 1 : -1;
+				m_VisibleCount = ct::maxi(m_VisibleCount, 0);
+
+				// group
+				if (ptr->show)
+				{
+					GraphView::Instance()->AddSerieToGroup(ptr, vSignalSetting.group);
+				}
+				else
+				{
+					GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_idx);
+				}
+
+				// color
+				ptr->color_u32 = vSignalSetting.color;
+				ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(ptr->color_u32);
+			}
+		}
+	}
+}
+
+std::string LogEngine::getXml(const std::string& vOffset, const std::string& /*vUserDatas*/)
+{
+	std::string str;
+
+	return str;
+}
+
+bool LogEngine::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
+{
+	// The value of this child identifies the name of this element
+	std::string strName;
+	std::string strValue;
+	std::string strParentName;
+
+	strName = vElem->Value();
+	if (vElem->GetText())
+		strValue = vElem->GetText();
+	if (vParent != nullptr)
+		strParentName = vParent->Value();
+
+	return true;
 }

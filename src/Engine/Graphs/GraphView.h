@@ -8,8 +8,9 @@
 #include <ctools/cTools.h>
 #include <Headers/Globals.h>
 #include <tinyxml2/tinyxml2.h>
+#include <ctools/ConfigAbstract.h>
 
-class GraphView
+class GraphView : public conf::ConfigAbstract
 {
 public:
 	// https://www.shadertoy.com/view/ld3fzf
@@ -32,6 +33,10 @@ public:
 
 	void DrawGraphGroupTable();
 	void DrawGraphs();
+
+public:
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
 
 private:
 	GraphGroupPtr prGetGroupAt(const size_t& vIdx);

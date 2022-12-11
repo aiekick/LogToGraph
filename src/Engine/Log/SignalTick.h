@@ -8,9 +8,9 @@
 #include <ctools/cTools.h>
 #include <Headers/Globals.h>
 #include <tinyxml2/tinyxml2.h>
+#include <ctools/ConfigAbstract.h>
 
-
-class SignalTick
+class SignalTick : public conf::ConfigAbstract
 {
 public:
 	static SignalTickPtr Create();
@@ -24,6 +24,10 @@ public:
 	SignalCategory category;
 	SignalName name;
 	SignalValue value;
+
+public:
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
 
 public:
 	SignalTick();

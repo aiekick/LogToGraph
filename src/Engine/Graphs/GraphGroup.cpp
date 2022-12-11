@@ -58,3 +58,26 @@ SignalValueRangeConstRef GraphGroup::GetSignalSeriesRange() const
 {
 	return m_Range_Value;
 }
+
+std::string GraphGroup::getXml(const std::string& vOffset, const std::string& /*vUserDatas*/)
+{
+	std::string str;
+
+	return str;
+}
+
+bool GraphGroup::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
+{
+	// The value of this child identifies the name of this element
+	std::string strName;
+	std::string strValue;
+	std::string strParentName;
+
+	strName = vElem->Value();
+	if (vElem->GetText())
+		strValue = vElem->GetText();
+	if (vParent != nullptr)
+		strParentName = vParent->Value();
+
+	return true;
+}
