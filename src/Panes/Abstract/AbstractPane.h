@@ -19,7 +19,7 @@ limitations under the License.
 #include <memory> // smart ptr
 #include <string>
 
-typedef int PaneFlags;
+typedef int32_t PaneFlag;
 enum class PaneDisposal
 {
 	CENTRAL = 0,
@@ -39,7 +39,7 @@ class AbstractPane
 {
 public:
 	std::string m_PaneName;
-	PaneFlags m_PaneFlag = 0;
+	PaneFlag m_PaneFlag = 0;
 	PaneDisposal m_PaneDisposal = PaneDisposal::CENTRAL;
 	bool m_OpenedDefault = false;
 	bool m_FocusedDefault = false;
@@ -49,14 +49,15 @@ public:
 public:
 	int m_PaneWidgetId = 0;
 	int NewWidgetId() { return ++m_PaneWidgetId; }
-	PaneFlags GetPaneFlag() { return m_PaneFlag; }
+	PaneFlag GetPaneFlag() { return m_PaneFlag; }
 
 public:
 	virtual bool Init() = 0;
 	virtual void Unit() = 0;
-	virtual int DrawPanes(const uint32_t& vCurrentFrame, int vWidgetId, std::string vUserDatas, PaneFlags& vInOutPaneShown) = 0;
+	virtual int DrawPanes(const uint32_t& vCurrentFrame, int vWidgetId, std::string vUserDatas, PaneFlag& vInOutPaneShown) = 0;
 	virtual void DrawDialogsAndPopups(const uint32_t& vCurrentFrame, std::string vUserDatas) = 0;
 	virtual int DrawWidgets(const uint32_t& vCurrentFrame, int vWidgetId, std::string vUserDatas) = 0;
+	virtual void DoVirtualLayout() {}
 
 public:
 	virtual void ShowPane() { m_ShowPaneAtFirstCall = true; };

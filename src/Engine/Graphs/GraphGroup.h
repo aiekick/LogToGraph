@@ -8,16 +8,19 @@
 #include <Headers/Globals.h>
 #include <tinyxml2/tinyxml2.h>
 #include <ctools/ConfigAbstract.h>
+#include <Panes/Abstract/AbstractPane.h>
 
 class GraphGroup : public conf::ConfigAbstract
 {
 public:
-	static GraphGroupPtr Create();
+	static GraphGroupPtr Create(const uint32_t& vGroupIdx = 0U);
 
 private:
 	GraphGroupWeak m_This;
 	SignalSeriesWeakContainer m_SignalSeries;
 	SignalValueRange m_Range_Value = SignalValueRange(0.5, -0.5) * DBL_MAX;
+	std::string m_Name;
+	PaneFlag m_PaneFlag = 0U;
 
 public:
 	void Clear();
@@ -25,6 +28,10 @@ public:
 	void RemoveSignalSerie(SignalSerieWeak vSerie);
 	SignalSeriesWeakContainerRef GetSignalSeries();
 	SignalValueRangeConstRef GetSignalSeriesRange() const;
+	void SetName(const std::string& vName);
+	UInt8ConstPtr GetName();
+	void SetPaneFlag(const PaneFlag& vPaneFlag);
+	PaneFlag GetPaneFlag();
 
 public:
 	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;

@@ -53,7 +53,7 @@ void ToolPane::Unit()
 
 }
 
-int ToolPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, int vWidgetId, std::string /*vUserDatas*/, PaneFlags& vInOutPaneShown)
+int ToolPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, int vWidgetId, std::string /*vUserDatas*/, PaneFlag& vInOutPaneShown)
 {
 	SourcePane_WidgetId = vWidgetId;
 
@@ -62,7 +62,7 @@ int ToolPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, int vWidgetId, std::s
 		static ImGuiWindowFlags flags =
 			ImGuiWindowFlags_NoCollapse |
 			ImGuiWindowFlags_NoBringToFrontOnFocus;
-		if (ImGui::Begin<PaneFlags>(m_PaneName,
+		if (ImGui::Begin<PaneFlag>(m_PaneName,
 			&vInOutPaneShown , m_PaneFlag, flags))
 		{
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS

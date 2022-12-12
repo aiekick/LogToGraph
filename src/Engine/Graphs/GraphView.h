@@ -32,7 +32,9 @@ public:
 	GraphGroupsRef GetGraphGroups();
 
 	void DrawGraphGroupTable();
-	void DrawGraphs();
+	void DrawMenuBar();
+	void DrawAloneGraphs(GraphGroupPtr vGraphGroupPtr, const ImVec2& vSize);
+	void DrawGroupedGraphs(GraphGroupPtr vGraphGroupPtr, const ImVec2& vSize);
 
 public:
 	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
@@ -40,10 +42,11 @@ public:
 
 private:
 	GraphGroupPtr prGetGroupAt(const size_t& vIdx);
+
 	void prEraseGroupAt(const size_t& vIdx);
-	void prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie);
-	void prDrawGraph_ImPlot();
-	void prDrawGraph_NewSystem();
+	void prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie, const ImVec2& vSize);
+	void prDrawGraph_ImPlot(const ImVec2& vSize);
+	void prDrawGraph_NewSystem(const ImVec2& vSize);
 
 public: // singleton
 	static std::shared_ptr<GraphView> Instance()

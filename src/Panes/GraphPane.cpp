@@ -26,6 +26,7 @@ limitations under the License.
 #include <Panes/Manager/LayoutManager.h>
 #include <cinttypes> // printf zu
 #include <Engine/Graphs/GraphView.h>
+#include <Engine/Graphs/GraphGroup.h>
 #include <imgui/imgui_internal.h>
 
 static int GeneratorPaneWidgetId = 0;
@@ -44,17 +45,21 @@ void GraphPane::Unit()
 
 }
 
-int GraphPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, int vWidgetId, std::string /*vUserDatas*/, PaneFlags& vInOutPaneShown)
+int GraphPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, int vWidgetId, std::string /*vUserDatas*/, PaneFlag& vInOutPaneShown)
 {
 	GeneratorPaneWidgetId = vWidgetId;
 
 	if (vInOutPaneShown & m_PaneFlag)
 	{
+		auto& graphGroups = GraphView::Instance()->GetGraphGroups();
+		
+		bool _need_re_layout = false;
+
 		static ImGuiWindowFlags flags =
 			ImGuiWindowFlags_NoCollapse |
 			ImGuiWindowFlags_NoBringToFrontOnFocus |
 			ImGuiWindowFlags_MenuBar;
-		if (ImGui::Begin<PaneFlags>(m_PaneName,
+		if (ImGui::Begin<PaneFlag>(m_PaneName,
 			&vInOutPaneShown , m_PaneFlag, flags))
 		{
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
@@ -68,13 +73,70 @@ int GraphPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, int vWidgetId, std::
 #endif
 			if (ProjectFile::Instance()->IsLoaded()) 
 			{
-				GraphView::Instance()->DrawGraphs();
+				if (ImGui::BeginMenuBar())
+				{
+					if (ImGui::MenuItem("Default Layout"))
+					{
+						_need_re_layout = true;
+					}
+
+					GraphView::Instance()->DrawMenuBar();
+
+					ImGui::EndMenuBar();
+				}
+
+				if (!graphGroups.empty())
+				{
+					GraphView::Instance()->DrawAloneGraphs(*graphGroups.begin(), ImVec2(-1.0f,100.0f));
+				}
 			}
 		}
 
-		//MainFrame::sAnyWindowsHovered |= ImGui::IsWindowHovered();
-
 		ImGui::End();
+
+		if (graphGroups.size() > 2U)
+		{
+			auto start_gg_it = ++graphGroups.begin();
+			auto end_gg_it = --graphGroups.end();
+			for (auto ggIt = start_gg_it; ggIt != end_gg_it; ++ggIt)
+			{
+				auto graph_group_ptr = *ggIt;
+				if (graph_group_ptr)
+				{
+					if (ImGui::Begin(graph_group_ptr->GetName(), nullptr, flags))
+					{
+#ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
+						auto win = ImGui::GetCurrentWindowRead();
+						if (win->Viewport->Idx != 0)
+							flags |= ImGuiWindowFlags_NoResize;// | ImGuiWindowFlags_NoTitleBar;
+						else
+							flags = ImGuiWindowFlags_NoCollapse |
+							ImGuiWindowFlags_NoBringToFrontOnFocus |
+							ImGuiWindowFlags_MenuBar;
+#endif
+						
+						if (ProjectFile::Instance()->IsLoaded())
+						{
+							if (ImGui::BeginMenuBar())
+							{
+								GraphView::Instance()->DrawMenuBar();
+
+								ImGui::EndMenuBar();
+							}
+
+							GraphView::Instance()->DrawGroupedGraphs(graph_group_ptr, ImVec2(-1.0f, -1.0f));
+						}
+					}
+
+					ImGui::End();
+				}
+			}
+		}
+
+		if (_need_re_layout)
+		{
+			DoVirtualLayout();
+		}
 	}
 
 	return GeneratorPaneWidgetId;
@@ -101,6 +163,28 @@ void GraphPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, std::str
 int GraphPane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, int vWidgetId, std::string /*vUserDatas*/)
 {
 	return vWidgetId;
+}
+
+void GraphPane::DoVirtualLayout()
+{
+	auto window_ptr = ImGui::FindWindowByName(m_PaneName.c_str());
+	if (window_ptr)
+	{
+		auto& graphGroups = GraphView::Instance()->GetGraphGroups();
+		if (graphGroups.size() > 2U)
+		{
+			auto start_gg_it = graphGroups.begin(); ++start_gg_it;
+			auto end_gg_it = graphGroups.end(); --end_gg_it; --end_gg_it;
+			for (auto ggIt = start_gg_it; ggIt != end_gg_it; ++ggIt)
+			{
+				auto graph_group_ptr = *ggIt;
+				if (graph_group_ptr)
+				{
+					ImGui::DockBuilderDockWindow(graph_group_ptr->GetName(), window_ptr->DockId);
+				}
+			}
+		}
+	}
 }
 
 std::string GraphPane::getXml(const std::string& /*vOffset*/, const std::string& /*vUserDatas*/)

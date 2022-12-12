@@ -51,7 +51,7 @@ void CodePane::Unit()
 
 }
 
-int CodePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, int vWidgetId, std::string /*vUserDatas*/, PaneFlags& vInOutPaneShown)
+int CodePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, int vWidgetId, std::string /*vUserDatas*/, PaneFlag& vInOutPaneShown)
 {
 	GeneratorPaneWidgetId = vWidgetId;
 
@@ -61,7 +61,7 @@ int CodePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, int vWidgetId, std::s
 			ImGuiWindowFlags_NoCollapse |
 			ImGuiWindowFlags_NoBringToFrontOnFocus |
 			ImGuiWindowFlags_MenuBar;
-		if (ImGui::Begin<PaneFlags>(m_PaneName,
+		if (ImGui::Begin<PaneFlag>(m_PaneName,
 			&vInOutPaneShown , m_PaneFlag, flags))
 		{
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS

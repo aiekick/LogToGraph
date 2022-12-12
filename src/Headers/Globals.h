@@ -1,6 +1,9 @@
 #pragma once
 
+#include <Contrib/FontIcons/CustomFont2.h>
+
 #define APP_TITLE "LogToGraph"
+#define GRAPH_PANE_NAME ICON_NDP2_CHART_LINE " Graphs"
 
 #include <map>
 #include <list>
@@ -8,6 +11,8 @@
 #include <string>
 #include <memory>
 #include <ctools/cTools.h>
+
+typedef const char* UInt8ConstPtr;
 
 typedef double SignalValue;
 

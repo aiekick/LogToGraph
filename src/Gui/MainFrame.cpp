@@ -74,10 +74,10 @@ void MainFrame::Init()
 
 	LayoutManager::Instance()->AddPane(ToolPane::Instance(), ICON_NDP2_CUBE_SCAN " Tool", "", PaneDisposal::LEFT, true, true);
 	LayoutManager::Instance()->AddPane(LogPane::Instance(), ICON_NDP2_FILE_DOCUMENT_BOX " Logs", "", PaneDisposal::RIGHT, true, false);
-	LayoutManager::Instance()->AddPane(GraphPane::Instance(), ICON_NDP2_CHART_LINE " Graphs", "", PaneDisposal::CENTRAL, true, false);
+	LayoutManager::Instance()->AddPane(GraphPane::Instance(), GRAPH_PANE_NAME, "", PaneDisposal::CENTRAL, true, false);
 	LayoutManager::Instance()->AddPane(ConsolePane::Instance(), ICON_NDP2_COMMENT_TEXT_MULTIPLE " Console", "", PaneDisposal::BOTTOM, false, false);
 	LayoutManager::Instance()->AddPane(CodePane::Instance(), ICON_NDP2_COMMENT_TEXT " Code", "", PaneDisposal::RIGHT, false, false);
-	LayoutManager::Instance()->AddPane(GraphGroupPane::Instance(), ICON_NDP2_BUFFER " Graph Groups", "", PaneDisposal::BOTTOM, false, false);
+	LayoutManager::Instance()->AddPane(GraphGroupPane::Instance(), ICON_NDP2_BUFFER " Graph Groups", "", PaneDisposal::RIGHT, true, false);
 
 	// ConsolePane have a flag only after AddPane() call
 	Messaging::sMessagePaneId = ConsolePane::Instance()->GetPaneFlag();

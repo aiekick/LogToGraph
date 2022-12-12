@@ -29,6 +29,26 @@ typedef std::string PaneCategoryName;
 class ProjectFile;
 class LayoutManager : public conf::ConfigAbstract
 {
+public:
+	static bool s_PaneFlag_MenuItem(const char* label, const char* shortcut, PaneFlag* vContainer, PaneFlag vFlag, bool vOnlyOneSameTime = false)
+	{
+		bool selected = *vContainer & vFlag;
+		const bool res = ImGui::MenuItem(label, shortcut, &selected, true);
+		if (res)
+		{
+			if (selected)
+			{
+				if (vOnlyOneSameTime)
+					*vContainer = vFlag; // set
+				else
+					*vContainer = (PaneFlag)(*vContainer | vFlag);// add
+			}
+			else if (!vOnlyOneSameTime)
+				*vContainer = (PaneFlag)(*vContainer & ~vFlag); // remove
+		}
+		return res;
+	}
+
 private:
 	ImGuiID m_DockSpaceID = 0;
 	bool m_FirstLayout = false;
@@ -47,17 +67,20 @@ protected:
 	std::map<PaneDisposal, AbstractPaneWeak> m_PanesByDisposal;
 	std::map<std::string, AbstractPaneWeak> m_PanesByName;
 	std::map<PaneCategoryName, std::vector<AbstractPaneWeak>> m_PanesInDisplayOrder;
-	std::map<PaneFlags, AbstractPaneWeak> m_PanesByFlag;
-	int32_t m_FlagCount = 0U;
+	std::map<PaneFlag, AbstractPaneWeak> m_PanesByFlag;
+	int32_t m_FlagCount = 0;
 
 public:
-	PaneFlags m_Pane_Focused_Default = 0;
-	PaneFlags m_Pane_Opened_Default = 0;
-	PaneFlags m_Pane_Shown = 0;
-	PaneFlags m_Pane_Focused = 0;
-	PaneFlags m_Pane_Hovered = 0;
-	PaneFlags m_Pane_LastHovered = 0;
+	PaneFlag m_Pane_Focused_Default = 0;
+	PaneFlag m_Pane_Opened_Default = 0;
+	PaneFlag m_Pane_Shown = 0;
+	PaneFlag m_Pane_Focused = 0;
+	PaneFlag m_Pane_Hovered = 0;
+	PaneFlag m_Pane_LastHovered = 0;
 	ImVec2 m_LastSize;
+
+public:
+	PaneFlag m_LastVirtualPaneFlag = 0; // virtual mean can be created dynamically
 
 public:
 	void AddPane(
@@ -71,7 +94,7 @@ public:
 		AbstractPaneWeak vPane,
 		const std::string& vName,
 		const PaneCategoryName& vCategory,
-		const PaneFlags& vFlag,
+		const PaneFlag& vFlag,
 		const PaneDisposal& vPaneDisposal,
 		const bool& vIsOpenedDefault,
 		const bool& vIsFocusedDefault);
@@ -96,19 +119,25 @@ public:
 	virtual void DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const std::string& vUserDatas = "");
 	virtual int DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas = "");
 
+public: // virtual pane flags
+	uint32_t GetRegisteredPaneCount();
+	uint32_t GetMaxPossiblePaneCount();
+	bool IncVirtualPaneFlag(PaneFlag& vOutPaneFlag);
+	void DecVirtualPaneFlag();
+
 public:
-	void ShowSpecificPane(const PaneFlags& vPane);
-	void HideSpecificPane(const PaneFlags& vPane);
-	void FocusSpecificPane(const PaneFlags& vPane);
+	void ShowSpecificPane(const PaneFlag& vPane);
+	void HideSpecificPane(const PaneFlag& vPane);
+	void FocusSpecificPane(const PaneFlag& vPane);
 	void FocusSpecificPane(const std::string& vlabel);
-	void ShowAndFocusSpecificPane(const PaneFlags& vPane);
-	bool IsSpecificPaneFocused(const PaneFlags& vPane);
+	void ShowAndFocusSpecificPane(const PaneFlag& vPane);
+	bool IsSpecificPaneFocused(const PaneFlag& vPane);
 	bool IsSpecificPaneFocused(const std::string& vlabel);
 	void AddSpecificPaneToExisting(const std::string& vNewPane, const std::string& vExistingPane);
 
 private: // configuration
-	PaneFlags Internal_GetFocusedPanes();
-	void Internal_SetFocusedPanes(const PaneFlags& vActivePanes);
+	PaneFlag Internal_GetFocusedPanes();
+	void Internal_SetFocusedPanes(const PaneFlag& vActivePanes);
 
 public: // configuration
 	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "");

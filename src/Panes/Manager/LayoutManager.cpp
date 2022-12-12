@@ -35,7 +35,7 @@ void LayoutManager::AddPane(
 	const bool& vIsOpenedDefault,
 	const bool& vIsFocusedDefault)
 {
-	PaneFlags flag = (1 << ++m_FlagCount);
+	PaneFlag flag = (1 << ++m_FlagCount);
 	AddPane(vPane, vName, vCategory, flag, vPaneDisposal, vIsOpenedDefault, vIsFocusedDefault);
 }
 
@@ -43,7 +43,7 @@ void LayoutManager::AddPane(
 	AbstractPaneWeak vPane,
 	const std::string& vName,
 	const PaneCategoryName& vCategory,
-	const PaneFlags& vFlag,
+	const PaneFlag& vFlag,
 	const PaneDisposal& vPaneDisposal,
 	const bool& vIsOpenedDefault,
 	const bool& vIsFocusedDefault)
@@ -210,10 +210,10 @@ void LayoutManager::ApplyInitialDockingLayout(const ImVec2& vSize)
 	ImGui::DockBuilderSetNodeSize(m_DockSpaceID, _size);
 
 	// just for readability
-	const auto& left_size = m_PaneDisposalSizes[1];
-	const auto& right_size = m_PaneDisposalSizes[2];
-	const auto& bottom_size = m_PaneDisposalSizes[3];
-	const auto& top_size = m_PaneDisposalSizes[4];
+	const auto& left_size = m_PaneDisposalSizes[(size_t)PaneDisposal::LEFT];
+	const auto& right_size = m_PaneDisposalSizes[(size_t)PaneDisposal::RIGHT];
+	const auto& bottom_size = m_PaneDisposalSizes[(size_t)PaneDisposal::BOTTOM];
+	const auto& top_size = m_PaneDisposalSizes[(size_t)PaneDisposal::TOP];
 
 	auto dockMainID = m_DockSpaceID; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
 	const auto dockLeftID = ImGui::DockBuilderSplitNode(dockMainID, ImGuiDir_Left, left_size / _size.x, nullptr, &dockMainID);
@@ -254,6 +254,8 @@ void LayoutManager::ApplyInitialDockingLayout(const ImVec2& vSize)
 				break;
 			}
 			};
+
+			panePtr->DoVirtualLayout();
 		}
 	}
 	
@@ -263,26 +265,6 @@ void LayoutManager::ApplyInitialDockingLayout(const ImVec2& vSize)
 	m_Pane_Focused = m_Pane_Focused_Default;
 
 	Internal_SetFocusedPanes(m_Pane_Focused);
-}
-
-template<typename T>
-static bool LayoutManager_MenuItem(const char* label, const char* shortcut, T* vContainer, T vFlag, bool vOnlyOneSameTime = false)
-{
-	bool selected = *vContainer & vFlag;
-	const bool res = ImGui::MenuItem(label, shortcut, &selected, true);
-	if (res) 
-	{
-		if (selected) 
-		{
-			if (vOnlyOneSameTime) 
-				*vContainer = vFlag; // set
-			else 
-				*vContainer = (T)(*vContainer | vFlag);// add
-		}
-		else if (!vOnlyOneSameTime) 
-				*vContainer = (T)(*vContainer & ~vFlag); // remove
-	}
-	return res;
 }
 
 void LayoutManager::DisplayMenu(const ImVec2& vSize)
@@ -313,7 +295,7 @@ void LayoutManager::DisplayMenu(const ImVec2& vSize)
 					auto panePtr = pane.lock();
 					if (panePtr && panePtr->CanWeDisplay())
 					{
-						LayoutManager_MenuItem<PaneFlags>(panePtr->m_PaneName.c_str(), "", &m_Pane_Shown, panePtr->m_PaneFlag);
+						s_PaneFlag_MenuItem(panePtr->m_PaneName.c_str(), "", &m_Pane_Shown, panePtr->m_PaneFlag);
 					}
 				}
 			}
@@ -384,17 +366,48 @@ int LayoutManager::DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidget
 	return widgetId;
 }
 
-void LayoutManager::ShowSpecificPane(const PaneFlags& vPane)
-{
-	m_Pane_Shown = (PaneFlags)((int32_t)m_Pane_Shown | (int32_t)vPane);
+
+uint32_t LayoutManager::GetRegisteredPaneCount()
+{ 
+	return m_FlagCount; 
 }
 
-void LayoutManager::HideSpecificPane(const PaneFlags& vPane)
-{
-	m_Pane_Shown = (PaneFlags)((int32_t)m_Pane_Shown & ~(int32_t)vPane);
+uint32_t LayoutManager::GetMaxPossiblePaneCount()
+{ 
+	return (uint32_t)(sizeof(PaneFlag) * 8U); 
 }
 
-void LayoutManager::FocusSpecificPane(const PaneFlags& vPane)
+bool LayoutManager::IncVirtualPaneFlag(PaneFlag& vOutPaneFlag)
+{
+	if ((m_LastVirtualPaneFlag + m_FlagCount) < GetMaxPossiblePaneCount())
+	{
+		++m_LastVirtualPaneFlag;
+		vOutPaneFlag = m_LastVirtualPaneFlag;
+		return true;
+	}
+	
+	return false;
+}
+
+void LayoutManager::DecVirtualPaneFlag()
+{
+	if (m_LastVirtualPaneFlag > 0)
+	{
+		--m_LastVirtualPaneFlag;
+	}
+}
+
+void LayoutManager::ShowSpecificPane(const PaneFlag& vPane)
+{
+	m_Pane_Shown = (PaneFlag)((int32_t)m_Pane_Shown | (int32_t)vPane);
+}
+
+void LayoutManager::HideSpecificPane(const PaneFlag& vPane)
+{
+	m_Pane_Shown = (PaneFlag)((int32_t)m_Pane_Shown & ~(int32_t)vPane);
+}
+
+void LayoutManager::FocusSpecificPane(const PaneFlag& vPane)
 {
 	ShowSpecificPane(vPane);
 
@@ -408,13 +421,13 @@ void LayoutManager::FocusSpecificPane(const PaneFlags& vPane)
 	}
 }
 
-void LayoutManager::ShowAndFocusSpecificPane(const PaneFlags& vPane)
+void LayoutManager::ShowAndFocusSpecificPane(const PaneFlag& vPane)
 {
 	ShowSpecificPane(vPane);
 	FocusSpecificPane(vPane);
 }
 
-bool LayoutManager::IsSpecificPaneFocused(const PaneFlags& vPane)
+bool LayoutManager::IsSpecificPaneFocused(const PaneFlag& vPane)
 {
 	if (m_PanesByFlag.find(vPane) != m_PanesByFlag.end())
 	{
@@ -430,11 +443,10 @@ bool LayoutManager::IsSpecificPaneFocused(const PaneFlags& vPane)
 
 void LayoutManager::AddSpecificPaneToExisting(const std::string& vNewPane, const std::string& vExistingPane)
 {
-	ImGuiWindow* window = ImGui::FindWindowByName(vExistingPane.c_str());
-	if (window)
+	auto window_ptr = ImGui::FindWindowByName(vExistingPane.c_str());
+	if (window_ptr)
 	{
-		auto dockid = window->DockId;
-		ImGui::DockBuilderDockWindow(vNewPane.c_str(), dockid);
+		ImGui::DockBuilderDockWindow(vNewPane.c_str(), window_ptr->DockId);
 	}
 }
 
@@ -444,23 +456,23 @@ void LayoutManager::AddSpecificPaneToExisting(const std::string& vNewPane, const
 
 bool LayoutManager::IsSpecificPaneFocused(const std::string& vlabel)
 {
-	ImGuiWindow* window = ImGui::FindWindowByName(vlabel.c_str());
-	if (window)
+	auto window_ptr = ImGui::FindWindowByName(vlabel.c_str());
+	if (window_ptr)
 	{
 		return 
-			window->DockTabIsVisible || 
-			window->ViewportOwned;
+			window_ptr->DockTabIsVisible ||
+			window_ptr->ViewportOwned;
 	}
 	return false;
 }
 
 void LayoutManager::FocusSpecificPane(const std::string& vlabel)
 {
-	ImGuiWindow* window = ImGui::FindWindowByName(vlabel.c_str());
-	if (window)
+	auto window_ptr = ImGui::FindWindowByName(vlabel.c_str());
+	if (window_ptr)
 	{
-		if(!window->DockTabIsVisible)
-			ImGui::FocusWindow(window);
+		if(!window_ptr->DockTabIsVisible)
+			ImGui::FocusWindow(window_ptr);
 	}
 }
 
@@ -468,21 +480,21 @@ void LayoutManager::FocusSpecificPane(const std::string& vlabel)
 //// CONFIGURATION PRIVATE ////////////////////////////
 ///////////////////////////////////////////////////////
 
-PaneFlags LayoutManager::Internal_GetFocusedPanes()
+PaneFlag LayoutManager::Internal_GetFocusedPanes()
 {
-	PaneFlags flag = 0;
+	PaneFlag flag = 0;
 
 	for (const auto& pane : m_PanesByFlag)
 	{
 		auto panePtr = pane.second.lock();
 		if (panePtr && IsSpecificPaneFocused(panePtr->m_PaneName))
-			flag = (PaneFlags)((int32_t)flag | (int32_t)pane.first);
+			flag = (PaneFlag)((int32_t)flag | (int32_t)pane.first);
 	}
 
 	return flag;
 }
 
-void LayoutManager::Internal_SetFocusedPanes(const PaneFlags& vActivePanes)
+void LayoutManager::Internal_SetFocusedPanes(const PaneFlag& vActivePanes)
 {
 	for (const auto& pane : m_PanesByFlag)
 	{
@@ -538,9 +550,9 @@ bool LayoutManager::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement
 				std::string attValue = attr->Value();
 
 				if (attName == "opened")
-					m_Pane_Shown = (PaneFlags)ct::ivariant(attValue).GetI();
+					m_Pane_Shown = (PaneFlag)ct::ivariant(attValue).GetI();
 				if (attName == "active")
-					m_Pane_Focused = (PaneFlags)ct::ivariant(attValue).GetI();
+					m_Pane_Focused = (PaneFlag)ct::ivariant(attValue).GetI();
 			}
 		}
 	}
