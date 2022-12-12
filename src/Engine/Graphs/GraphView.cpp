@@ -208,7 +208,66 @@ void GraphView::DrawGraphGroupTable()
 
 void GraphView::DrawGraphs()
 {
-	//prDrawGraph_ImPlot();
+	if (ImGui::BeginMenuBar())
+	{
+		if (ImGui::BeginMenu("Colors"))
+		{
+			if (ImGui::ContrastedButton("R##ResetBarColor"))
+			{
+				ProjectFile::Instance()->m_GraphBarColor =
+					ProjectFile::Instance()->m_DefaultGraphBarColor;
+			}
+
+			ImGui::SameLine();
+
+			ImGui::ColorEdit4("Bars Color##tBarColor",
+				&ProjectFile::Instance()->m_GraphBarColor.x, ImGuiColorEditFlags_NoInputs);
+
+			if (ImGui::ContrastedButton("R##ResetHoveredTimeBarColor"))
+			{
+				ProjectFile::Instance()->m_GraphHoveredTimeColor =
+					ProjectFile::Instance()->m_DefaultGraphHoveredTimeColor;
+			}
+
+			ImGui::SameLine();
+
+			ImGui::ColorEdit4("Current Time Color##HoveredTimeBarColor",
+				&ProjectFile::Instance()->m_GraphHoveredTimeColor.x, ImGuiColorEditFlags_NoInputs);
+
+			if (ImGui::ContrastedButton("R##ResetMouseHoveredTimeBarColor"))
+			{
+				ProjectFile::Instance()->m_GraphMouseHoveredTimeColor =
+					ProjectFile::Instance()->m_DefaultGraphMouseHoveredTimeColor;
+			}
+
+			ImGui::SameLine();
+
+			ImGui::ColorEdit4("Mouse Over Color##MouseHoveredTimeBarColor",
+				&ProjectFile::Instance()->m_GraphMouseHoveredTimeColor.x, ImGuiColorEditFlags_NoInputs);
+
+			ImGui::EndMenu();
+		}
+
+		/*if (ImGui::BeginMenu("Axis Labels"))
+		{
+			if (ImGui::MenuItem(m_show_hide_x_axis ? "Show X Axis LabelsR##GraphPaneDrawPanes" : "Hide X Axis LabelsR##GraphPaneDrawPanes"))
+			{
+				m_show_hide_x_axis = !m_show_hide_x_axis;
+				m_need_show_hide_x_axis = true;
+			}
+
+			if (ImGui::MenuItem(m_show_hide_y_axis ? "Show Y Axis LabelsR##GraphPaneDrawPanes" : "Hide Y Axis LabelsR##GraphPaneDrawPanes"))
+			{
+				m_show_hide_y_axis = !m_show_hide_y_axis;
+				m_need_show_hide_y_axis = true;
+			}
+
+			ImGui::EndMenu();
+		}*/
+
+		ImGui::EndMenuBar();
+	}
+
 	prDrawGraph_NewSystem();
 }
 
@@ -250,7 +309,7 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 		ImVec2 last_value_pos, value_pos, hovered_min_pos, hovered_max_pos;
 
 		const auto& name_str = datas_ptr->category + " / " + datas_ptr->name;
-		if (ImPlot::BeginPlot(name_str.c_str(), ImVec2(-1, 200), ImPlotFlags_NoLegend))
+		if (ImPlot::BeginPlot(name_str.c_str(), ImVec2(-1, 200), ImPlotFlags_NoLegend | ImPlotCond_Always))
 		{
 			if (m_need_show_hide_x_axis)
 			{
@@ -266,7 +325,9 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 				ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
 			}
 
-			ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit);
+			ImPlot::SetupAxes(NULL, NULL,
+				ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit, 
+				ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit);
 
 			double y_offset = (datas_ptr->range_value.y - datas_ptr->range_value.x) * 0.1;
 			ImPlot::SetupAxesLimits(time_range.x, time_range.y, datas_ptr->range_value.x - y_offset, datas_ptr->range_value.y + y_offset);
@@ -307,6 +368,8 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 								current_time = _data_ptr_i->time_epoch;
 								current_value = _data_ptr_i->value;
 								value_pos = ImPlot::PlotToPixels(current_time, current_value);
+
+								ImPlot::FitPoint(ImPlotPoint(current_time, current_value));
 
 								draw_list->AddLine(last_value_pos, ImVec2(value_pos.x, last_value_pos.y), datas_ptr->color_u32, 2.0f);
 								draw_list->AddLine(ImVec2(value_pos.x, last_value_pos.y), value_pos, datas_ptr->color_u32, 2.0f);
@@ -360,66 +423,6 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 
 void GraphView::prDrawGraph_ImPlot()
 {
-	if (ImGui::BeginMenuBar())
-	{
-		if (ImGui::BeginMenu("Colors"))
-		{
-			if (ImGui::ContrastedButton("R##ResetBarColor"))
-			{
-				ProjectFile::Instance()->m_GraphBarColor =
-					ProjectFile::Instance()->m_DefaultGraphBarColor;
-			}
-
-			ImGui::SameLine();
-
-			ImGui::ColorEdit4("Bars Color##tBarColor",
-				&ProjectFile::Instance()->m_GraphBarColor.x, ImGuiColorEditFlags_NoInputs);
-
-			if (ImGui::ContrastedButton("R##ResetHoveredTimeBarColor"))
-			{
-				ProjectFile::Instance()->m_GraphHoveredTimeColor =
-					ProjectFile::Instance()->m_DefaultGraphHoveredTimeColor;
-			}
-
-			ImGui::SameLine();
-
-			ImGui::ColorEdit4("Current Time Color##HoveredTimeBarColor",
-				&ProjectFile::Instance()->m_GraphHoveredTimeColor.x, ImGuiColorEditFlags_NoInputs);
-
-			if (ImGui::ContrastedButton("R##ResetMouseHoveredTimeBarColor"))
-			{
-				ProjectFile::Instance()->m_GraphMouseHoveredTimeColor =
-					ProjectFile::Instance()->m_DefaultGraphMouseHoveredTimeColor;
-			}
-
-			ImGui::SameLine();
-
-			ImGui::ColorEdit4("Mouse Over Color##MouseHoveredTimeBarColor",
-				&ProjectFile::Instance()->m_GraphMouseHoveredTimeColor.x, ImGuiColorEditFlags_NoInputs);
-
-			ImGui::EndMenu();
-		}
-
-		if (ImGui::BeginMenu("Axis Labels"))
-		{
-			if (ImGui::MenuItem(m_show_hide_x_axis ? "Show X Axis LabelsR##GraphPaneDrawPanes" : "Hide X Axis LabelsR##GraphPaneDrawPanes"))
-			{
-				m_show_hide_x_axis = !m_show_hide_x_axis;
-				m_need_show_hide_x_axis = true;
-			}
-
-			if (ImGui::MenuItem(m_show_hide_y_axis ? "Show Y Axis LabelsR##GraphPaneDrawPanes" : "Hide Y Axis LabelsR##GraphPaneDrawPanes"))
-			{
-				m_show_hide_y_axis = !m_show_hide_y_axis;
-				m_need_show_hide_y_axis = true;
-			}
-
-			ImGui::EndMenu();
-		}
-
-		ImGui::EndMenuBar();
-	}
-
 	ImPlot::GetStyle().UseLocalTime = false;
 	ImPlot::GetStyle().UseISO8601 = false;
 	ImPlot::GetStyle().Use24HourClock = false;
@@ -491,7 +494,7 @@ void GraphView::prDrawGraph_NewSystem()
 
 				ImGui::PushID(ImGui::IncPUSHID());
 				{
-					if (ImPlot::BeginPlot(ct::toStr("G%u", (uint32_t)idx - 1U).c_str(), ImVec2(-1, 200), ImPlotFlags_NoLegend))
+					if (ImPlot::BeginPlot(ct::toStr("G%u", (uint32_t)idx - 1U).c_str(), ImVec2(-1, 400), ImPlotFlags_NoLegend))
 					{
 						if (m_need_show_hide_x_axis)
 						{
@@ -507,7 +510,9 @@ void GraphView::prDrawGraph_NewSystem()
 							ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
 						}
 
-						ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit);
+						ImPlot::SetupAxes(NULL, NULL,
+							ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit,
+							ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit);
 
 						double y_offset = (range_value.y - range_value.x) * 0.1;
 						ImPlot::SetupAxesLimits(time_range.x, time_range.y, range_value.x - y_offset, range_value.y + y_offset);
@@ -556,6 +561,8 @@ void GraphView::prDrawGraph_NewSystem()
 														current_time = _data_ptr_i->time_epoch;
 														current_value = _data_ptr_i->value;
 														value_pos = ImPlot::PlotToPixels(current_time, current_value);
+
+														ImPlot::FitPoint(ImPlotPoint(current_time, current_value));
 
 														draw_list->AddLine(last_value_pos, ImVec2(value_pos.x, last_value_pos.y), datas_ptr->color_u32, 2.0f);
 														draw_list->AddLine(ImVec2(value_pos.x, last_value_pos.y), value_pos, datas_ptr->color_u32, 2.0f);
