@@ -32,6 +32,7 @@ limitations under the License.
 #include <Engine/Log/LogEngine.h>
 #include <Engine/Log/SignalSerie.h>
 #include <Engine/Log/SignalTick.h>
+#include <Engine/Lua/LuaEngine.h>
 
 static int GeneratorPaneWidgetId = 0;
 
@@ -131,6 +132,28 @@ bool LogPane::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vPar
 	return true;
 }
 
+void LogPane::Clear()
+{
+	m_LogDatas.clear();
+}
+
+void LogPane::CheckItem(SignalTickPtr vSignalTick)
+{
+	if (vSignalTick && ImGui::IsItemHovered())
+	{
+		LogEngine::Instance()->SetHoveredTime(vSignalTick->time_epoch);
+
+		if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+		{
+			LogEngine::Instance()->ShowHideSignal(vSignalTick->category, vSignalTick->name);
+			ProjectFile::Instance()->SetProjectChange();
+			ToolPane::Instance()->UpdateTree();
+
+			m_need_re_preparation = true;
+		}
+	}
+}
+
 void LogPane::DrawTable()
 {
 	if (ImGui::BeginMenuBar())
@@ -176,8 +199,8 @@ void LogPane::DrawTable()
 		ImGuiTableFlags_RowBg |
 		ImGuiTableFlags_Hideable | 
 		ImGuiTableFlags_ScrollY | 
-		ImGuiTableFlags_NoHostExtendY | 
-		ImGuiTableFlags_Resizable;
+		//ImGuiTableFlags_Resizable |
+		ImGuiTableFlags_NoHostExtendY;
 
 	// first display
 	if (m_LogDatas.empty())
@@ -187,17 +210,17 @@ void LogPane::DrawTable()
 
 	const auto _count_logs = m_LogDatas.size();
 
-	bool _need_re_preparation = false;
+	m_need_re_preparation = false;
 
 	auto listViewID = ImGui::GetID("##LogPane_DrawTable");
 	if (ImGui::BeginTableEx("##LogPane_DrawTable", listViewID, 5, flags)) //-V112
 	{
 		ImGui::TableSetupScrollFreeze(0, 1); // Make header always visible
-		ImGui::TableSetupColumn("Epoch Time", ImGuiTableColumnFlags_WidthStretch, -1, 0);
-		ImGui::TableSetupColumn("Date Time", ImGuiTableColumnFlags_WidthStretch, -1, 1);
-		ImGui::TableSetupColumn("Category", ImGuiTableColumnFlags_WidthStretch, -1, 2);
-		ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, -1, 3);
-		ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, -1, 4);
+		ImGui::TableSetupColumn("Epoch", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultHide);
+		ImGui::TableSetupColumn("Date", ImGuiTableColumnFlags_WidthFixed);
+		ImGui::TableSetupColumn("Cat", ImGuiTableColumnFlags_WidthFixed);
+		ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
+		ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed);
 
 		ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 
@@ -247,36 +270,27 @@ void LogPane::DrawTable()
 					if (ImGui::TableNextColumn()) // time
 					{
 						ImGui::Selectable(ct::toStr("%f", infos_ptr->time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
-
-						if (ImGui::IsItemHovered())
-						{
-							LogEngine::Instance()->SetHoveredTime(infos_ptr->time_epoch);
-
-							if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-							{
-								LogEngine::Instance()->ShowHideSignal(infos_ptr->category, infos_ptr->name);
-								ProjectFile::Instance()->SetProjectChange();
-								ToolPane::Instance()->UpdateTree();
-
-								_need_re_preparation = true;
-							}
-						}
+						CheckItem(infos_ptr);
 					}
 					if (ImGui::TableNextColumn()) // date time
 					{
 						ImGui::Selectable(infos_ptr->time_date_time.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+						CheckItem(infos_ptr);
 					}
 					if (ImGui::TableNextColumn()) // category
 					{
 						ImGui::Selectable(infos_ptr->category.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+						CheckItem(infos_ptr);
 					}
 					if (ImGui::TableNextColumn()) // name
 					{
 						ImGui::Selectable(infos_ptr->name.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+						CheckItem(infos_ptr);
 					}
 					if (ImGui::TableNextColumn()) // value
 					{
 						ImGui::Text("%f", infos_ptr->value);
+						CheckItem(infos_ptr);
 					}
 
 					if (color)
@@ -291,7 +305,7 @@ void LogPane::DrawTable()
 		ImGui::EndTable();
 	}
 
-	if (_need_re_preparation)
+	if (m_need_re_preparation)
 	{
 		PrepareLog();
 	}
@@ -299,6 +313,9 @@ void LogPane::DrawTable()
 
 void LogPane::PrepareLog()
 {
+	if (LuaEngine::Instance()->IsJoinable())
+		return;
+
 	m_LogDatas.clear();
 
 	if (ProjectFile::Instance()->m_HideSomeValues)

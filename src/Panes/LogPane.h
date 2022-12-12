@@ -29,7 +29,8 @@ class LogPane : public AbstractPane, public conf::ConfigAbstract
 private:
 	ImGuiListClipper m_LogListClipper;
 	SignalTicksWeakContainer m_LogDatas;
-	std::vector<double> m_ValuesToHide;
+	std::vector<double> m_ValuesToHide; 
+	bool m_need_re_preparation = false;
 
 public:
 	bool Init() override;
@@ -42,6 +43,8 @@ public:
 	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
 	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
 
+	void Clear();
+	void CheckItem(SignalTickPtr vSignalTick);
 	void PrepareLog();
 
 public: // singleton

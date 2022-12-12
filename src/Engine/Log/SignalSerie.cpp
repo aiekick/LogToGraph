@@ -19,6 +19,25 @@ SignalSerie::~SignalSerie()
 
 }
 
+void SignalSerie::InsertTick(SignalTickWeak vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount)
+{
+	if (vIdx < datas_values.size())
+	{
+		auto ptr = vTick.lock();
+		if (ptr)
+		{
+			range_value.x = ct::mini(range_value.x, ptr->value);
+			range_value.y = ct::maxi(range_value.y, ptr->value);
+			datas_values.insert(datas_values.begin() + vIdx, vTick);
+
+			if (vIncBaseRecordsCount)
+			{
+				++count_base_records;
+			}
+		}
+	}
+}
+
 void SignalSerie::AddTick(SignalTickWeak vTick, const bool& vIncBaseRecordsCount)
 {
 	auto ptr = vTick.lock();

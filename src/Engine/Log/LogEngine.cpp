@@ -9,16 +9,35 @@
 #include <Engine/Log/SignalTick.h>
 #include <Engine/Graphs/GraphView.h>
 
+#include <Panes/LogPane.h>
+
+///////////////////////////////////////////////////
+/// STATIC'S //////////////////////////////////////
+///////////////////////////////////////////////////
+
+std::mutex LogEngine::s_WorkerThread_Mutex;
+
+///////////////////////////////////////////////////
+/// PUBLIC ////////////////////////////////////////
+///////////////////////////////////////////////////
+
 void LogEngine::Clear()
 {
+	LogEngine::s_WorkerThread_Mutex.lock();
+
 	m_Range_ticks_time = SignalValueRange(0.5, -0.5) * DBL_MAX;
 	m_SignalSeries.clear();
 	m_SignalTicks.clear();
+	m_VirtualTicks.clear();
 	m_VisibleCount = 0;
+
+	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 void LogEngine::AddSignalTick(const std::string& vCategory, const std::string& vName, const double& vTime, const double& vValue)
 {
+	LogEngine::s_WorkerThread_Mutex.lock();
+
 	if (!vName.empty())
 	{
 		auto tick_Ptr = SignalTick::Create();
@@ -69,15 +88,91 @@ void LogEngine::AddSignalTick(const std::string& vCategory, const std::string& v
 			}
 		}
 	}
+
+	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 void LogEngine::Finalize()
 {
-	
+	LogEngine::s_WorkerThread_Mutex.lock();
+
+	if (m_SignalTicks.front() && m_SignalTicks.back())
+	{
+		auto global_first_time_tick = m_SignalTicks.front()->time_epoch;
+		auto global_last_time_tick = m_SignalTicks.back()->time_epoch;
+
+		// on va ajouter les 1er et derniers ticks
+		for (auto& item_cat : m_SignalSeries)
+		{
+			for (auto& item_name : item_cat.second)
+			{
+				if (item_name.second)
+				{
+					auto local_first_tick_ptr = item_name.second->datas_values.front().lock();
+					auto local_last_tick_ptr = item_name.second->datas_values.back().lock();
+
+					if (local_first_tick_ptr && local_last_tick_ptr)
+					{
+						// on va ajouter le 1er tick
+						if (global_first_time_tick < local_first_tick_ptr->time_epoch)
+						{
+							auto tick_Ptr = SignalTick::Create();
+							tick_Ptr->category = item_cat.first;
+							tick_Ptr->name = item_name.first;
+							tick_Ptr->time_epoch = global_first_time_tick;
+
+							// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
+							double seconds = ct::fract(global_first_time_tick); // 0.067365000
+							std::time_t _epoch_time = (std::time_t)global_first_time_tick;
+							auto tm = std::localtime(&_epoch_time);
+							double _sec = (double)tm->tm_sec + seconds;
+							tick_Ptr->time_date_time = ct::toStr("%i/%i/%i %i:%i:%f",
+								tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
+								tm->tm_hour, tm->tm_min, _sec);
+
+							tick_Ptr->value = 0.0;
+
+							m_VirtualTicks.push_back(tick_Ptr);// for retain the shared_pointer
+							item_name.second->InsertTick(tick_Ptr, 0U, false);
+						}
+
+						// on va ajouter le dernier tick
+						if (global_last_time_tick > local_last_tick_ptr->time_epoch)
+						{
+							auto tick_Ptr = SignalTick::Create();
+							tick_Ptr->category = item_cat.first;
+							tick_Ptr->name = item_name.first;
+							tick_Ptr->time_epoch = global_last_time_tick;
+
+							// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
+							double seconds = ct::fract(global_last_time_tick); // 0.067365000
+							std::time_t _epoch_time = (std::time_t)global_last_time_tick;
+							auto tm = std::localtime(&_epoch_time);
+							double _sec = (double)tm->tm_sec + seconds;
+							tick_Ptr->time_date_time = ct::toStr("%i/%i/%i %i:%i:%f",
+								tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
+								tm->tm_hour, tm->tm_min, _sec);
+
+							tick_Ptr->value = local_last_tick_ptr->value;
+
+							m_VirtualTicks.push_back(tick_Ptr);// for retain the shared_pointer
+							item_name.second->AddTick(tick_Ptr, false);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	LogEngine::s_WorkerThread_Mutex.unlock();
+
+	LogPane::Instance()->Clear();
 }
 
 void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName)
 {
+	LogEngine::s_WorkerThread_Mutex.lock();
+
 	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
 	{
 		auto& cat = m_SignalSeries.at(vCategory);
@@ -101,10 +196,14 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
 			}
 		}
 	}
+
+	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool& vFlag)
 {
+	LogEngine::s_WorkerThread_Mutex.lock();
+
 	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
 	{
 		auto& cat = m_SignalSeries.at(vCategory);
@@ -128,10 +227,16 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
 			}
 		}
 	}
+
+	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 bool LogEngine::isSignalShown(const SignalCategory& vCategory, const SignalName& vName, SignalColor* vOutColorPtr)
 {
+	bool res = false;
+
+	LogEngine::s_WorkerThread_Mutex.lock();
+
 	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
 	{
 		auto& cat = m_SignalSeries.at(vCategory);
@@ -145,12 +250,14 @@ bool LogEngine::isSignalShown(const SignalCategory& vCategory, const SignalName&
 					*vOutColorPtr = ptr->color_u32;
 				}
 
-				return ptr->show;
+				res = ptr->show;
 			}
 		}
 	}
 
-	return false;
+	LogEngine::s_WorkerThread_Mutex.unlock();
+
+	return res;
 }
 
 // get tick times
@@ -164,6 +271,7 @@ SignalTicksContainerRef LogEngine::GetSignalTicks()
 {
 	return m_SignalTicks; 
 }
+
 SignalSeriesContainerRef LogEngine::GetSignalSeries()
 { 
 	return m_SignalSeries; 
@@ -181,13 +289,16 @@ double LogEngine::GetHoveredTime()
 
 void LogEngine::PrepareForSave()
 {
+	LogEngine::s_WorkerThread_Mutex.lock();
+
 	m_SignalSettings.clear();
 
 	for (const auto& item_cat : m_SignalSeries)
 	{
 		for (const auto& item_name : item_cat.second)
 		{
-			if (item_name.second)
+			if (item_name.second && 
+				item_name.second->show)
 			{
 				SignalSetting ss;
 				ss.visibility = item_name.second->show;
@@ -197,10 +308,14 @@ void LogEngine::PrepareForSave()
 			}
 		}
 	}
+
+	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 void LogEngine::PrepareAfterLoad()
 {
+	LogEngine::s_WorkerThread_Mutex.lock();
+
 	m_VisibleCount = 0;
 
 	for (const auto& item_cat : m_SignalSettings)
@@ -210,6 +325,8 @@ void LogEngine::PrepareAfterLoad()
 			SetSignalSetting(item_cat.first, item_name.first, item_name.second);
 		}
 	}
+
+	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 bool LogEngine::setSignalVisibilty(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas)
@@ -300,6 +417,8 @@ const int32_t& LogEngine::GetVisibleCount() const
 
 void LogEngine::SetSignalSetting(const SignalCategory& vCategory, const SignalName& vName, const SignalSetting& vSignalSetting)
 {
+	//LogEngine::s_WorkerThread_Mutex.lock();
+	
 	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
 	{
 		auto& cat = m_SignalSeries.at(vCategory);
@@ -329,9 +448,11 @@ void LogEngine::SetSignalSetting(const SignalCategory& vCategory, const SignalNa
 			}
 		}
 	}
+
+	//LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
-std::string LogEngine::getXml(const std::string& vOffset, const std::string& /*vUserDatas*/)
+std::string LogEngine::getXml(const std::string& /*vOffset*/, const std::string& /*vUserDatas*/)
 {
 	std::string str;
 

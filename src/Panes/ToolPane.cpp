@@ -35,6 +35,7 @@ limitations under the License.
 #include <Engine/Log/LogEngine.h>
 #include <Engine/Log/SignalSerie.h>
 #include <Engine/Log/SignalTick.h>
+#include <Engine/Graphs/GraphView.h>
 
 static int SourcePane_WidgetId = 0;
 
@@ -157,11 +158,22 @@ void ToolPane::DrawTable()
 	ImGui::Separator();
 
 	ImGui::Header("Analyse");
-	if (ImGui::ContrastedButton("Analyse log file", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
+	if (!LuaEngine::Instance()->IsJoinable())
 	{
-		LogEngine::Instance()->PrepareForSave();
-		LuaEngine::Instance()->ExecScriptOnFile();
-		LogEngine::Instance()->PrepareAfterLoad();
+		if (ImGui::ContrastedButton("Start LuAnalyse of log file", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
+		{
+			LuaEngine::Instance()->CreateWorkerThread();
+		}
+	}
+	else
+	{
+		if (ImGui::ContrastedButton("Stop LuaAnalyse", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
+		{
+			LuaEngine::Instance()->StopWorkerThread();
+		}
+
+		float progress = (float)LuaEngine::s_Progress;
+		ImGui::ProgressBar(progress);
 	}
 }
 
@@ -344,6 +356,7 @@ void ToolPane::HideAllGraphs()
 
 	if (_one_at_least)
 	{
+		GraphView::Instance()->Clear();
 		ProjectFile::Instance()->SetProjectChange();
 	}
 }

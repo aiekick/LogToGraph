@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <mutex>
 #include <vector>
 #include <memory>
 #include <string>
@@ -22,10 +23,16 @@ class LogEngine : public conf::ConfigAbstract
 	// for searching, so no need the category
 	typedef std::map<SignalName, SignalSerieWeak> OrderedCategoryLessSignalDatasContainer;
 
+public:
+	static std::mutex s_WorkerThread_Mutex;
+
 private:
 	// containers of ptr's
 	SignalSeriesContainer m_SignalSeries;
 	SignalTicksContainer m_SignalTicks;
+
+	// ticks container who are not datas, because created virtually
+	SignalTicksContainer m_VirtualTicks;
 
 	// for display
 	SignalValueRange m_Range_ticks_time = SignalValueRange(0.5, -0.5) * DBL_MAX;

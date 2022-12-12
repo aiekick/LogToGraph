@@ -9,6 +9,7 @@
 #include <ctools/FileHelper.h>
 #include <Helper/Messaging.h>
 #include <Engine/Log/LogEngine.h>
+#include <Engine/Graphs/GraphView.h>
 
 extern "C" 
 {
@@ -242,6 +243,183 @@ static int Lua_void_AddSignalValue_category_name_date_value(lua_State* L)
 }
 
 ///////////////////////////////////////////////////
+/// STATIC'S //////////////////////////////////////
+///////////////////////////////////////////////////
+
+std::atomic<double> LuaEngine::s_Progress(0.0);
+std::atomic<bool> LuaEngine::s_Working(false);
+std::atomic<double> LuaEngine::s_GenerationTime(0.0);
+std::mutex LuaEngine::s_WorkerThread_Mutex;
+
+///////////////////////////////////////////////////
+/// WORKER THREAD /////////////////////////////////
+///////////////////////////////////////////////////
+
+void LuaEngine::sLuAnalyse(
+    std::atomic<double>& vProgress,
+    std::atomic<bool>& vWorking,
+    std::atomic<double>& vGenerationTime)
+{
+    vProgress = 0.0;
+
+    vWorking = true;
+
+    vGenerationTime = 0.0f;
+
+    const int64_t firstTimeMark = std::chrono::duration_cast<std::chrono::milliseconds>
+        (std::chrono::system_clock::now().time_since_epoch()).count();
+    
+    std::string _LuaFilePathName;
+    std::string _LogFilePathName;
+    std::string _Lua_Current_Buffer_Line_Var_Name;		// current line of buffer
+    std::string _Lua_Last_Buffer_Line_Var_Name;			// last line of buffer
+    std::string _Lua_Current_Buffer_Line;				// current line of buffer
+    std::string _Lua_Last_Buffer_Line;					// last line of buffer
+    std::string _Lua_Function_To_Call_For_Each_Line;	// the function to call for each lines
+    std::string _Lua_Function_To_Call_End_File;			// the fucntion to call for the end of the file
+    size_t _Lua_Current_Row_Line = 0U;					// the current line pos read from file
+
+    LuaEngine::s_WorkerThread_Mutex.lock();
+    _LuaFilePathName = LuaEngine::Instance()->GetLuaFilePathName();
+    _LogFilePathName = LuaEngine::Instance()->GetLogFilePathName();
+    _Lua_Current_Buffer_Line_Var_Name = LuaEngine::Instance()->GetBufferNameForCurrentLine();
+    _Lua_Last_Buffer_Line_Var_Name = LuaEngine::Instance()->GetBufferNameForLastLine();
+    _Lua_Function_To_Call_For_Each_Line = LuaEngine::Instance()->GetFunctionForEachLine();
+    _Lua_Function_To_Call_End_File = LuaEngine::Instance()->GetFunctionForEndFile();
+    LuaEngine::s_WorkerThread_Mutex.unlock(); 
+
+    auto _luaState = luaL_newstate();
+    if (_luaState)
+    {
+        luaL_openlibs(_luaState); // lua access to basic libraries
+
+        // register custom functions
+        lua_register(_luaState, "print", lua_int_print_args);
+        lua_register(_luaState, "LogInfo", Lua_void_LogInfo_string);
+        lua_register(_luaState, "LogWarning", Lua_void_LogWarning_string);
+        lua_register(_luaState, "LogError", Lua_void_LogError_string);
+        lua_register(_luaState, "SetInfos", Lua_void_SetInfos_string);
+        lua_register(_luaState, "SetBufferNameForCurrentLine", Lua_void_SetBufferNameForCurrentLine_string);
+        lua_register(_luaState, "SetBufferNameForLastLine", Lua_void_SetBufferNameForLastLine_string);
+        lua_register(_luaState, "SetFunctionForEachLine", Lua_void_SetFunctionForEachLine_string);
+        lua_register(_luaState, "SetFunctionForEndFile", Lua_void_SetFunctionForEndFile_string);
+        lua_register(_luaState, "GetCurrentRowIndex", Lua_int_GetCurrentRowIndex_void);
+        lua_register(_luaState, "AddSignalValue", Lua_void_AddSignalValue_category_name_date_value);
+
+        // do code
+        if (!_LuaFilePathName.empty() && !_LogFilePathName.empty())
+        {
+            if (FileHelper::Instance()->IsFileExist(_LogFilePathName))
+            {
+                auto file_string = FileHelper::Instance()->LoadFileToString(_LogFilePathName);
+                if (!file_string.empty())
+                {
+                    if (FileHelper::Instance()->IsFileExist(_LuaFilePathName))
+                    {
+                        try
+                        {
+                            LogEngine::Instance()->Clear();
+                            GraphView::Instance()->Clear();
+
+                            // interpret lua script
+                            if (luaL_dofile(_luaState, _LuaFilePathName.c_str()) != LUA_OK)
+                            {
+                                LogVarLightError("%s", lua_tostring(_luaState, -1));
+                            }
+                            else
+                            {
+                                // call function Init
+                                if (lua_getglobal(_luaState, "Init") == LUA_TFUNCTION)
+                                {
+                                    lua_pcall(_luaState, 0, 0, 0);
+                                }
+
+                                auto file_lines = ct::splitStringToVector(file_string, '\n');
+                                auto count_lines = file_lines.size();
+
+                                _Lua_Current_Row_Line = 0U;
+                                for (auto _Lua_Current_Buffer_Line : file_lines)
+                                {
+                                    if (!vWorking)
+                                        break;
+
+                                    // time
+                                    const int64_t secondTimeMark = std::chrono::duration_cast<std::chrono::milliseconds>
+                                        (std::chrono::system_clock::now().time_since_epoch()).count();
+
+                                    vGenerationTime = (double)(secondTimeMark - firstTimeMark) / 1000.0;
+                                    vProgress = (double)_Lua_Current_Row_Line / (double)count_lines;
+
+                                    // set current buffer line
+                                    if (!_Lua_Last_Buffer_Line_Var_Name.empty())
+                                    {
+                                        sSetLuaBufferVarContent(_luaState, _Lua_Last_Buffer_Line_Var_Name, _Lua_Last_Buffer_Line);
+                                    }
+
+                                    // set last buffer line
+                                    if (!_Lua_Current_Buffer_Line_Var_Name.empty())
+                                    {
+                                        sSetLuaBufferVarContent(_luaState, _Lua_Current_Buffer_Line_Var_Name, _Lua_Current_Buffer_Line);
+                                    }
+
+                                    // call function for each lines
+                                    if (!_Lua_Function_To_Call_For_Each_Line.empty())
+                                    {
+                                        if (lua_getglobal(_luaState, _Lua_Function_To_Call_For_Each_Line.c_str()) == LUA_TFUNCTION)
+                                        {
+                                            lua_pcall(_luaState, 0, 0, 0);
+                                        }
+                                    }
+
+                                    // current line to last line
+                                    _Lua_Last_Buffer_Line = _Lua_Current_Buffer_Line;
+
+                                    // inc row line pos
+                                    ++_Lua_Current_Row_Line;
+                                }
+
+                                // call function for end of file
+                                if (!_Lua_Function_To_Call_End_File.empty())
+                                {
+                                    if (lua_getglobal(_luaState, _Lua_Function_To_Call_End_File.c_str()) == LUA_TFUNCTION)
+                                    {
+                                        lua_pcall(_luaState, 0, 0, 0);
+                                    }
+                                }
+
+                                LogEngine::Instance()->Finalize();
+                            }
+                        }
+                        catch (std::exception& e)
+                        {
+                            LogVarLightError(e.what());
+                        }
+                    }
+                }
+            }
+        }
+
+        lua_close(_luaState);
+    }
+
+    vWorking = false;
+}
+
+void LuaEngine::sSetLuaBufferVarContent(lua_State* vLuaState, const std::string& vVarName, const std::string& vContent)
+{
+    if (!vVarName.empty() && !vContent.empty())
+    {
+        auto _cont = vContent;
+        if (_cont.find("\"") != std::string::npos)
+        {
+            ct::replaceString(_cont, "\"", "\\\"");
+        }
+        const string str = vVarName + " = \"" + _cont + "\"";
+        luaL_dostring(vLuaState, str.c_str());
+    }
+}
+
+///////////////////////////////////////////////////
 /// INIT/UNIT /////////////////////////////////////
 ///////////////////////////////////////////////////
 
@@ -273,7 +451,7 @@ bool LuaEngine::Init()
 
 void LuaEngine::Unit()
 {
-
+    lua_close(m_LuaState);
 }
 
 bool LuaEngine::ExecScriptOnFile()
@@ -290,6 +468,7 @@ bool LuaEngine::ExecScriptOnFile()
                     try
                     {
                         LogEngine::Instance()->Clear();
+                        GraphView::Instance()->Clear();
 
                         // interpret lua script
                         if (luaL_dofile(m_LuaState, m_LuaFilePathName.c_str()) != LUA_OK)
@@ -310,13 +489,13 @@ bool LuaEngine::ExecScriptOnFile()
                                 // set current buffer line
                                 if (!m_Lua_Last_Buffer_Line_Var_Name.empty())
                                 {
-                                    Set_Lua_BufferVar_Content(m_Lua_Last_Buffer_Line_Var_Name, m_Lua_Last_Buffer_Line);
+                                    sSetLuaBufferVarContent(m_LuaState, m_Lua_Last_Buffer_Line_Var_Name, m_Lua_Last_Buffer_Line);
                                 }
 
                                 // set last buffer line
                                 if (!m_Lua_Current_Buffer_Line_Var_Name.empty())
                                 {
-                                    Set_Lua_BufferVar_Content(m_Lua_Current_Buffer_Line_Var_Name, m_Lua_Current_Buffer_Line);
+                                    sSetLuaBufferVarContent(m_LuaState, m_Lua_Current_Buffer_Line_Var_Name, m_Lua_Current_Buffer_Line);
                                 }
 
                                 // call function for each lines
@@ -380,9 +559,19 @@ void LuaEngine::SetInfos(const std::string& vInfos)
     m_Lua_Infos = vInfos;
 }
 
+std::string LuaEngine::GetInfos()
+{
+    return m_Lua_Infos;
+}
+
 void LuaEngine::SetBufferNameForCurrentLine(const std::string& vName)
 {
     m_Lua_Current_Buffer_Line_Var_Name = vName;
+}
+
+std::string LuaEngine::GetBufferNameForCurrentLine()
+{
+    return m_Lua_Current_Buffer_Line_Var_Name;
 }
 
 void LuaEngine::SetBufferNameForLastLine(const std::string& vName)
@@ -390,14 +579,29 @@ void LuaEngine::SetBufferNameForLastLine(const std::string& vName)
     m_Lua_Last_Buffer_Line_Var_Name = vName;
 }
 
+std::string LuaEngine::GetBufferNameForLastLine()
+{
+    return m_Lua_Last_Buffer_Line_Var_Name;
+}
+
 void LuaEngine::SetFunctionForEachLine(const std::string& vName)
 {
     m_Lua_Function_To_Call_For_Each_Line = vName;
 }
 
+std::string LuaEngine::GetFunctionForEachLine()
+{
+    return m_Lua_Function_To_Call_For_Each_Line;
+}
+
 void LuaEngine::SetFunctionForEndFile(const std::string& vName)
 {
     m_Lua_Function_To_Call_End_File = vName;
+}
+
+std::string LuaEngine::GetFunctionForEndFile()
+{
+    return m_Lua_Function_To_Call_End_File;
 }
 
 int32_t LuaEngine::GetCurrentRowIndex()
@@ -423,6 +627,63 @@ void LuaEngine::SetLogFilePathName(const std::string& vFilePathName)
 std::string LuaEngine::GetLogFilePathName()
 {
     return m_LogFilePathName;
+}
+
+///////////////////////////////////////////////////////
+//// THREAD ///////////////////////////////////////////
+///////////////////////////////////////////////////////
+
+void LuaEngine::CreateWorkerThread()
+{
+    if (!StopWorkerThread())
+    {
+        LogEngine::Instance()->PrepareForSave();
+        LuaEngine::s_Working = true;
+        m_WorkerThread =
+            std::thread(
+                sLuAnalyse,
+                std::ref(LuaEngine::s_Progress),
+                std::ref(LuaEngine::s_Working),
+                std::ref(LuaEngine::s_GenerationTime));
+    }
+}
+
+bool LuaEngine::StopWorkerThread()
+{
+    bool res = false;
+
+    res = IsJoinable();
+    if (res)
+    {
+        LuaEngine::s_Working = false;
+        Join();
+    }
+
+    return res;
+}
+
+bool LuaEngine::IsJoinable()
+{
+    return m_WorkerThread.joinable();
+}
+
+void LuaEngine::Join()
+{
+    m_WorkerThread.join();
+}
+
+bool LuaEngine::FinishIfRequired()
+{
+    if (m_WorkerThread.joinable())
+    {
+        if (!LuaEngine::s_Working)
+        {
+            Join();
+            LogEngine::Instance()->PrepareAfterLoad();
+            return true;
+        }
+    }
+    return false;
 }
 
 ///////////////////////////////////////////////////////
@@ -462,18 +723,4 @@ bool LuaEngine::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vP
         m_LogFilePathName = strValue;
 
     return true;
-}
-
-void LuaEngine::Set_Lua_BufferVar_Content(const std::string& vVarName, const std::string& vContent)
-{
-    if (!vVarName.empty() && !vContent.empty())
-    {
-        auto _cont = vContent;
-        if (_cont.find("\"") != std::string::npos)
-        {
-            ct::replaceString(_cont, "\"", "\\\"");
-        }
-        const string str = vVarName + " = \"" + _cont + "\"";
-        luaL_dostring(m_LuaState, str.c_str());
-    }
 }

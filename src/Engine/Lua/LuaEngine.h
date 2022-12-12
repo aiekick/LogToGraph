@@ -1,5 +1,8 @@
 #pragma once
 
+#include <mutex>
+#include <thread>
+#include <atomic>
 #include <memory>
 #include <string>
 #include <functional>
@@ -9,6 +12,16 @@
 struct lua_State;
 class LuaEngine : public conf::ConfigAbstract
 {
+public:
+	static std::mutex s_WorkerThread_Mutex;
+	static std::atomic<bool> s_Working;
+	static std::atomic<double> s_Progress;
+	static std::atomic<double> s_GenerationTime;
+
+public:
+	static void sSetLuaBufferVarContent(lua_State* vLuaState, const std::string& vVarName, const std::string& vContent);
+	static void sLuAnalyse(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime);
+
 private:
 	lua_State* m_LuaState = nullptr;
 
@@ -22,6 +35,9 @@ private:
 	std::string m_Lua_Function_To_Call_End_File;			// the fucntion to call for the end of the file
 	int32_t m_Lua_Current_Row_Line = 0U;					// the current line pos read from file
 
+private: // thread
+	std::thread m_WorkerThread;
+
 private: // to save
 	std::string m_LuaFilePathName;
 	std::string m_LogFilePathName;
@@ -34,10 +50,20 @@ public:
 	bool ExecScriptCode(const std::string& vCode, std::string& vErrors);
 
 	void SetInfos(const std::string& vInfos);
+	std::string GetInfos();
+	
 	void SetBufferNameForCurrentLine(const std::string& vName);
+	std::string GetBufferNameForCurrentLine();
+	
 	void SetBufferNameForLastLine(const std::string& vName);
+	std::string GetBufferNameForLastLine();
+	
 	void SetFunctionForEachLine(const std::string& vName);
+	std::string GetFunctionForEachLine();
+	
 	void SetFunctionForEndFile(const std::string& vName);
+	std::string GetFunctionForEndFile();
+
 	int32_t GetCurrentRowIndex();
 
 	void SetLuaFilePathName(const std::string& vFilePathName);
@@ -45,6 +71,12 @@ public:
 
 	void SetLogFilePathName(const std::string& vFilePathName);
 	std::string GetLogFilePathName();
+
+	void CreateWorkerThread();
+	bool StopWorkerThread();
+	bool IsJoinable();
+	void Join();
+	bool FinishIfRequired();
 
 public: // configuration
 	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "");
@@ -62,7 +94,4 @@ public:
 	LuaEngine(const LuaEngine&) = default; // Prevent construction by copying
 	LuaEngine& operator =(const LuaEngine&) { return *this; }; // Prevent assignment
 	~LuaEngine() = default; // Prevent unwanted destruction};
-
-private:
-	void Set_Lua_BufferVar_Content(const std::string& vVarName, const std::string& vContent);
 };

@@ -250,7 +250,7 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 		ImVec2 last_value_pos, value_pos, hovered_min_pos, hovered_max_pos;
 
 		const auto& name_str = datas_ptr->category + " / " + datas_ptr->name;
-		if (ImPlot::BeginPlot(name_str.c_str(), ImVec2(-1, 200), ImPlotFlags_NoLegend/* | ImPlotFlags_Crosshairs*/))
+		if (ImPlot::BeginPlot(name_str.c_str(), ImVec2(-1, 200), ImPlotFlags_NoLegend))
 		{
 			if (m_need_show_hide_x_axis)
 			{
@@ -268,7 +268,8 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 
 			ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit);
 
-			ImPlot::SetupAxesLimits(time_range.x, time_range.y, datas_ptr->range_value.x, datas_ptr->range_value.y);
+			double y_offset = (datas_ptr->range_value.y - datas_ptr->range_value.x) * 0.1;
+			ImPlot::SetupAxesLimits(time_range.x, time_range.y, datas_ptr->range_value.x - y_offset, datas_ptr->range_value.y + y_offset);
 
 			ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
 
@@ -283,7 +284,7 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 
 			if (ImPlot::BeginItem(datas_ptr->name.c_str()))
 			{
-				ImPlot::GetCurrentItem()->Color = IM_COL32(64, 64, 64, 255);
+				ImPlot::GetCurrentItem()->Color = datas_ptr->color_u32;
 
 				double hovered_time = LogEngine::Instance()->GetHoveredTime();
 
@@ -297,13 +298,12 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 						double last_time = _data_ptr_0->time_epoch, current_time;
 						double last_value = _data_ptr_0->value, current_value;
 						last_value_pos = ImPlot::PlotToPixels(last_time, _data_ptr_0->value);
+
 						for (size_t i = 1U; i < datas_ptr->datas_values.size(); ++i)
 						{
 							auto _data_ptr_i = datas_ptr->datas_values.at(i).lock();
 							if (_data_ptr_i)
 							{
-								ImPlot::FitPoint(ImPlotPoint(_data_ptr_i->time_epoch, _data_ptr_i->value));
-
 								current_time = _data_ptr_i->time_epoch;
 								current_value = _data_ptr_i->value;
 								value_pos = ImPlot::PlotToPixels(current_time, current_value);
@@ -339,7 +339,7 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie)
 									auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
 										tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
 										tm->tm_hour, tm->tm_min, _sec);
-									ImGui::SetTooltip("time : %f\ndate : %s\nvalue : %f", plotHoveredMouse.x, date_str.c_str(), last_value);
+									ImGui::SetTooltip("%s : %f\ntime : %f\ndate : %s", datas_ptr->name.c_str(), last_value, plotHoveredMouse.x, date_str.c_str());
 								}
 
 								last_value_pos = value_pos;
@@ -483,7 +483,7 @@ void GraphView::prDrawGraph_NewSystem()
 			else if (!graph_group_ptr->GetSignalSeries().empty()) // if not empty
 			{
 				const auto& time_range = LogEngine::Instance()->GetTicksTimeSerieRange();
-				const auto& value_range = graph_group_ptr->GetSignalSeriesRange();
+				const auto& range_value = graph_group_ptr->GetSignalSeriesRange();
 
 				const ImU32 color_yellow = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphHoveredTimeColor);
 				const ImU32 color_green = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphMouseHoveredTimeColor);
@@ -491,7 +491,7 @@ void GraphView::prDrawGraph_NewSystem()
 
 				ImGui::PushID(ImGui::IncPUSHID());
 				{
-					if (ImPlot::BeginPlot(ct::toStr("G%u", (uint32_t)idx).c_str(), ImVec2(-1, 200), ImPlotFlags_NoLegend/* | ImPlotFlags_Crosshairs*/))
+					if (ImPlot::BeginPlot(ct::toStr("G%u", (uint32_t)idx - 1U).c_str(), ImVec2(-1, 200), ImPlotFlags_NoLegend))
 					{
 						if (m_need_show_hide_x_axis)
 						{
@@ -509,7 +509,8 @@ void GraphView::prDrawGraph_NewSystem()
 
 						ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit);
 
-						ImPlot::SetupAxesLimits(time_range.x, time_range.y, value_range.x, value_range.y);
+						double y_offset = (range_value.y - range_value.x) * 0.1;
+						ImPlot::SetupAxesLimits(time_range.x, time_range.y, range_value.x - y_offset, range_value.y + y_offset);
 
 						ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
 
@@ -520,6 +521,7 @@ void GraphView::prDrawGraph_NewSystem()
 
 						bool plotHovered = ImPlot::IsPlotHovered();
 						ImPlotPoint plotHoveredMouse = ImPlot::GetPlotMousePos();
+						std::string plotHoveredMouse_tooltip_values;
 						//plotHoveredMouse.x = ImPlot::RoundTime(ImPlotTime::FromDouble(plotHoveredMouse.x), ImPlotTimeUnit_Day).ToDouble();
 
 						// idx != 0 -> signal graphs are grouped
@@ -532,7 +534,7 @@ void GraphView::prDrawGraph_NewSystem()
 								{
 									if (ImPlot::BeginItem(datas_ptr->name.c_str()))
 									{
-										ImPlot::GetCurrentItem()->Color = IM_COL32(64, 64, 64, 255);
+										ImPlot::GetCurrentItem()->Color = datas_ptr->color_u32;
 
 										double hovered_time = LogEngine::Instance()->GetHoveredTime();
 
@@ -551,8 +553,6 @@ void GraphView::prDrawGraph_NewSystem()
 													auto _data_ptr_i = datas_ptr->datas_values.at(i).lock();
 													if (_data_ptr_i)
 													{
-														ImPlot::FitPoint(ImPlotPoint(_data_ptr_i->time_epoch, _data_ptr_i->value));
-
 														current_time = _data_ptr_i->time_epoch;
 														current_value = _data_ptr_i->value;
 														value_pos = ImPlot::PlotToPixels(current_time, current_value);
@@ -569,6 +569,7 @@ void GraphView::prDrawGraph_NewSystem()
 															draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_yellow, 4.0f);
 														}
 
+														// draw gizmo for mouse over tick
 														if (plotHovered &&
 															plotHoveredMouse.x >= last_time &&
 															plotHoveredMouse.x <= current_time)
@@ -580,15 +581,11 @@ void GraphView::prDrawGraph_NewSystem()
 															draw_list->AddLine(pos - ImVec2(20.0f, 0.0f), pos + ImVec2(20.0f, 0.0f), color_green, 2.0f);
 															draw_list->AddCircle(pos, 5.0f, color_yellow, 24, 2.0f);
 
-															// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
-															double seconds = ct::fract(plotHoveredMouse.x); // 0.067365000
-															std::time_t _epoch_time = (std::time_t)plotHoveredMouse.x;
-															auto tm = std::localtime(&_epoch_time);
-															double _sec = (double)tm->tm_sec + seconds;
-															auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
-																tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
-																tm->tm_hour, tm->tm_min, _sec);
-															ImGui::SetTooltip("time : %f\ndate : %s\nvalue : %f", plotHoveredMouse.x, date_str.c_str(), last_value);
+															ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
+															ImGui::PushStyleColor(ImGuiCol_Text, datas_ptr->color_u32);
+															ImGui::Text("%s : %f", datas_ptr->name.c_str(), last_value);
+															ImGui::PopStyleColor();
+															ImGui::EndTooltip();
 														}
 
 														last_value_pos = value_pos;
@@ -603,6 +600,23 @@ void GraphView::prDrawGraph_NewSystem()
 									}
 								}
 							}
+						}
+
+						// draw tooltip
+						if (plotHovered)
+						{
+							// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
+							double seconds = ct::fract(plotHoveredMouse.x); // 0.067365000
+							std::time_t _epoch_time = (std::time_t)plotHoveredMouse.x;
+							auto tm = std::localtime(&_epoch_time);
+							double _sec = (double)tm->tm_sec + seconds;
+							auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
+								tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
+								tm->tm_hour, tm->tm_min, _sec);
+
+							ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
+							ImGui::Text("time : %f\ndate : %s", plotHoveredMouse.x, date_str.c_str());
+							ImGui::EndTooltip();
 						}
 
 						ImPlot::EndPlot();

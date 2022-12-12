@@ -38,5 +38,6 @@ public: // to save
 public:
 	SignalSerie();
 	~SignalSerie();
+	void InsertTick(SignalTickWeak vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount = false);
 	void AddTick(SignalTickWeak vTick, const bool& vIncBaseRecordsCount = false);
 };

@@ -17,6 +17,8 @@
 
 #include <implot/implot.h>
 
+#include <Engine/Lua/LuaEngine.h>
+
 #define SHOW_CONSOLE
 
 // [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
@@ -156,6 +158,8 @@ int main(int, char**argv)
             size = ImVec2((float)display_w, (float)display_h);
         }
 		MainFrame::Instance()->Display(pos, size);
+        
+        LuaEngine::Instance()->FinishIfRequired();
 
         ImGui::Render();
 
