@@ -39,7 +39,9 @@ public: // to save
 	std::string m_SearchString;
 	bool m_HideSomeValues = false;
 	std::string m_ValuesToHide;
-	bool m_AutoColorize = true;
+	bool m_AutoColorize = true; 
+	uint32_t m_SignalPreview_CountX = 20U;
+	float m_SignalPreview_SizeX = 20.0f;
 
 private: // dont save
 	bool m_IsLoaded = false;

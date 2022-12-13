@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <Panes/Abstract/AbstractPane.h>
 #include <Engine/Log/LogEngine.h>
+#include <Headers/Globals.h>
 #include <imgui/imgui.h>
 #include <stdint.h>
 #include <string>
@@ -25,10 +26,11 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class GraphGroupPane : public AbstractPane
+class SignalsPreview : public AbstractPane
 {
 private:
-	ImGuiListClipper m_FileListClipper;
+	ImGuiListClipper m_VirtualClipper;
+	std::vector<SignalTickWeak> m_PreviewTicks;
 
 public:
 	bool Init() override;
@@ -37,16 +39,24 @@ public:
 	void DrawDialogsAndPopups(const uint32_t& vCurrentFrame, std::string vUserDatas) override;
 	int DrawWidgets(const uint32_t& vCurrentFrame, int vWidgetId, std::string vUserDatas) override;
 
+	void Clear();
+	void SetHoveredTime(const SignalEpochTime& vHoveredTime);
+
+private:
+	void DrawTable();
+	int CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize, ImVec2& vOutButtonSize);
+	int DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, ImVec2 vGlyphSize);
+
 public: // singleton
-	static std::shared_ptr<GraphGroupPane> Instance()
+	static std::shared_ptr<SignalsPreview> Instance()
 	{
-		static auto _instance = std::make_shared<GraphGroupPane>();
+		static auto _instance = std::make_shared<SignalsPreview>();
 		return _instance;
 	}
 
 public:
-	GraphGroupPane() = default; // Prevent construction
-	GraphGroupPane(const GraphGroupPane&) = default; // Prevent construction by copying
-	GraphGroupPane& operator =(const GraphGroupPane&) { return *this; }; // Prevent assignment
-	~GraphGroupPane() = default; // Prevent unwanted destruction};
+	SignalsPreview() = default; // Prevent construction
+	SignalsPreview(const SignalsPreview&) = default; // Prevent construction by copying
+	SignalsPreview& operator =(const SignalsPreview&) { return *this; }; // Prevent assignment
+	~SignalsPreview() = default; // Prevent unwanted destruction};
 };

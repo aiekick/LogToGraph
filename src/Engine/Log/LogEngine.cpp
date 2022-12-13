@@ -30,6 +30,7 @@ void LogEngine::Clear()
 	m_SignalTicks.clear();
 	m_VirtualTicks.clear();
 	m_VisibleCount = 0;
+	m_SignalsCount = 0;
 
 	LogEngine::s_WorkerThread_Mutex.unlock();
 }
@@ -66,6 +67,8 @@ void LogEngine::AddSignalTick(const std::string& vCategory, const std::string& v
 
 		if (_datas_cat.find(vName) == _datas_cat.end()) // first value of the signal
 		{
+			++m_SignalsCount;
+
 			auto _datas_name_ptr = _datas_cat[vName] = SignalSerie::Create();
 			if (_datas_name_ptr)
 			{
@@ -450,6 +453,11 @@ void LogEngine::SetSignalSetting(const SignalCategory& vCategory, const SignalNa
 	}
 
 	//LogEngine::s_WorkerThread_Mutex.unlock();
+}
+
+const int32_t& LogEngine::GetSignalsCount() const
+{
+	return m_SignalsCount;
 }
 
 std::string LogEngine::getXml(const std::string& /*vOffset*/, const std::string& /*vUserDatas*/)

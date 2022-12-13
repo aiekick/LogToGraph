@@ -195,6 +195,8 @@ std::string ProjectFile::getXml(const std::string& vOffset, const std::string& /
 	str += vOffset + "\t<search_string>" + m_SearchString + "</search_string>\n";
 	str += vOffset + "\t<values_to_hide>" + m_ValuesToHide + "</values_to_hide>\n";
 	str += vOffset + "\t<hide_some_values>" + (m_HideSomeValues  ? "true" : "false") + "</hide_some_values>\n";
+	str += vOffset + "\t<signals_preview_count_x>" + ct::toStr(m_SignalPreview_CountX) + "</signals_preview_count_x>\n";
+	str += vOffset + "\t<signals_preview_size_x>" + ct::toStr(m_SignalPreview_SizeX) + "</signals_preview_size_x>\n";
 	str += vOffset + "</project>\n";
 
 	return str;
@@ -231,6 +233,10 @@ bool ProjectFile::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* 
 			m_ValuesToHide = strValue;
 		else if (strName == "hide_some_values")
 			m_HideSomeValues = ct::ivariant(strValue).GetB();
+		else if (strName == "signals_preview_count_x")
+			m_SignalPreview_CountX = ct::uvariant(strValue).GetU();
+		else if (strName == "signals_preview_size_x")
+			m_SignalPreview_SizeX = ct::fvariant(strValue).GetF();
 	}
 	
 	LayoutManager::Instance()->setFromXml(vElem, vParent, "project");

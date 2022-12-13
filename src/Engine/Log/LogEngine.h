@@ -32,6 +32,7 @@ private:
 	SignalTicksContainer m_SignalTicks;
 
 	// ticks container who are not datas, because created virtually
+	// like first and last ticks of some sinalg for being the same as global time
 	SignalTicksContainer m_VirtualTicks;
 
 	// for display
@@ -40,6 +41,7 @@ private:
 	SignalCategory m_CurrentCategoryLoaded;
 
 	int32_t m_VisibleCount = 0;
+	int32_t m_SignalsCount = 0;
 
 	// just for save signal settings
 	std::unordered_map<SignalName, std::unordered_map<SignalCategory, SignalSetting>> m_SignalSettings;
@@ -70,6 +72,8 @@ public:
 	std::string getSignalVisibilty(const std::string& vOffset, const std::string& /*vUserDatas*/);
 	const int32_t& GetVisibleCount() const;
 	void SetSignalSetting(const SignalCategory& vCategory, const SignalName& vName, const SignalSetting& vSignalSetting);
+
+	const int32_t& GetSignalsCount() const;
 
 public:
 	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;

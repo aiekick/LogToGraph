@@ -43,9 +43,12 @@ void SignalSerie::AddTick(SignalTickWeak vTick, const bool& vIncBaseRecordsCount
 	auto ptr = vTick.lock();
 	if (ptr)
 	{
+		ptr->parent = m_This;
+
 		range_value.x = ct::mini(range_value.x, ptr->value);
 		range_value.y = ct::maxi(range_value.y, ptr->value);
 		datas_values.push_back(vTick);
+
 
 		if (vIncBaseRecordsCount)
 		{

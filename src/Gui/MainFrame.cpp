@@ -44,6 +44,7 @@
 #include <Panes/GraphPane.h>
 #include <Panes/ConsolePane.h>
 #include <Panes/GraphGroupPane.h>
+#include <Panes/SignalsPreview.h>
 
 #include <Engine/Lua/LuaEngine.h>
 
@@ -78,7 +79,8 @@ void MainFrame::Init()
 	LayoutManager::Instance()->AddPane(ConsolePane::Instance(), ICON_NDP2_COMMENT_TEXT_MULTIPLE " Console", "", PaneDisposal::BOTTOM, false, false);
 	LayoutManager::Instance()->AddPane(CodePane::Instance(), ICON_NDP2_COMMENT_TEXT " Code", "", PaneDisposal::RIGHT, false, false);
 	LayoutManager::Instance()->AddPane(GraphGroupPane::Instance(), ICON_NDP2_BUFFER " Graph Groups", "", PaneDisposal::RIGHT, true, false);
-
+	LayoutManager::Instance()->AddPane(SignalsPreview::Instance(), ICON_NDP2_CARDS " Signals Preview", "", PaneDisposal::BOTTOM, true, false);
+		
 	// ConsolePane have a flag only after AddPane() call
 	Messaging::sMessagePaneId = ConsolePane::Instance()->GetPaneFlag();
 	Messaging::Instance();

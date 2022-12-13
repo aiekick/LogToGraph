@@ -24,6 +24,7 @@ public:
 	SignalCategory category;
 	SignalName name;
 	SignalValue value;
+	SignalSerieWeak parent;
 
 public:
 	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;

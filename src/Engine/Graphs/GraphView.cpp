@@ -22,6 +22,7 @@
 #include <ctools/Logger.h>
 
 #include <Panes/LogPane.h>
+#include <Panes/SignalsPreview.h>
 
 // https://www.shadertoy.com/view/ld3fzf
 ct::fvec4 GraphView::GetRainBow(const int32_t& vIdx, const int32_t& vCount)
@@ -385,6 +386,8 @@ void GraphView::prDrawSignalGraph_ImPlot(SignalSerieWeak vSignalSerie, const ImV
 									plotHoveredMouse.x >= last_time &&
 									plotHoveredMouse.x <= current_time)
 								{
+									SignalsPreview::Instance()->SetHoveredTime(plotHoveredMouse.x);
+
 									hovered_min_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas_ptr->range_value.x);
 									hovered_max_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas_ptr->range_value.y);
 									draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_green, 2.0f);
@@ -579,6 +582,8 @@ void GraphView::DrawGroupedGraphs(GraphGroupPtr vGraphGroupPtr, const ImVec2& vS
 														plotHoveredMouse.x >= last_time &&
 														plotHoveredMouse.x <= current_time)
 													{
+														SignalsPreview::Instance()->SetHoveredTime(plotHoveredMouse.x);
+
 														hovered_min_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas_ptr->range_value.x);
 														hovered_max_pos = ImPlot::PlotToPixels(plotHoveredMouse.x, datas_ptr->range_value.y);
 														draw_list->AddLine(hovered_min_pos, hovered_max_pos, color_green, 2.0f);

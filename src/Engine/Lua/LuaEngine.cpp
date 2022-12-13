@@ -18,6 +18,12 @@ extern "C"
 #include <lua/src/lauxlib.h>
 }
 
+#include <Panes/ToolPane.h>
+#include <Panes/GraphGroupPane.h>
+#include <Panes/GraphPane.h>
+#include <Panes/LogPane.h>
+#include <Panes/SignalsPreview.h>
+
 ///////////////////////////////////////////////////
 /// CUSTOM LUA FUNCTIONS //////////////////////////
 ///////////////////////////////////////////////////
@@ -469,6 +475,9 @@ bool LuaEngine::ExecScriptOnFile()
                     {
                         LogEngine::Instance()->Clear();
                         GraphView::Instance()->Clear();
+                        ToolPane::Instance()->Clear();
+                        LogPane::Instance()->Clear();
+                        SignalsPreview::Instance()->Clear();
 
                         // interpret lua script
                         if (luaL_dofile(m_LuaState, m_LuaFilePathName.c_str()) != LUA_OK)
@@ -638,6 +647,11 @@ void LuaEngine::CreateWorkerThread()
     if (!StopWorkerThread())
     {
         LogEngine::Instance()->PrepareForSave();
+        LogEngine::Instance()->Clear();
+        GraphView::Instance()->Clear();
+        ToolPane::Instance()->Clear();
+        LogPane::Instance()->Clear();
+        SignalsPreview::Instance()->Clear();
         LuaEngine::s_Working = true;
         m_WorkerThread =
             std::thread(

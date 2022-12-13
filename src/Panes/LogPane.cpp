@@ -22,6 +22,7 @@ limitations under the License.
 #include <ctools/cTools.h>
 #include <ctools/Logger.h>
 #include <Panes/ToolPane.h>
+#include <Panes/SignalsPreview.h>
 #include <Helper/Messaging.h>
 #include <Project/ProjectFile.h>
 #include <imgui/imgui_internal.h>
@@ -142,6 +143,7 @@ void LogPane::CheckItem(SignalTickPtr vSignalTick)
 	if (vSignalTick && ImGui::IsItemHovered())
 	{
 		LogEngine::Instance()->SetHoveredTime(vSignalTick->time_epoch);
+		SignalsPreview::Instance()->SetHoveredTime(vSignalTick->time_epoch);
 
 		if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 		{

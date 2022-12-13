@@ -32,6 +32,7 @@ private:
 	std::map<SignalName, SignalSerieWeak> m_SignalSeries;
 
 public:
+	void Clear();
 	bool Init() override;
 	void Unit() override;
 	int DrawPanes(const uint32_t& vCurrentFrame, int vWidgetId, std::string vUserDatas, PaneFlag& vInOutPaneShown) override;
