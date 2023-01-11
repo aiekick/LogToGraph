@@ -496,19 +496,20 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 				ImPlot::GetCurrentItem()->Color = datas_ptr->color_u32;
 
 				// render data
-				if (!datas_ptr->datas_values.empty())
+				auto& _data_values = datas_ptr->datas_values;
+				if (!_data_values.empty())
 				{
 					//float zero_y = (float)ImPlot::PlotToPixels(0.0, 0.0).y;
-					auto _data_ptr_0 = datas_ptr->datas_values.at(0U).lock();
+					auto _data_ptr_0 = _data_values.at(0U).lock();
 					if (_data_ptr_0)
 					{
 						double last_time = _data_ptr_0->time_epoch, current_time;
 						double last_value = _data_ptr_0->value, current_value;
 						last_value_pos = ImPlot::PlotToPixels(last_time, _data_ptr_0->value);
 
-						for (size_t i = 1U; i < datas_ptr->datas_values.size(); ++i)
+						for (size_t i = 1U; i < _data_values.size(); ++i)
 						{
-							auto _data_ptr_i = datas_ptr->datas_values.at(i).lock();
+							auto _data_ptr_i = _data_values.at(i).lock();
 							if (_data_ptr_i)
 							{
 								current_time = _data_ptr_i->time_epoch;
@@ -610,17 +611,18 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 							{
 								ImPlot::GetCurrentItem()->Color = datas_ptr->color_u32;
 
-								if (!datas_ptr->datas_values.empty())
+								auto& _data_values = datas_ptr->datas_values;
+								if (!_data_values.empty())
 								{
-									auto _data_ptr_0 = datas_ptr->datas_values.at(0U).lock();
+									auto _data_ptr_0 = _data_values.at(0U).lock();
 									if (_data_ptr_0)
 									{
 										double last_time = _data_ptr_0->time_epoch, current_time;
 										double last_value = _data_ptr_0->value, current_value;
 										last_value_pos = ImPlot::PlotToPixels(last_time, _data_ptr_0->value);
-										for (size_t i = 1U; i < datas_ptr->datas_values.size(); ++i)
+										for (size_t i = 1U; i < _data_values.size(); ++i)
 										{
-											auto _data_ptr_i = datas_ptr->datas_values.at(i).lock();
+											auto _data_ptr_i = _data_values.at(i).lock();
 											if (_data_ptr_i)
 											{
 												current_time = _data_ptr_i->time_epoch;

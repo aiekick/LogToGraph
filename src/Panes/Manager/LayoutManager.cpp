@@ -28,7 +28,7 @@ LayoutManager::LayoutManager() = default;
 LayoutManager::~LayoutManager() = default;
 
 void LayoutManager::AddPane(
-	AbstractPaneWeak vPane,
+	const AbstractPaneWeak& vPane,
 	const std::string& vName,
 	const PaneCategoryName& vCategory,
 	const PaneDisposal& vPaneDisposal,
@@ -40,7 +40,7 @@ void LayoutManager::AddPane(
 }
 
 void LayoutManager::AddPane(
-	AbstractPaneWeak vPane,
+	const AbstractPaneWeak& vPane,
 	const std::string& vName,
 	const PaneCategoryName& vCategory,
 	const PaneFlag& vFlag,

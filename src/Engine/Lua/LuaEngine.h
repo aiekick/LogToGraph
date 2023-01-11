@@ -39,7 +39,7 @@ public:
 	static void sLuAnalyse(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime);
 
 private:
-	lua_State* m_LuaState = nullptr;
+	lua_State* m_LuaStatePtr = nullptr;
 
 	// lua vars, will be set by lua
 	std::string m_Lua_Infos;								// infos about script file

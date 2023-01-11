@@ -36,6 +36,7 @@ struct SignalSetting
 
 class LogEngine : public conf::ConfigAbstract
 {
+private:
 	// for searching, so no need the category
 	typedef std::map<SignalName, SignalSerieWeak> OrderedCategoryLessSignalDatasContainer;
 

@@ -84,14 +84,14 @@ public:
 
 public:
 	void AddPane(
-		AbstractPaneWeak vPane,
+		const AbstractPaneWeak& vPane,
 		const std::string& vName,
 		const PaneCategoryName& vCategory,
 		const PaneDisposal& vPaneDisposal,
 		const bool& vIsOpenedDefault,
 		const bool& vIsFocusedDefault);
 	void AddPane(
-		AbstractPaneWeak vPane,
+		const AbstractPaneWeak& vPane,
 		const std::string& vName,
 		const PaneCategoryName& vCategory,
 		const PaneFlag& vFlag,
