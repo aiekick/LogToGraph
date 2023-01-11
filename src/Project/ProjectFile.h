@@ -23,23 +23,21 @@
 #include <ctools/ConfigAbstract.h>
 #include <implot/implot.h>
 
+struct GraphColor
+{
+    ImVec4 graphBarColor = ImVec4(0.2f, 0.5f, 0.8f, 0.5f);
+    ImVec4 graphHoveredTimeColor = ImVec4(0.8f, 0.8f, 0.2f, 0.8f);
+    ImVec4 graphMouseHoveredTimeColor = ImVec4(0.2f, 0.8f, 0.2f, 0.8f);
+    ImVec4 graphFirstDiffMarkColor = ImVec4(0.8f, 0.2f, 0.2f, 0.8f);
+    ImVec4 graphSecondDiffMarkColor = ImVec4(0.2f, 0.2f, 0.8f, 0.8f);
+};
+
 class ProjectFile : public conf::ConfigAbstract
 {
-public: // dont save
-	static constexpr ImVec4 m_DefaultGraphBarColor = ImVec4(0.2f, 0.5f, 0.8f, 0.5f);
-	static constexpr ImVec4 m_DefaultGraphHoveredTimeColor = ImVec4(0.8f, 0.8f, 0.2f, 0.8f);
-	static constexpr ImVec4 m_DefaultGraphMouseHoveredTimeColor = ImVec4(0.2f, 0.8f, 0.2f, 0.8f);
-	static constexpr ImVec4 m_DefaultGraphFirstDiffMarkColor = ImVec4(0.8f, 0.2f, 0.2f, 0.8f);
-	static constexpr ImVec4 m_DefaultGraphSecondDiffMarkColor = ImVec4(0.2f, 0.2f, 0.8f, 0.8f);
-
 public: // to save
 	std::string m_ProjectFilePathName;
 	std::string m_ProjectFilePath;
-	ImVec4 m_GraphBarColor = m_DefaultGraphBarColor;
-	ImVec4 m_GraphHoveredTimeColor = m_DefaultGraphHoveredTimeColor;
-	ImVec4 m_GraphMouseHoveredTimeColor = m_DefaultGraphMouseHoveredTimeColor;
-	ImVec4 m_GraphFirstDiffMarkColor = m_DefaultGraphFirstDiffMarkColor;
-	ImVec4 m_GraphSecondDiffMarkColor = m_DefaultGraphSecondDiffMarkColor;
+    GraphColor m_GraphColors;
 	bool m_CollapseLogSelection = false;
 	std::string m_SearchString;
 	std::string m_AllGraphSignalsSearchString;
@@ -64,7 +62,7 @@ public:
 	void New();
 	void New(const std::string& vFilePathName);
 	bool Load();
-	bool LoadAs(const std::string vFilePathName); // ils wanted to not pass the adress for re open case
+	bool LoadAs(const std::string& vFilePathName); // ils wanted to not pass the adress for re open case
 	bool Save();
 	bool SaveAs(const std::string& vFilePathName);
 	bool IsLoaded() const;
@@ -91,7 +89,7 @@ public: // singleton
 	}
 
 protected:
-	ProjectFile() = default;; // Prevent construction
+	ProjectFile() = default; // Prevent construction
 	ProjectFile(const ProjectFile&) {}; // Prevent construction by copying
 	ProjectFile& operator =(const ProjectFile&) { return *this; }; // Prevent assignment
 	~ProjectFile() = default;; // Prevent unwanted destruction};

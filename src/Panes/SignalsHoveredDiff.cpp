@@ -41,6 +41,7 @@ limitations under the License.
 #include <Engine/Graphs/GraphView.h>
 
 static int SourcePane_WidgetId = 0;
+static GraphColor s_DefaultGraphColors;
 
 ///////////////////////////////////////////////////////////////////////////////////
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
@@ -131,7 +132,7 @@ int SignalsHoveredDiff::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int
 	return vWidgetId;
 }
 
-void SignalsHoveredDiff::CheckItem(SignalTickPtr vSignalTick)
+void SignalsHoveredDiff::CheckItem(const SignalTickPtr& vSignalTick)
 {
 	if (vSignalTick && ImGui::IsItemHovered())
 	{
@@ -155,25 +156,25 @@ void SignalsHoveredDiff::DrawTable()
 			{
 				if (ImGui::ContrastedButton("R##ResetBarFirstDiffMarkColor"))
 				{
-					ProjectFile::Instance()->m_GraphFirstDiffMarkColor =
-						ProjectFile::Instance()->m_DefaultGraphFirstDiffMarkColor;
+					ProjectFile::Instance()->m_GraphColors.graphFirstDiffMarkColor =
+						s_DefaultGraphColors.graphFirstDiffMarkColor;
 				}
 
 				ImGui::SameLine();
 
 				ImGui::ColorEdit4("First diff mark color##ResetBarFirstDiffMarkColor",
-					&ProjectFile::Instance()->m_GraphFirstDiffMarkColor.x, ImGuiColorEditFlags_NoInputs);
+					&ProjectFile::Instance()->m_GraphColors.graphFirstDiffMarkColor.x, ImGuiColorEditFlags_NoInputs);
 
 				if (ImGui::ContrastedButton("R##ResetBarSecondDiffMarkColor"))
 				{
-					ProjectFile::Instance()->m_GraphSecondDiffMarkColor =
-						ProjectFile::Instance()->m_DefaultGraphSecondDiffMarkColor;
+					ProjectFile::Instance()->m_GraphColors.graphSecondDiffMarkColor =
+						s_DefaultGraphColors.graphSecondDiffMarkColor;
 				}
 
 				ImGui::SameLine();
 
 				ImGui::ColorEdit4("Second diff mark color##ResetBarSecondDiffMarkColor",
-					&ProjectFile::Instance()->m_GraphSecondDiffMarkColor.x, ImGuiColorEditFlags_NoInputs);
+					&ProjectFile::Instance()->m_GraphColors.graphSecondDiffMarkColor.x, ImGuiColorEditFlags_NoInputs);
 
 				ImGui::EndMenu();
 			}

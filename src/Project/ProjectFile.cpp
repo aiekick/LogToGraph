@@ -74,7 +74,7 @@ bool ProjectFile::Load()
 
 // ils wanted to not pass the adress for re open case
 // else, the clear will set vFilePathName to empty because with re open, target PathName
-bool ProjectFile::LoadAs(const std::string vFilePathName)  
+bool ProjectFile::LoadAs(const std::string& vFilePathName)
 {
 	Clear();
 	std::string filePathName = FileHelper::Instance()->SimplifyFilePath(vFilePathName);
@@ -186,11 +186,11 @@ std::string ProjectFile::getXml(const std::string& vOffset, const std::string& /
 	str += LayoutManager::Instance()->getXml(vOffset + "\t", "project");
 	str += LuaEngine::Instance()->getXml(vOffset + "\t", "project");
 	str += LogEngine::Instance()->getSignalVisibilty(vOffset + "\t", "project");
-	str += vOffset + "\t<graph_bar_colors>" + ct::toStrFromImVec4(m_GraphBarColor) + "</graph_bar_colors>\n";
-	str += vOffset + "\t<graph_current_time_colors>" + ct::toStrFromImVec4(m_GraphHoveredTimeColor) + "</graph_current_time_colors>\n";
-	str += vOffset + "\t<graph_mouse_current_time_colors>" + ct::toStrFromImVec4(m_GraphMouseHoveredTimeColor) + "</graph_mouse_current_time_colors>\n";
-	str += vOffset + "\t<graph_diff_first_mark_color>" + ct::toStrFromImVec4(m_GraphFirstDiffMarkColor) + "</graph_diff_first_mark_color>\n";
-	str += vOffset + "\t<graph_diff_second_mark_color>" + ct::toStrFromImVec4(m_GraphSecondDiffMarkColor) + "</graph_diff_second_mark_color>\n";
+	str += vOffset + "\t<graph_bar_colors>" + ct::toStrFromImVec4(m_GraphColors.graphBarColor) + "</graph_bar_colors>\n";
+	str += vOffset + "\t<graph_current_time_colors>" + ct::toStrFromImVec4(m_GraphColors.graphHoveredTimeColor) + "</graph_current_time_colors>\n";
+	str += vOffset + "\t<graph_mouse_current_time_colors>" + ct::toStrFromImVec4(m_GraphColors.graphMouseHoveredTimeColor) + "</graph_mouse_current_time_colors>\n";
+	str += vOffset + "\t<graph_diff_first_mark_color>" + ct::toStrFromImVec4(m_GraphColors.graphFirstDiffMarkColor) + "</graph_diff_first_mark_color>\n";
+	str += vOffset + "\t<graph_diff_second_mark_color>" + ct::toStrFromImVec4(m_GraphColors.graphSecondDiffMarkColor) + "</graph_diff_second_mark_color>\n";
 	str += vOffset + "\t<selection_collapsing>" + (m_CollapseLogSelection ? "true" : "false") + "</selection_collapsing>\n";
 	str += vOffset + "\t<auto_colorize>" + (m_AutoColorize ? "true" : "false") + "</auto_colorize>\n";
 	str += vOffset + "\t<search_string>" + m_SearchString + "</search_string>\n";
@@ -226,23 +226,23 @@ bool ProjectFile::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* 
 	{
 		if (strName == "graph_bar_colors")
 		{
-			m_GraphBarColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
+            m_GraphColors.graphBarColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
 		}
 		else if (strName == "graph_current_time_colors")
 		{
-			m_GraphHoveredTimeColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
+            m_GraphColors.graphHoveredTimeColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
 		}
 		else if (strName == "graph_mouse_current_time_colors")
 		{
-			m_GraphMouseHoveredTimeColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
+            m_GraphColors.graphMouseHoveredTimeColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
 		}
 		else if (strName == "graph_diff_first_mark_color")
 		{
-			m_GraphFirstDiffMarkColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
+            m_GraphColors.graphFirstDiffMarkColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
 		}
 		else if (strName == "graph_diff_second_mark_color")
 		{
-			m_GraphSecondDiffMarkColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
+            m_GraphColors.graphSecondDiffMarkColor = ct::toImVec4(ct::fvariant(strValue).GetV4());
 		}
 		else if (strName == "selection_collapsing")
 		{

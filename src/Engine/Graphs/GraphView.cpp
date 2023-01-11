@@ -47,6 +47,9 @@ limitations under the License.
 #define DRAG_LINE_SECOND_DIFF_MARK 2
 #define DRAG_LINE_MOUSE_HOVERED_TIME 2
 
+static GraphColor s_DefaultGraphColors;
+
+// todo : to put in a common file
 // https://www.shadertoy.com/view/ld3fzf
 ct::fvec4 GraphView::GetRainBow(const int32_t& vIdx, const int32_t& vCount)
 {
@@ -149,7 +152,7 @@ void GraphView::DrawGraphGroupTable()
 		ImGuiTableFlags_ScrollY |
 		ImGuiTableFlags_NoHostExtendY;
 
-	const int32_t _column_count = (int32_t)m_GraphGroups.size();
+	const auto _column_count = (int32_t)m_GraphGroups.size();
 	auto listViewID = ImGui::GetID("##GraphView_DrawGraphGroupTable");
 	if (ImGui::BeginTableEx("##GraphView_DrawGraphGroupTable", listViewID, 2U + _column_count, flags)) //-V112
 	{
@@ -265,58 +268,58 @@ void GraphView::DrawMenuBar()
 		{
 			if (ImGui::ContrastedButton("R##ResetBarColor"))
 			{
-				ProjectFile::Instance()->m_GraphBarColor =
-					ProjectFile::Instance()->m_DefaultGraphBarColor;
+				ProjectFile::Instance()->m_GraphColors.graphBarColor =
+                        s_DefaultGraphColors.graphBarColor;
 			}
 
 			ImGui::SameLine();
 
 			ImGui::ColorEdit4("Bars color##tBarColor",
-				&ProjectFile::Instance()->m_GraphBarColor.x, ImGuiColorEditFlags_NoInputs);
+				&ProjectFile::Instance()->m_GraphColors.graphBarColor.x, ImGuiColorEditFlags_NoInputs);
 
 			if (ImGui::ContrastedButton("R##ResetHoveredTimeBarColor"))
 			{
-				ProjectFile::Instance()->m_GraphHoveredTimeColor =
-					ProjectFile::Instance()->m_DefaultGraphHoveredTimeColor;
+				ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor =
+                        s_DefaultGraphColors.graphHoveredTimeColor;
 			}
 
 			ImGui::SameLine();
 
 			ImGui::ColorEdit4("Current Time color##HoveredTimeBarColor",
-				&ProjectFile::Instance()->m_GraphHoveredTimeColor.x, ImGuiColorEditFlags_NoInputs);
+				&ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor.x, ImGuiColorEditFlags_NoInputs);
 
 			if (ImGui::ContrastedButton("R##ResetMouseHoveredTimeBarColor"))
 			{
-				ProjectFile::Instance()->m_GraphMouseHoveredTimeColor =
-					ProjectFile::Instance()->m_DefaultGraphMouseHoveredTimeColor;
+				ProjectFile::Instance()->m_GraphColors.graphMouseHoveredTimeColor =
+                        s_DefaultGraphColors.graphMouseHoveredTimeColor;
 			}
 
 			ImGui::SameLine();
 
 			ImGui::ColorEdit4("Mouse Over color##MouseHoveredTimeBarColor",
-				&ProjectFile::Instance()->m_GraphMouseHoveredTimeColor.x, ImGuiColorEditFlags_NoInputs);
+				&ProjectFile::Instance()->m_GraphColors.graphMouseHoveredTimeColor.x, ImGuiColorEditFlags_NoInputs);
 
 			if (ImGui::ContrastedButton("R##ResetBarFirstDiffMarkColor"))
 			{
-				ProjectFile::Instance()->m_GraphFirstDiffMarkColor =
-					ProjectFile::Instance()->m_DefaultGraphFirstDiffMarkColor;
+				ProjectFile::Instance()->m_GraphColors.graphFirstDiffMarkColor =
+                        s_DefaultGraphColors.graphFirstDiffMarkColor;
 			}
 
 			ImGui::SameLine();
 
 			ImGui::ColorEdit4("First diff mark color##ResetBarFirstDiffMarkColor",
-				&ProjectFile::Instance()->m_GraphFirstDiffMarkColor.x, ImGuiColorEditFlags_NoInputs);
+				&ProjectFile::Instance()->m_GraphColors.graphFirstDiffMarkColor.x, ImGuiColorEditFlags_NoInputs);
 
 			if (ImGui::ContrastedButton("R##ResetBarSecondDiffMarkColor"))
 			{
-				ProjectFile::Instance()->m_GraphSecondDiffMarkColor =
-					ProjectFile::Instance()->m_DefaultGraphSecondDiffMarkColor;
+				ProjectFile::Instance()->m_GraphColors.graphSecondDiffMarkColor =
+                        s_DefaultGraphColors.graphSecondDiffMarkColor;
 			}
 
 			ImGui::SameLine();
 
 			ImGui::ColorEdit4("Second diff mark color##ResetBarSecondDiffMarkColor",
-				&ProjectFile::Instance()->m_GraphSecondDiffMarkColor.x, ImGuiColorEditFlags_NoInputs);
+				&ProjectFile::Instance()->m_GraphColors.graphSecondDiffMarkColor.x, ImGuiColorEditFlags_NoInputs);
 
 			ImGui::EndMenu();
 		}
@@ -357,7 +360,7 @@ void GraphView::prEraseGroupAt(const size_t& vIdx)
 	}
 }
 
-bool GraphView::prBeginPlot(const std::string& vLabel, ct::dvec2 vRangeValue, const ImVec2& vSize, const bool& vFirstGraph)
+bool GraphView::prBeginPlot(const std::string& vLabel, ct::dvec2 vRangeValue, const ImVec2& vSize, const bool& vFirstGraph) const
 {
 	ImGui::PushID(ImGui::IncPUSHID()); 
 		
@@ -380,11 +383,11 @@ bool GraphView::prBeginPlot(const std::string& vLabel, ct::dvec2 vRangeValue, co
 
 		if (vFirstGraph)
 		{
-			ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_Opposite, ImPlotAxisFlags_Lock);
+			ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_Opposite, ImPlotAxisFlags_Lock);
 		}
 		else
 		{
-			ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_Lock);
+			ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_Lock);
 		}
 
 		double y_offset = (vRangeValue.y - vRangeValue.x) * 0.1;
@@ -443,29 +446,29 @@ void GraphView::prEndPlot()
 	auto first_mark = ProjectFile::Instance()->m_DiffFirstMark;
 	if (first_mark > 0.0)
 	{
-		if (ImPlot::DragLineX(DRAG_LINE_FIRST_DIFF_MARK, &ProjectFile::Instance()->m_DiffFirstMark, ProjectFile::Instance()->m_GraphFirstDiffMarkColor, 1.5f))
+		if (ImPlot::DragLineX(DRAG_LINE_FIRST_DIFF_MARK, &ProjectFile::Instance()->m_DiffFirstMark, ProjectFile::Instance()->m_GraphColors.graphFirstDiffMarkColor, 1.5f))
 		{
 			LogEngine::Instance()->SetFirstDiffMark(ProjectFile::Instance()->m_DiffFirstMark);
 		}
 
-		ImPlot::TagX(ProjectFile::Instance()->m_DiffFirstMark, ProjectFile::Instance()->m_GraphFirstDiffMarkColor, "|>", ProjectFile::Instance()->m_DiffFirstMark);
+		ImPlot::TagX(ProjectFile::Instance()->m_DiffFirstMark, ProjectFile::Instance()->m_GraphColors.graphFirstDiffMarkColor, "|>", ProjectFile::Instance()->m_DiffFirstMark);
 	}
 
 	// draw diff second marks
 	auto second_mark = ProjectFile::Instance()->m_DiffSecondMark;
 	if (second_mark > 0.0)
 	{
-		if (ImPlot::DragLineX(DRAG_LINE_SECOND_DIFF_MARK, &ProjectFile::Instance()->m_DiffSecondMark, ProjectFile::Instance()->m_GraphSecondDiffMarkColor, 1.5f))
+		if (ImPlot::DragLineX(DRAG_LINE_SECOND_DIFF_MARK, &ProjectFile::Instance()->m_DiffSecondMark, ProjectFile::Instance()->m_GraphColors.graphSecondDiffMarkColor, 1.5f))
 		{
 			LogEngine::Instance()->SetSecondDiffMark(ProjectFile::Instance()->m_DiffSecondMark);
 		}
 
-		ImPlot::TagX(ProjectFile::Instance()->m_DiffSecondMark, ProjectFile::Instance()->m_GraphSecondDiffMarkColor, "<|");
+		ImPlot::TagX(ProjectFile::Instance()->m_DiffSecondMark, ProjectFile::Instance()->m_GraphColors.graphSecondDiffMarkColor, "<|");
 	}
 
 	auto hovered_time = LogEngine::Instance()->GetHoveredTime();
 	ImPlot::DragLineX(
-		DRAG_LINE_LOG_HOVERED_TIME, &hovered_time, ProjectFile::Instance()->m_GraphMouseHoveredTimeColor,
+		DRAG_LINE_LOG_HOVERED_TIME, &hovered_time, ProjectFile::Instance()->m_GraphColors.graphMouseHoveredTimeColor,
 		1.5f, ImPlotDragToolFlags_NoInputs | ImPlotDragToolFlags_NoCursors);
 
 	ImPlot::EndPlot();
@@ -493,7 +496,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 				ImPlot::GetCurrentItem()->Color = datas_ptr->color_u32;
 
 				// render data
-				if (datas_ptr->datas_values.size() > 0U)
+				if (!datas_ptr->datas_values.empty())
 				{
 					//float zero_y = (float)ImPlot::PlotToPixels(0.0, 0.0).y;
 					auto _data_ptr_0 = datas_ptr->datas_values.at(0U).lock();
@@ -522,8 +525,8 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 								{
 									auto pos = ImPlot::PlotToPixels(hovered_time, last_value);
 									draw_list->AddLine(pos - ImVec2(20.0f, 0.0f), pos + ImVec2(20.0f, 0.0f),
-										ImGui::GetColorU32(ProjectFile::Instance()->m_GraphMouseHoveredTimeColor), 1.0f);
-									draw_list->AddCircle(pos, 5.0f, ImGui::GetColorU32(ProjectFile::Instance()->m_GraphHoveredTimeColor), 24, 2.0f);
+										ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphMouseHoveredTimeColor), 1.0f);
+									draw_list->AddCircle(pos, 5.0f, ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor), 24, 2.0f);
 
 									ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
 									ImGui::Text("%s : %f", name_str.c_str(), last_value);
@@ -545,7 +548,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 			{
 				// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
 				double seconds = ct::fract(hovered_time); // 0.067365000
-				std::time_t _epoch_time = (std::time_t)hovered_time;
+				auto _epoch_time = (std::time_t)hovered_time;
 				auto tm = std::localtime(&_epoch_time);
 				double _sec = (double)tm->tm_sec + seconds;
 				auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
@@ -562,7 +565,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 	}
 }
 
-void GraphView::DrawAloneGraphs(GraphGroupPtr vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph)
+void GraphView::DrawAloneGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph)
 {
 	if (vGraphGroupPtr)
 	{
@@ -582,7 +585,7 @@ void GraphView::DrawAloneGraphs(GraphGroupPtr vGraphGroupPtr, const ImVec2& vSiz
 	}
 }
 
-void GraphView::DrawGroupedGraphs(GraphGroupPtr vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph)
+void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph)
 {
 	if (vGraphGroupPtr)
 	{
@@ -607,7 +610,7 @@ void GraphView::DrawGroupedGraphs(GraphGroupPtr vGraphGroupPtr, const ImVec2& vS
 							{
 								ImPlot::GetCurrentItem()->Color = datas_ptr->color_u32;
 
-								if (datas_ptr->datas_values.size() > 0U)
+								if (!datas_ptr->datas_values.empty())
 								{
 									auto _data_ptr_0 = datas_ptr->datas_values.at(0U).lock();
 									if (_data_ptr_0)
@@ -636,8 +639,8 @@ void GraphView::DrawGroupedGraphs(GraphGroupPtr vGraphGroupPtr, const ImVec2& vS
 												{
 													auto pos = ImPlot::PlotToPixels(hoveredTime, last_value);
 													draw_list->AddLine(pos - ImVec2(20.0f, 0.0f), pos + ImVec2(20.0f, 0.0f),
-														ImGui::GetColorU32(ProjectFile::Instance()->m_GraphMouseHoveredTimeColor), 1.0f);
-													draw_list->AddCircle(pos, 5.0f, ImGui::GetColorU32(ProjectFile::Instance()->m_GraphHoveredTimeColor), 24, 2.0f);
+														ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphMouseHoveredTimeColor), 1.0f);
+													draw_list->AddCircle(pos, 5.0f, ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor), 24, 2.0f);
 
 													ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
 													ImGui::Text("%s : %f", datas_ptr->name.c_str(), last_value);
@@ -664,7 +667,7 @@ void GraphView::DrawGroupedGraphs(GraphGroupPtr vGraphGroupPtr, const ImVec2& vS
 
 					// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
 					double seconds = ct::fract(plotHoveredMouse.x); // 0.067365000
-					std::time_t _epoch_time = (std::time_t)plotHoveredMouse.x;
+					auto _epoch_time = (std::time_t)plotHoveredMouse.x;
 					auto tm = std::localtime(&_epoch_time);
 					double _sec = (double)tm->tm_sec + seconds;
 					auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
@@ -714,7 +717,7 @@ void GraphView::ComputeGraphsCount()
 	}
 }
 
-int32_t GraphView::GetGraphCount()
+int32_t GraphView::GetGraphCount() const
 {
 	return m_GraphsCount;
 }

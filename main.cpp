@@ -89,7 +89,7 @@ int main(int, char**argv)
     glfwWindowHint(GLFW_SAMPLES, 4);
     
     // Create window with graphics context
-    GLFWwindow* mainWindow = glfwCreateWindow(1280, 720, "ImGuiFontStudio", nullptr, nullptr);
+    GLFWwindow* mainWindow = glfwCreateWindow(1280, 720, "LogToGraph", nullptr, nullptr);
     if (mainWindow == 0)
         return 1;
     glfwMakeContextCurrent(mainWindow);

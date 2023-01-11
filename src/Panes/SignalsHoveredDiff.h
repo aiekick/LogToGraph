@@ -40,7 +40,7 @@ public:
 	int DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas) override;
 
 private:
-	void CheckItem(SignalTickPtr vSignalTick);
+	static void CheckItem(const SignalTickPtr& vSignalTick);
 	void DrawTable();
 
 public: // singleton

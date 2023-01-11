@@ -51,11 +51,11 @@ public:
 
 	void DrawGraphGroupTable();
 	void DrawMenuBar();
-	void DrawAloneGraphs(GraphGroupPtr vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph);
-	void DrawGroupedGraphs(GraphGroupPtr vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph);
+	void DrawAloneGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph);
+	void DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph);
 
 	void ComputeGraphsCount();
-	int32_t GetGraphCount();
+	int32_t GetGraphCount() const;
 
 public:
 	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
@@ -67,8 +67,8 @@ private:
 	void prEraseGroupAt(const size_t& vIdx);
 	void prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool& vFirstGraph);
 
-	bool prBeginPlot(const std::string& vLabel, ct::dvec2 vRangeValue, const ImVec2& vSize, const bool& vFirstGraph);
-	void prEndPlot();
+	bool prBeginPlot(const std::string& vLabel, ct::dvec2 vRangeValue, const ImVec2& vSize, const bool& vFirstGraph) const;
+	static void prEndPlot();
 
 public: // singleton
 	static std::shared_ptr<GraphView> Instance()

@@ -669,12 +669,14 @@ void LuaEngine::StartWorkerThread(const bool& vFirstLoad)
         {
             LogEngine::Instance()->PrepareForSave();
         }
+
         LogEngine::Instance()->Clear();
         GraphView::Instance()->Clear();
         ToolPane::Instance()->Clear();
         LogPane::Instance()->Clear();
 
         LuaEngine::s_Working = true;
+
         m_WorkerThread =
             std::thread(
                 sLuAnalyse,
