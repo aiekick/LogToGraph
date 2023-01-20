@@ -23,13 +23,13 @@ jobs:
         Submodules: true
 
     - name: Zip code + submodules
-      run: zip ${{github.workspace}} archive.zip
+      run: tar -cvfz archive.tar.gz ${{github.workspace}}
       
     - name: upload artifact
       uses: actions/upload-artifact@v1
       with:
-        name: archive.zip
-        path: archive.zip
+        name: archive.tar.gz
+        path: archive.tar.gz
         
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
