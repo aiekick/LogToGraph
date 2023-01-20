@@ -22,9 +22,6 @@ jobs:
       with:
         Submodules: true
 
-    - name: Zip code + submodules
-      run: tar -cvfz ${{github.workspace}}/../archive.tar.gz ${{github.workspace}}
-      
     - name: upload artifact
       uses: actions/upload-artifact@v1
       with:
