@@ -78,7 +78,7 @@ bool ProjectFile::LoadAs(const std::string& vFilePathName)
 {
 	Clear();
 	std::string filePathName = FileHelper::Instance()->SimplifyFilePath(vFilePathName);
-	if (LoadConfigFile(filePathName) == tinyxml2::XMLError::XML_SUCCESS)
+	if (LoadConfigFile(filePathName, "") == tinyxml2::XMLError::XML_SUCCESS)
 	{
 		m_ProjectFilePathName = filePathName;
 		auto ps = FileHelper::Instance()->ParsePathFileName(m_ProjectFilePathName);
@@ -107,7 +107,7 @@ bool ProjectFile::Save()
 
 	LogEngine::Instance()->PrepareForSave();
 
-	if (SaveConfigFile(m_ProjectFilePathName))
+	if (SaveConfigFile(m_ProjectFilePathName, ""))
 	{
 		SetProjectChange(false);
 		return true;
@@ -148,34 +148,6 @@ bool ProjectFile::IsThereAnyNotSavedChanged() const
 void ProjectFile::SetProjectChange(const bool& vChange)
 {
 	m_IsThereAnyNotSavedChanged = vChange;
-}
-
-std::string ProjectFile::GetAbsolutePath(const std::string& vFilePathName) const
-{
-	std::string res = vFilePathName;
-
-	if (!vFilePathName.empty())
-	{
-		if (!FileHelper::Instance()->IsAbsolutePath(vFilePathName)) // relative
-		{
-			res = FileHelper::Instance()->SimplifyFilePath(
-				m_ProjectFilePath + FileHelper::Instance()->puSlashType + vFilePathName);
-		}
-	}
-
-	return res;
-}
-
-std::string ProjectFile::GetRelativePath(const std::string& vFilePathName) const
-{
-	std::string res = vFilePathName;
-
-	if (!vFilePathName.empty())
-	{
-		res = FileHelper::Instance()->GetRelativePathToPath(vFilePathName, m_ProjectFilePath);
-	}
-
-	return res;
 }
 
 std::string ProjectFile::getXml(const std::string& vOffset, const std::string& /*vUserDatas*/)
@@ -307,16 +279,4 @@ bool ProjectFile::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* 
 	LogEngine::Instance()->setSignalVisibilty(vElem, vParent, "project");
 
 	return true;
-}
-
-ImVec4 ProjectFile::GetColorFromInteger(uint32_t /*vInteger*/) const
-{
-	ImVec4 res;
-
-	if (IsLoaded())
-	{
-
-	}
-
-	return res;
 }

@@ -25,7 +25,7 @@ limitations under the License.
 #include <vector>
 #include <memory>
 
-class MessageData
+class MessageData final
 {
 private:
 	std::shared_ptr<void> puDatas;
@@ -51,7 +51,7 @@ public:
 };
 
 class ProjectManager;
-class Messaging
+class Messaging final
 {
 public:
 	static int sMessagePaneId;

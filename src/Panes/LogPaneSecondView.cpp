@@ -18,14 +18,9 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "LogPaneSecondView.h"
-#include <Gui/MainFrame.h>
 #include <ctools/cTools.h>
-#include <ctools/Logger.h>
 #include <Panes/ToolPane.h>
-#include <Panes/SignalsHoveredMap.h>
-#include <Panes/GraphGroupPane.h>
 #include <Panes/GraphListPane.h>
-#include <Helper/Messaging.h>
 #include <Project/ProjectFile.h>
 #include <imgui/imgui_internal.h>
 #include <Panes/Manager/LayoutManager.h>
@@ -119,9 +114,9 @@ std::string LogPaneSecondView::getXml(const std::string& /*vOffset*/, const std:
 	return str;
 }
 
-bool LogPaneSecondView::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
+bool LogPaneSecondView::setFromXml(tinyxml2::XMLElement* /*vElem*/, tinyxml2::XMLElement* /*vParent*/, const std::string& /*vUserDatas*/)
 {
-	// The value of this child identifies the name of this element
+	/*// The value of this child identifies the name of this element
 	std::string strName;
 	std::string strValue;
 	std::string strParentName;
@@ -130,7 +125,7 @@ bool LogPaneSecondView::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLEle
 	if (vElem->GetText())
 		strValue = vElem->GetText();
 	if (vParent != nullptr)
-		strParentName = vParent->Value();
+		strParentName = vParent->Value();*/
 
 	return true;
 }
@@ -140,7 +135,7 @@ void LogPaneSecondView::Clear()
 	m_LogDatas.clear();
 }
 
-void LogPaneSecondView::CheckItem(SignalTickPtr vSignalTick)
+void LogPaneSecondView::CheckItem(const SignalTickPtr& vSignalTick)
 {
 	if (vSignalTick && ImGui::IsItemHovered())
 	{
@@ -256,7 +251,7 @@ void LogPaneSecondView::DrawTable()
 			ImGui::PopID();
 		}
 
-		uint32_t count_color_push = 0U;
+		int32_t count_color_push = 0U;
 		ImU32 color = 0U;
 		bool selected = false;
 		m_LogListClipper.Begin((int)_count_logs, ImGui::GetTextLineHeightWithSpacing());
@@ -277,12 +272,12 @@ void LogPaneSecondView::DrawTable()
 						ImGui::PushStyleColor(ImGuiCol_Header, (ImU32)color);
 						ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
 						ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
-						count_color_push = 3U;
+						count_color_push = 3;
 						if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
 							ImGui::CustomStyle::Instance()->puContrastedTextColor,
 							ImGui::CustomStyle::Instance()->puContrastRatio))
 						{
-							count_color_push = 4U;
+							count_color_push = 4;
 						}
 					}
 					else

@@ -40,8 +40,8 @@ public:
 
 public:
 	// configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
 	
 private:
 	void DrawGraph_ImPlot();
@@ -56,8 +56,8 @@ public: // singleton
 
 public:
 	GraphPane() = default; // Prevent construction
-	GraphPane(const GraphPane&) = default; // Prevent construction by copying
+	GraphPane(const GraphPane&) = delete; // Prevent construction by copying
 	GraphPane& operator =(const GraphPane&) { return *this; }; // Prevent assignment
-	~GraphPane() = default; // Prevent unwanted destruction};
+    virtual ~GraphPane() = default; // Prevent unwanted destruction};
 };
 

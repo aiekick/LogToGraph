@@ -20,25 +20,19 @@ limitations under the License.
 #include "SignalsHoveredList.h"
 #include <Gui/MainFrame.h>
 #include <ctools/cTools.h>
-#include <ctools/Logger.h>
 #include <ctools/FileHelper.h>
 #include <Contrib/ImWidgets/ImWidgets.h>
-#include <Project/ProjectFile.h>
 #include <Project/ProjectFile.h>
 #include <imgui/imgui_internal.h>
 #include <Panes/Manager/LayoutManager.h>
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 #include <cinttypes> // printf zu
-#include <Panes/LogPane.h>
 #include <Panes/CodePane.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
 
 #include <Engine/Lua/LuaEngine.h>
 #include <Engine/Log/LogEngine.h>
 #include <Engine/Log/SignalSerie.h>
 #include <Engine/Log/SignalTick.h>
-
-#include <Engine/Graphs/GraphView.h>
 
 static int SourcePane_WidgetId = 0;
 
@@ -137,10 +131,9 @@ int SignalsHoveredList::CalcSignalsButtonCountAndSize(
 {
 	float aw = ImGui::GetContentRegionAvail().x;
 
-	int count = ProjectFile::Instance()->m_SignalPreview_CountX;
 	float width = ProjectFile::Instance()->m_SignalPreview_SizeX;
 
-	count = (int)(aw / ct::maxi(width, 1.0f));
+	int count = (int)(aw / ct::maxi(width, 1.0f));
 	width = aw / (float)ct::maxi(count, 1);
 
 	ProjectFile::Instance()->m_SignalPreview_CountX = count;
@@ -181,7 +174,7 @@ void SignalsHoveredList::DrawTable()
 
 				ImGui::TableHeadersRow();
 
-				uint32_t count_color_push = 0U;
+				int32_t count_color_push = 0;
 				ImU32 color = 0U;
 				bool selected = false;
 				m_VirtualClipper.Begin((int)signals_count, ImGui::GetTextLineHeightWithSpacing());
@@ -202,12 +195,12 @@ void SignalsHoveredList::DrawTable()
 								ImGui::PushStyleColor(ImGuiCol_Header, (ImU32)color);
 								ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
 								ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
-								count_color_push = 3U;
+								count_color_push = 3;
 								if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
 									ImGui::CustomStyle::Instance()->puContrastedTextColor,
 									ImGui::CustomStyle::Instance()->puContrastRatio))
 								{
-									count_color_push = 4U;
+									count_color_push = 4;
 								}
 							}
 							else

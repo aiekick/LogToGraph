@@ -22,7 +22,7 @@ limitations under the License.
 #include <string>
 #include <map>
 
-class ThemeHelper : public conf::ConfigAbstract
+class ThemeHelper final : public conf::ConfigAbstract
 {
 public:
 #ifdef USE_SHADOW
@@ -41,8 +41,8 @@ public:
 	void Draw();
 	void DrawMenu();
 	void ShowCustomImGuiStyleEditor(bool* vOpen, ImGuiStyle* ref = nullptr);
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
 
 	ImGuiStyle GetImGuiStyle() { return prImGuiStyle; }
 
@@ -72,7 +72,7 @@ public: // singleton
 
 protected:
 	ThemeHelper(); // Prevent construction
-	ThemeHelper(const ThemeHelper&) = default; // Prevent construction by copying
+	ThemeHelper(const ThemeHelper&) = delete; // Prevent construction by copying
 	ThemeHelper& operator =(const ThemeHelper&) { return *this; }; // Prevent assignment
-	~ThemeHelper(); // Prevent unwanted destruction
+    virtual ~ThemeHelper(); // Prevent unwanted destruction
 };

@@ -99,7 +99,7 @@ confirmation dialog for close font :
 */
 
 struct GLFWwindow;
-class MainFrame : public conf::ConfigAbstract
+class MainFrame final : public conf::ConfigAbstract
 {
 public:
 	bool leftMouseClicked = false;
@@ -127,7 +127,7 @@ public:
 
 	void NewProject(const std::string& vFilePathName);
 	void LoadProject(const std::string& vFilePathName);
-	bool SaveProject();
+	static bool SaveProject();
 	void SaveAsProject(const std::string& vFilePathName);
 
 	void Display(ImVec2 vPos, ImVec2 vSize);
@@ -182,8 +182,8 @@ private:
 	void SetAppTitle(const std::string& vFilePathName = "");
 
 public: // configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "");
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "");
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas);
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas);
 
 public: // singleton
 	static MainFrame *Instance(GLFWwindow *vWin = 0)

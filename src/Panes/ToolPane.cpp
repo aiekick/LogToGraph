@@ -23,7 +23,6 @@ limitations under the License.
 #include <ctools/FileHelper.h>
 #include <Contrib/ImWidgets/ImWidgets.h>
 #include <Project/ProjectFile.h>
-#include <Project/ProjectFile.h>
 #include <imgui/imgui_internal.h>
 #include <Panes/Manager/LayoutManager.h>
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
@@ -148,7 +147,7 @@ void ToolPane::DrawTable()
 		ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Lua Script File", ".lua,.*",
 			LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
 	}
-	ImGui::TextWrapped(LuaEngine::Instance()->GetLuaFilePathName().c_str());
+	ImGui::TextWrapped("%s", LuaEngine::Instance()->GetLuaFilePathName().c_str());
 
 	ImGui::Separator();
 
@@ -158,7 +157,7 @@ void ToolPane::DrawTable()
 		ImGuiFileDialog::Instance()->OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*",
 			LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
 	}
-	ImGui::TextWrapped(LuaEngine::Instance()->GetLogFilePathName().c_str());
+	ImGui::TextWrapped("%s", LuaEngine::Instance()->GetLogFilePathName().c_str());
 
 	ImGui::Separator();
 
@@ -177,7 +176,7 @@ void ToolPane::DrawTable()
 			LuaEngine::Instance()->StopWorkerThread();
 		}
 
-		float progress = (float)LuaEngine::s_Progress;
+		auto progress = (float)LuaEngine::s_Progress;
 		ImGui::ProgressBar(progress);
 	}
 }
@@ -268,7 +267,7 @@ void ToolPane::DrawTree()
 
 			ImGui::Indent();
 
-			// affichage ordonné sans les categorie
+			// affichage ordonne sans les categorie
 			for (auto& item_name : m_SignalSeries)
 			{
 				DisplayItem(item_name.second);
@@ -278,7 +277,7 @@ void ToolPane::DrawTree()
 		}
 		else
 		{
-			// affichage arborescent ordonné par categorie
+			// affichage arborescent ordonne par categorie
 			for (auto& item_cat : LogEngine::Instance()->GetSignalSeries())
 			{
 				if (_collapse_all)

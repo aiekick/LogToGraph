@@ -20,8 +20,6 @@ limitations under the License.
 #include "LogEngine.h"
 #include <ctime>
 #include <ctools/cTools.h>
-#include <ctools/Logger.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
 #include <imgui/imgui_internal.h>
 
 #include <Engine/Log/SignalSerie.h>
@@ -39,7 +37,17 @@ limitations under the License.
 /// STATIC'S //////////////////////////////////////
 ///////////////////////////////////////////////////
 
-std::mutex LogEngine::s_WorkerThread_Mutex;
+std::string LogEngine::sConvertEpochToDateTimeString(const double& vTime)
+{
+    // 1668687822.067365000 => 17/11/2022 13:23:42.067365000
+    double seconds = ct::fract(vTime); // 0.067365000
+    auto _epoch_time = (std::time_t)vTime;
+    auto tm = std::localtime(&_epoch_time);
+    double _sec = (double)tm->tm_sec + seconds;
+    return ct::toStr("%i/%i/%i %i:%i:%f",
+                     tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
+                     tm->tm_hour, tm->tm_min, _sec);
+}
 
 ///////////////////////////////////////////////////
 /// PUBLIC ////////////////////////////////////////
@@ -47,8 +55,6 @@ std::mutex LogEngine::s_WorkerThread_Mutex;
 
 void LogEngine::Clear()
 {
-	LogEngine::s_WorkerThread_Mutex.lock();
-
 	m_Range_ticks_time = SignalValueRange(0.5, -0.5) * DBL_MAX;
 	m_SignalSeries.clear();
 	m_SignalTicks.clear();
@@ -59,30 +65,17 @@ void LogEngine::Clear()
 	m_DiffResult.clear();
 	m_VisibleCount = 0;
 	m_SignalsCount = 0;
-
-	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 void LogEngine::AddSignalTick(const std::string& vCategory, const std::string& vName, const double& vTime, const double& vValue)
 {
-	LogEngine::s_WorkerThread_Mutex.lock();
-
 	if (!vName.empty())
 	{
 		auto tick_Ptr = SignalTick::Create();
 		tick_Ptr->category = vCategory;
 		tick_Ptr->name = vName;
 		tick_Ptr->time_epoch = vTime;
-
-		// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
-		double seconds = ct::fract(vTime); // 0.067365000
-		std::time_t _epoch_time = (std::time_t)vTime;
-		auto tm = std::localtime(&_epoch_time);
-		double _sec = (double)tm->tm_sec + seconds;
-		tick_Ptr->time_date_time = ct::toStr("%i/%i/%i %i:%i:%f",
-			tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, 
-			tm->tm_hour, tm->tm_min, _sec);
-
+        tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(vTime);
 		tick_Ptr->value = vValue;
 
 		m_Range_ticks_time.x = ct::mini(m_Range_ticks_time.x, vTime);
@@ -119,15 +112,11 @@ void LogEngine::AddSignalTick(const std::string& vCategory, const std::string& v
 			}
 		}
 	}
-
-	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 void LogEngine::Finalize()
 {
-	LogEngine::s_WorkerThread_Mutex.lock();
-
-	if (!m_SignalTicks.empty() && 
+	if (!m_SignalTicks.empty() &&
 		m_SignalTicks.front() && 
 		m_SignalTicks.back())
 	{
@@ -153,16 +142,7 @@ void LogEngine::Finalize()
 							tick_Ptr->category = item_cat.first;
 							tick_Ptr->name = item_name.first;
 							tick_Ptr->time_epoch = global_first_time_tick;
-
-							// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
-							double seconds = ct::fract(global_first_time_tick); // 0.067365000
-							std::time_t _epoch_time = (std::time_t)global_first_time_tick;
-							auto tm = std::localtime(&_epoch_time);
-							double _sec = (double)tm->tm_sec + seconds;
-							tick_Ptr->time_date_time = ct::toStr("%i/%i/%i %i:%i:%f",
-								tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
-								tm->tm_hour, tm->tm_min, _sec);
-
+                            tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(global_first_time_tick);
 							tick_Ptr->value = 0.0;
 
 							m_VirtualTicks.push_back(tick_Ptr);// for retain the shared_pointer
@@ -176,16 +156,7 @@ void LogEngine::Finalize()
 							tick_Ptr->category = item_cat.first;
 							tick_Ptr->name = item_name.first;
 							tick_Ptr->time_epoch = global_last_time_tick;
-
-							// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
-							double seconds = ct::fract(global_last_time_tick); // 0.067365000
-							std::time_t _epoch_time = (std::time_t)global_last_time_tick;
-							auto tm = std::localtime(&_epoch_time);
-							double _sec = (double)tm->tm_sec + seconds;
-							tick_Ptr->time_date_time = ct::toStr("%i/%i/%i %i:%i:%f",
-								tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
-								tm->tm_hour, tm->tm_min, _sec);
-
+                            tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(global_first_time_tick);
 							tick_Ptr->value = local_last_tick_ptr->value;
 
 							m_VirtualTicks.push_back(tick_Ptr);// for retain the shared_pointer
@@ -197,8 +168,6 @@ void LogEngine::Finalize()
 		}
 	}
 
-	LogEngine::s_WorkerThread_Mutex.unlock();
-
 	LogPane::Instance()->Clear();
 	LogPaneSecondView::Instance()->Clear();
 	GraphListPane::Instance()->UpdateDB();
@@ -207,8 +176,6 @@ void LogEngine::Finalize()
 
 void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName)
 {
-	LogEngine::s_WorkerThread_Mutex.lock();
-
 	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
 	{
 		auto& cat = m_SignalSeries.at(vCategory);
@@ -234,14 +201,10 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
 			}
 		}
 	}
-
-	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool& vFlag)
 {
-	LogEngine::s_WorkerThread_Mutex.lock();
-
 	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
 	{
 		auto& cat = m_SignalSeries.at(vCategory);
@@ -267,15 +230,11 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
 			}
 		}
 	}
-
-	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 bool LogEngine::isSignalShown(const SignalCategory& vCategory, const SignalName& vName, SignalColor* vOutColorPtr)
 {
 	bool res = false;
-
-	LogEngine::s_WorkerThread_Mutex.lock();
 
 	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
 	{
@@ -294,8 +253,6 @@ bool LogEngine::isSignalShown(const SignalCategory& vCategory, const SignalName&
 			}
 		}
 	}
-
-	LogEngine::s_WorkerThread_Mutex.unlock();
 
 	return res;
 }
@@ -343,7 +300,7 @@ void LogEngine::SetHoveredTime(const SignalEpochTime& vHoveredTime)
 					if (last_ptr && vHoveredTime >= last_ptr->time_epoch &&
 						ptr && vHoveredTime <= ptr->time_epoch)
 					{
-						if (idx < m_SignalsCount)
+						if (idx < (size_t)m_SignalsCount)
 						{
 							m_PreviewTicks[idx] = last_ptr;
 
@@ -376,7 +333,7 @@ void LogEngine::SetHoveredTime(const SignalEpochTime& vHoveredTime)
 	}
 }
 
-double LogEngine::GetHoveredTime()
+double LogEngine::GetHoveredTime() const
 {
 	return m_HoveredTime;
 }
@@ -422,8 +379,6 @@ SignalTicksWeakContainerRef LogEngine::GetPreviewTicks()
 
 void LogEngine::PrepareForSave()
 {
-	LogEngine::s_WorkerThread_Mutex.lock();
-
 	m_SignalSettings.clear();
 
 	for (const auto& item_cat : m_SignalSeries)
@@ -441,14 +396,10 @@ void LogEngine::PrepareForSave()
 			}
 		}
 	}
-
-	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 void LogEngine::PrepareAfterLoad()
 {
-	LogEngine::s_WorkerThread_Mutex.lock();
-
 	m_VisibleCount = 0;
 
 	for (const auto& item_cat : m_SignalSettings)
@@ -461,20 +412,18 @@ void LogEngine::PrepareAfterLoad()
 
 	SetFirstDiffMark(ProjectFile::Instance()->m_DiffFirstMark);
 	SetSecondDiffMark(ProjectFile::Instance()->m_DiffSecondMark);
-
-	LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 bool LogEngine::setSignalVisibilty(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas)
 {
 	// The value of this child identifies the name of this element
 	std::string strName;
-	std::string strValue;
+	/*std::string strValue;*/
 	std::string strParentName;
 
 	strName = vElem->Value();
-	if (vElem->GetText())
-		strValue = vElem->GetText();
+	/*if (vElem->GetText())
+		strValue = vElem->GetText();*/
 	if (vParent != nullptr)
 		strParentName = vParent->Value();
 
@@ -619,7 +568,7 @@ void LogEngine::SetFirstDiffMark(const SignalEpochTime& vSignalEpochTime)
 					if (last_ptr && ProjectFile::Instance()->m_DiffFirstMark >= last_ptr->time_epoch &&
 						ptr && ProjectFile::Instance()->m_DiffFirstMark <= ptr->time_epoch)
 					{
-						if (idx < m_SignalsCount)
+						if (idx < (size_t)m_SignalsCount)
 						{
 							m_DiffFirstTicks[idx] = last_ptr;
 						}
@@ -667,7 +616,7 @@ void LogEngine::SetSecondDiffMark(const SignalEpochTime& vSignalEpochTime)
 					if (last_ptr && ProjectFile::Instance()->m_DiffSecondMark >= last_ptr->time_epoch &&
 						ptr && ProjectFile::Instance()->m_DiffSecondMark <= ptr->time_epoch)
 					{
-						if (idx < m_SignalsCount)
+						if (idx < (size_t)m_SignalsCount)
 						{
 							m_DiffSecondTicks[idx] = last_ptr;
 						}
@@ -713,7 +662,7 @@ void LogEngine::ComputeDiffResult()
 					{
 						if (IS_DOUBLE_DIFFERENT(first_ptr->value, second_ptr->value))
 						{
-							m_DiffResult.push_back(std::make_pair(first_ptr, second_ptr));
+							m_DiffResult.emplace_back(first_ptr, second_ptr);
 						}
 					}
 					else
@@ -729,27 +678,4 @@ void LogEngine::ComputeDiffResult()
 SignalDiffWeakContainerRef LogEngine::GetDiffResultTicks()
 {
 	return m_DiffResult;
-}
-
-std::string LogEngine::getXml(const std::string& /*vOffset*/, const std::string& /*vUserDatas*/)
-{
-	std::string str;
-
-	return str;
-}
-
-bool LogEngine::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
-{
-	// The value of this child identifies the name of this element
-	std::string strName;
-	std::string strValue;
-	std::string strParentName;
-
-	strName = vElem->Value();
-	if (vElem->GetText())
-		strValue = vElem->GetText();
-	if (vParent != nullptr)
-		strParentName = vParent->Value();
-
-	return true;
 }

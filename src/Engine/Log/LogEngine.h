@@ -25,23 +25,22 @@ limitations under the License.
 #include <ctools/cTools.h>
 #include <Headers/Globals.h>
 #include <tinyxml2/tinyxml2.h>
-#include <ctools/ConfigAbstract.h>
 
-struct SignalSetting
+struct SignalSetting final
 {
 	bool visibility = false;
 	uint32_t color = 0U;
 	uint32_t group = 0U;
 };
 
-class LogEngine : public conf::ConfigAbstract
+class LogEngine final
 {
 private:
 	// for searching, so no need the category
 	typedef std::map<SignalName, SignalSerieWeak> OrderedCategoryLessSignalDatasContainer;
 
 public:
-	static std::mutex s_WorkerThread_Mutex;
+    static std::string sConvertEpochToDateTimeString(const double& vTime);
 
 private:
 	// containers of ptr's
@@ -89,7 +88,7 @@ public:
 	SignalSeriesContainerRef GetSignalSeries();
 
 	void SetHoveredTime(const SignalEpochTime& vSignalEpochTime);
-	double GetHoveredTime();
+	double GetHoveredTime() const;
 
 	void UpdateVisibleSignalsColoring();
 
@@ -109,10 +108,6 @@ public:
 	void ComputeDiffResult();
 	SignalDiffWeakContainerRef GetDiffResultTicks();
 
-public:
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
-
 public: // singleton
 	static std::shared_ptr<LogEngine> Instance()
 	{
@@ -122,7 +117,7 @@ public: // singleton
 
 public:
 	LogEngine() = default; // Prevent construction
-	LogEngine(const LogEngine&) = default; // Prevent construction by copying
+	LogEngine(const LogEngine&) = delete; // Prevent construction by copying
 	LogEngine& operator =(const LogEngine&) { return *this; }; // Prevent assignment
-	~LogEngine() = default; // Prevent unwanted destruction};
+    virtual ~LogEngine() = default; // Prevent unwanted destruction};
 };

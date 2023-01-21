@@ -25,7 +25,7 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class GraphListPane : public AbstractPane
+class GraphListPane final : public AbstractPane
 {
 private:
 	ImGuiListClipper m_VirtualClipper;
@@ -52,9 +52,9 @@ public: // singleton
 
 public:
 	GraphListPane() = default; // Prevent construction
-	GraphListPane(const GraphListPane&) = default; // Prevent construction by copying
+	GraphListPane(const GraphListPane&) = delete; // Prevent construction by copying
 	GraphListPane& operator =(const GraphListPane&) { return *this; }; // Prevent assignment
-	~GraphListPane() = default; // Prevent unwanted destruction};
+    virtual ~GraphListPane() = default; // Prevent unwanted destruction};
 
 private:
 	void DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSerie);

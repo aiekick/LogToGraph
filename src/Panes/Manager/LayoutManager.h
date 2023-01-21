@@ -115,9 +115,9 @@ public:
 	void ApplyInitialDockingLayout(const ImVec2& vSize = ImVec2(0, 0));
 
 	virtual void DisplayMenu(const ImVec2& vSize);
-	virtual int DisplayPanes(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas = "");
-	virtual void DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const std::string& vUserDatas = "");
-	virtual int DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas = "");
+	virtual int DisplayPanes(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas);
+	virtual void DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const std::string& vUserDatas);
+	virtual int DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas);
 
 public: // virtual pane flags
 	uint32_t GetRegisteredPaneCount();
@@ -140,8 +140,8 @@ private: // configuration
 	void Internal_SetFocusedPanes(const PaneFlag& vActivePanes);
 
 public: // configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "");
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "");
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas);
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas);
 
 public: // singleton
 	static LayoutManager *Instance(LayoutManager* vCopy = nullptr, bool vForce = false)

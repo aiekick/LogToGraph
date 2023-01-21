@@ -26,7 +26,7 @@ limitations under the License.
 #include <tinyxml2/tinyxml2.h>
 #include <ctools/ConfigAbstract.h>
 
-class SignalSerie : public conf::ConfigAbstract
+class SignalSerie final : public conf::ConfigAbstract
 {
 public:
 	static SignalSeriePtr Create();
@@ -45,15 +45,15 @@ public:
 	ImVec4 color_v4 = ImVec4(0,0,0,1);
 
 public:
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
 
 public: // to save
 	bool show = false;
 
 public:
 	SignalSerie();
-	~SignalSerie();
+    virtual ~SignalSerie();
 	void InsertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount = false);
 	void AddTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount = false);
 };

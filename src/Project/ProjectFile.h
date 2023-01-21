@@ -23,7 +23,7 @@
 #include <ctools/ConfigAbstract.h>
 #include <implot/implot.h>
 
-struct GraphColor
+struct GraphColor final
 {
     ImVec4 graphBarColor = ImVec4(0.2f, 0.5f, 0.8f, 0.5f);
     ImVec4 graphHoveredTimeColor = ImVec4(0.8f, 0.8f, 0.2f, 0.8f);
@@ -32,7 +32,7 @@ struct GraphColor
     ImVec4 graphSecondDiffMarkColor = ImVec4(0.2f, 0.2f, 0.8f, 0.8f);
 };
 
-class ProjectFile : public conf::ConfigAbstract
+class ProjectFile final : public conf::ConfigAbstract
 {
 public: // to save
 	std::string m_ProjectFilePathName;
@@ -75,8 +75,8 @@ public:
 	std::string GetRelativePath(const std::string& vFilePathName) const;
 
 public:
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
 
 public: // utils
 	ImVec4 GetColorFromInteger(uint32_t vInteger) const;
@@ -92,6 +92,6 @@ protected:
 	ProjectFile() = default; // Prevent construction
 	ProjectFile(const ProjectFile&) {}; // Prevent construction by copying
 	ProjectFile& operator =(const ProjectFile&) { return *this; }; // Prevent assignment
-	~ProjectFile() = default;; // Prevent unwanted destruction};
+    virtual ~ProjectFile() = default;; // Prevent unwanted destruction};
 };
 

@@ -25,7 +25,7 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class ToolPane : public AbstractPane
+class ToolPane final : public AbstractPane
 {
 private:
 	ImGuiListClipper m_FileListClipper;
@@ -51,14 +51,14 @@ public: // singleton
 
 public:
 	ToolPane() = default; // Prevent construction
-	ToolPane(const ToolPane&) = default; // Prevent construction by copying
+	ToolPane(const ToolPane&) = delete; // Prevent construction by copying
 	ToolPane& operator =(const ToolPane&) { return *this; }; // Prevent assignment
-	~ToolPane() = default; // Prevent unwanted destruction};
+    virtual ~ToolPane() = default; // Prevent unwanted destruction};
 
 private:
-	void DrawTable();
-	void DisplayItem(const SignalSerieWeak& vDatasSerie);
+	static void DrawTable();
+	static void DisplayItem(const SignalSerieWeak& vDatasSerie);
 	void DrawTree();
 	void PrepareLogAfterSearch(const std::string& vSearchString);
-	void HideAllGraphs();
+	static void HideAllGraphs();
 };

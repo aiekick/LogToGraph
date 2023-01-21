@@ -26,7 +26,7 @@ limitations under the License.
 #include <tinyxml2/tinyxml2.h>
 #include <ctools/ConfigAbstract.h>
 
-class SignalTick : public conf::ConfigAbstract
+class SignalTick final : public conf::ConfigAbstract
 {
 public:
 	static SignalTickPtr Create();
@@ -43,10 +43,10 @@ public:
 	SignalSerieWeak parent;
 
 public:
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
 
 public:
 	SignalTick();
-	~SignalTick();
+    virtual ~SignalTick();
 };

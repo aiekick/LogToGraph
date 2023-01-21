@@ -27,7 +27,7 @@ limitations under the License.
 #include <ctools/ConfigAbstract.h>
 #include <implot/implot.h>
 
-class GraphView : public conf::ConfigAbstract
+class GraphView final : public conf::ConfigAbstract
 {
 public:
 	// https://www.shadertoy.com/view/ld3fzf
@@ -58,8 +58,8 @@ public:
 	int32_t GetGraphCount() const;
 
 public:
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
 
 private:
 	GraphGroupPtr prGetGroupAt(const size_t& vIdx);
@@ -79,7 +79,7 @@ public: // singleton
 
 public:
 	GraphView(); // Prevent construction
-	GraphView(const GraphView&) = default; // Prevent construction by copying
+	GraphView(const GraphView&) = delete; // Prevent construction by copying
 	GraphView& operator =(const GraphView&) { return *this; }; // Prevent assignment
-	~GraphView() = default; // Prevent unwanted destruction};
+    virtual ~GraphView() = default; // Prevent unwanted destruction};
 };

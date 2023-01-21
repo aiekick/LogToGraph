@@ -26,7 +26,7 @@ limitations under the License.
 #include <ctools/ConfigAbstract.h>
 #include <Panes/Abstract/AbstractPane.h>
 
-class GraphGroup : public conf::ConfigAbstract
+class GraphGroup final
 {
 public:
 	static GraphGroupPtr Create();
@@ -46,10 +46,6 @@ public:
 	void SetName(const std::string& vName);
 	UInt8ConstPtr GetName();
 
-public:
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
-
 private:
 	void ComputeRange();
 
@@ -62,7 +58,7 @@ public: // singleton
 
 public:
 	GraphGroup() = default; // Prevent construction
-	GraphGroup(const GraphGroup&) = default; // Prevent construction by copying
+	GraphGroup(const GraphGroup&) = delete; // Prevent construction by copying
 	GraphGroup& operator =(const GraphGroup&) { return *this; }; // Prevent assignment
-	~GraphGroup() = default; // Prevent unwanted destruction};
+    virtual ~GraphGroup() = default; // Prevent unwanted destruction};
 };

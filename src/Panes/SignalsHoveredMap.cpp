@@ -20,25 +20,19 @@ limitations under the License.
 #include "SignalsHoveredMap.h"
 #include <Gui/MainFrame.h>
 #include <ctools/cTools.h>
-#include <ctools/Logger.h>
 #include <ctools/FileHelper.h>
 #include <Contrib/ImWidgets/ImWidgets.h>
-#include <Project/ProjectFile.h>
 #include <Project/ProjectFile.h>
 #include <imgui/imgui_internal.h>
 #include <Panes/Manager/LayoutManager.h>
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 #include <cinttypes> // printf zu
-#include <Panes/LogPane.h>
 #include <Panes/CodePane.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
 
 #include <Engine/Lua/LuaEngine.h>
 #include <Engine/Log/LogEngine.h>
 #include <Engine/Log/SignalSerie.h>
 #include <Engine/Log/SignalTick.h>
-
-#include <Engine/Graphs/GraphView.h>
 
 static int SourcePane_WidgetId = 0;
 
@@ -137,10 +131,9 @@ int SignalsHoveredMap::CalcSignalsButtonCountAndSize(
 {
 	float aw = ImGui::GetContentRegionAvail().x;
 
-	int count = ProjectFile::Instance()->m_SignalPreview_CountX;
 	float width = ProjectFile::Instance()->m_SignalPreview_SizeX;
 
-	count = (int)(aw / ct::maxi(width, 1.0f));
+    int count = (int)(aw / ct::maxi(width, 1.0f));
 	width = aw / (float)ct::maxi(count, 1);
 
 	ProjectFile::Instance()->m_SignalPreview_CountX = count;
@@ -155,7 +148,7 @@ int SignalsHoveredMap::CalcSignalsButtonCountAndSize(
 }
 
 
-int SignalsHoveredMap::DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, ImVec2 vGlyphSize)
+int SignalsHoveredMap::DrawSignalButton(int& vWidgetPushId, const SignalTickPtr& vPtr, ImVec2 vGlyphSize)
 {
 	int res = 0;
 
@@ -208,7 +201,7 @@ int SignalsHoveredMap::DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, 
 			{
 				// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
 				double seconds = ct::fract(vPtr->time_epoch); // 0.067365000
-				std::time_t _epoch_time = (std::time_t)vPtr->time_epoch;
+				auto _epoch_time = (std::time_t)vPtr->time_epoch;
 				auto tm = std::localtime(&_epoch_time);
 				double _sec = (double)tm->tm_sec + seconds;
 				auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
@@ -246,7 +239,6 @@ void SignalsHoveredMap::DrawTable()
 			{
 				const int& rowCount = (int)ct::ceil((double)signals_count / (double)signals_max_count_x);
 
-				ImVec4 color;
 				uint32_t idx = 0U;
 				m_VirtualClipper.Begin(rowCount, cell_size.y);
 				while (m_VirtualClipper.Step())

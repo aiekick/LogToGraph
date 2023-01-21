@@ -24,7 +24,7 @@ limitations under the License.
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 
 class ProjectFile;
-class LogPaneSecondView : public AbstractPane, public conf::ConfigAbstract
+class LogPaneSecondView final : public AbstractPane, public conf::ConfigAbstract
 {
 private:
 	ImGuiListClipper m_LogListClipper;
@@ -40,11 +40,11 @@ public:
 	int DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas) override;
 
 	// configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
 
 	void Clear();
-	void CheckItem(SignalTickPtr vSignalTick);
+	void CheckItem(const SignalTickPtr& vSignalTick);
 	void PrepareLog();
 
 public: // singleton
@@ -56,9 +56,9 @@ public: // singleton
 
 public:
 	LogPaneSecondView() = default; // Prevent construction
-	LogPaneSecondView(const LogPaneSecondView&) = default; // Prevent construction by copying
+	LogPaneSecondView(const LogPaneSecondView&) = delete; // Prevent construction by copying
 	LogPaneSecondView& operator =(const LogPaneSecondView&) { return *this; }; // Prevent assignment
-	~LogPaneSecondView() = default; // Prevent unwanted destruction};
+    virtual ~LogPaneSecondView() = default; // Prevent unwanted destruction};
 
 private:
 	void DrawTable();

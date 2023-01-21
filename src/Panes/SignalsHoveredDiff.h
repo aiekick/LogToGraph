@@ -26,7 +26,7 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class SignalsHoveredDiff : public AbstractPane
+class SignalsHoveredDiff final : public AbstractPane
 {
 private:
 	ImGuiListClipper m_VirtualClipper;
@@ -52,7 +52,7 @@ public: // singleton
 
 public:
 	SignalsHoveredDiff() = default; // Prevent construction
-	SignalsHoveredDiff(const SignalsHoveredDiff&) = default; // Prevent construction by copying
+	SignalsHoveredDiff(const SignalsHoveredDiff&) = delete; // Prevent construction by copying
 	SignalsHoveredDiff& operator =(const SignalsHoveredDiff&) { return *this; }; // Prevent assignment
-	~SignalsHoveredDiff() = default; // Prevent unwanted destruction};
+    virtual ~SignalsHoveredDiff() = default; // Prevent unwanted destruction};
 };

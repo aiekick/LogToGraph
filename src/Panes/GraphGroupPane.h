@@ -25,7 +25,7 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class GraphGroupPane : public AbstractPane
+class GraphGroupPane final : public AbstractPane
 {
 private:
 	ImGuiListClipper m_FileListClipper;
@@ -46,7 +46,7 @@ public: // singleton
 
 public:
 	GraphGroupPane() = default; // Prevent construction
-	GraphGroupPane(const GraphGroupPane&) = default; // Prevent construction by copying
+	GraphGroupPane(const GraphGroupPane&) = delete; // Prevent construction by copying
 	GraphGroupPane& operator =(const GraphGroupPane&) { return *this; }; // Prevent assignment
-	~GraphGroupPane() = default; // Prevent unwanted destruction};
+    virtual ~GraphGroupPane() = default; // Prevent unwanted destruction};
 };

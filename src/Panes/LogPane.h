@@ -24,7 +24,7 @@ limitations under the License.
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 
 class ProjectFile;
-class LogPane : public AbstractPane, public conf::ConfigAbstract
+class LogPane final : public AbstractPane, public conf::ConfigAbstract
 {
 private:
 	ImGuiListClipper m_LogListClipper;
@@ -40,8 +40,8 @@ public:
 	int DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas) override;
 
 	// configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
 
 	void Clear();
 	void CheckItem(SignalTickPtr vSignalTick);
@@ -56,9 +56,9 @@ public: // singleton
 
 public:
 	LogPane() = default; // Prevent construction
-	LogPane(const LogPane&) = default; // Prevent construction by copying
+	LogPane(const LogPane&) = delete; // Prevent construction by copying
 	LogPane& operator =(const LogPane&) { return *this; }; // Prevent assignment
-	~LogPane() = default; // Prevent unwanted destruction};
+    virtual ~LogPane() = default; // Prevent unwanted destruction};
 
 private:
 	void DrawTable();

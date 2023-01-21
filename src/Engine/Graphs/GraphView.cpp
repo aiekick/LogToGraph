@@ -25,8 +25,6 @@ limitations under the License.
 
 #include <imgui/imgui_internal.h>
 
-#include <Contrib/ImWidgets/ImWidgets.h>
-
 #include <Engine/Log/LogEngine.h>
 #include <Engine/Log/SignalSerie.h>
 #include <Engine/Log/SignalTick.h>
@@ -34,13 +32,9 @@ limitations under the License.
 #include <Project/ProjectFile.h>
 
 #include <Engine/Graphs/GraphGroup.h>
-#include <Panes/GraphPane.h>
 #include <Panes/Manager/LayoutManager.h>
 
-#include <ctools/Logger.h>
-
 #include <Panes/LogPane.h>
-#include <Panes/SignalsHoveredMap.h>
 
 #define DRAG_LINE_LOG_HOVERED_TIME 0
 #define DRAG_LINE_FIRST_DIFF_MARK 1

@@ -25,7 +25,7 @@ limitations under the License.
 #include <ImGuiColorTextEdit/TextEditor.h>
 
 class ProjectFile;
-class CodePane : public AbstractPane, public conf::ConfigAbstract
+class CodePane final : public AbstractPane, public conf::ConfigAbstract
 {
 private:
 	TextEditor m_CodeEditor;
@@ -42,8 +42,8 @@ public:
 	std::string GetCode();
 
 	// configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
 
 public: // singleton
 	static std::shared_ptr<CodePane> Instance()
@@ -54,9 +54,9 @@ public: // singleton
 
 public:
 	CodePane() = default; // Prevent construction
-	CodePane(const CodePane&) = default; // Prevent construction by copying
+	CodePane(const CodePane&) = delete; // Prevent construction by copying
 	CodePane& operator =(const CodePane&) { return *this; }; // Prevent assignment
-	~CodePane() = default; // Prevent unwanted destruction};
+    virtual ~CodePane() = default; // Prevent unwanted destruction};
 
 private:
 	void DrawEditor();

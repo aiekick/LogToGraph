@@ -22,7 +22,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <functional>
-
+#include <Headers/Globals.h>
 #include <ctools/ConfigAbstract.h>
 
 struct lua_State;
@@ -38,18 +38,17 @@ public:
 	static void sSetLuaBufferVarContent(lua_State* vLuaState, const std::string& vVarName, const std::string& vContent);
 	static void sLuAnalyse(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime);
 
-private:
+private: // lua objetcs
 	lua_State* m_LuaStatePtr = nullptr;
 
 	// lua vars, will be set by lua
-	std::string m_Lua_Infos;								// infos about script file
-	std::string m_Lua_Current_Buffer_Line_Var_Name;			// current line of buffer
-	std::string m_Lua_Last_Buffer_Line_Var_Name;			// last line of buffer
-	std::string m_Lua_Current_Buffer_Line;					// current line of buffer
-	std::string m_Lua_Last_Buffer_Line;						// last line of buffer
+	std::string m_Lua_Script_Description;					// infos about script file
+	std::string m_Lua_Row_Buffer_Var_Name;					// row buffer var name
+	std::string m_Lua_Row_Buffer_Content;					// content of the buffer row
 	std::string m_Lua_Function_To_Call_For_Each_Line;		// the function to call for each lines
 	std::string m_Lua_Function_To_Call_End_File;			// the fucntion to call for the end of the file
-	int32_t m_Lua_Current_Row_Line = 0U;					// the current line pos read from file
+	int32_t m_Lua_Row_Index = 0;							// the current row pos read from file
+	int32_t m_Lua_Row_Count = 0;							// the row count read from file
 
 private: // thread
 	std::thread m_WorkerThread;
@@ -62,31 +61,33 @@ public:
 	bool Init();
 	void Unit();
 
-	/*bool ExecScriptOnFile();*/
 	bool ExecScriptCode(const std::string& vCode, std::string& vErrors);
 
 	void SetInfos(const std::string& vInfos);
 	std::string GetInfos();
 	
-	void SetBufferNameForCurrentLine(const std::string& vName);
-	std::string GetBufferNameForCurrentLine();
+	void SetRowBufferName(const std::string& vName);
+	std::string GetRowBufferName();
 	
-	void SetBufferNameForLastLine(const std::string& vName);
-	std::string GetBufferNameForLastLine();
-	
-	void SetFunctionForEachLine(const std::string& vName);
-	std::string GetFunctionForEachLine();
+	void SetFunctionForEachRow(const std::string& vName);
+	std::string GetFunctionForEachRow();
 	
 	void SetFunctionForEndFile(const std::string& vName);
 	std::string GetFunctionForEndFile();
 
-	int32_t GetCurrentRowIndex();
+	void SetRowIndex(const int32_t& vRowID);
+	int32_t GetRowIndex() const;
+
+	void SetRowCount(const int32_t& vRowCount);
+	int32_t GetRowCount() const;
 
 	void SetLuaFilePathName(const std::string& vFilePathName);
 	std::string GetLuaFilePathName();
 
 	void SetLogFilePathName(const std::string& vFilePathName);
 	std::string GetLogFilePathName();
+
+	static void AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue);
 
 	void StartWorkerThread(const bool& vFirstLoad);
 	bool StopWorkerThread();
@@ -95,8 +96,8 @@ public:
 	bool FinishIfRequired();
 
 public: // configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "");
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "");
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
 
 public: // singleton
 	static std::shared_ptr<LuaEngine> Instance()
@@ -107,7 +108,7 @@ public: // singleton
 
 public:
 	LuaEngine() = default; // Prevent construction
-	LuaEngine(const LuaEngine&) = default; // Prevent construction by copying
+	LuaEngine(const LuaEngine&) = delete; // Prevent construction by copying
 	LuaEngine& operator =(const LuaEngine&) { return *this; }; // Prevent assignment
-	~LuaEngine() = default; // Prevent unwanted destruction};
+	virtual ~LuaEngine() = default; // Prevent unwanted destruction};
 };

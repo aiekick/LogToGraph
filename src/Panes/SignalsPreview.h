@@ -26,7 +26,7 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class SignalsPreview : public AbstractPane
+class SignalsPreview final : public AbstractPane
 {
 private:
 	ImGuiListClipper m_VirtualClipper;
@@ -56,7 +56,7 @@ public: // singleton
 
 public:
 	SignalsPreview() = default; // Prevent construction
-	SignalsPreview(const SignalsPreview&) = default; // Prevent construction by copying
+	SignalsPreview(const SignalsPreview&) = delete; // Prevent construction by copying
 	SignalsPreview& operator =(const SignalsPreview&) { return *this; }; // Prevent assignment
-	~SignalsPreview() = default; // Prevent unwanted destruction};
+    virtual ~SignalsPreview() = default; // Prevent unwanted destruction};
 };

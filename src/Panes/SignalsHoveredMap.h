@@ -26,7 +26,7 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class SignalsHoveredMap : public AbstractPane
+class SignalsHoveredMap final : public AbstractPane
 {
 private:
 	ImGuiListClipper m_VirtualClipper;
@@ -40,8 +40,8 @@ public:
 
 private:
 	void DrawTable();
-	int CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize, ImVec2& vOutButtonSize);
-	int DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, ImVec2 vGlyphSize);
+	static int CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize, ImVec2& vOutButtonSize);
+	static int DrawSignalButton(int& vWidgetPushId, const SignalTickPtr& vPtr, ImVec2 vGlyphSize);
 
 public: // singleton
 	static std::shared_ptr<SignalsHoveredMap> Instance()
@@ -52,7 +52,7 @@ public: // singleton
 
 public:
 	SignalsHoveredMap() = default; // Prevent construction
-	SignalsHoveredMap(const SignalsHoveredMap&) = default; // Prevent construction by copying
+	SignalsHoveredMap(const SignalsHoveredMap&) = delete; // Prevent construction by copying
 	SignalsHoveredMap& operator =(const SignalsHoveredMap&) { return *this; }; // Prevent assignment
-	~SignalsHoveredMap() = default; // Prevent unwanted destruction};
+    virtual ~SignalsHoveredMap() = default; // Prevent unwanted destruction};
 };

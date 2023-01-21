@@ -21,7 +21,7 @@
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 
 class ProjectFile;
-class ConsolePane : public AbstractPane, public conf::ConfigAbstract
+class ConsolePane final : public AbstractPane, public conf::ConfigAbstract
 {
 public:
 	bool Init() override;
@@ -31,8 +31,8 @@ public:
 	int DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas) override;
 
 	// configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas = "") override;
+	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
+	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
 
 public: // singleton
 	static std::shared_ptr<ConsolePane> Instance()
@@ -43,8 +43,8 @@ public: // singleton
 
 public:
 	ConsolePane() = default; // Prevent construction
-	ConsolePane(const ConsolePane&) = default; // Prevent construction by copying
+	ConsolePane(const ConsolePane&) = delete; // Prevent construction by copying
 	ConsolePane& operator =(const ConsolePane&) { return *this; }; // Prevent assignment
-	~ConsolePane() = default; // Prevent unwanted destruction};
+    virtual ~ConsolePane() = default; // Prevent unwanted destruction};
 };
 

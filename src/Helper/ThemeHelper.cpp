@@ -204,14 +204,6 @@ void ThemeHelper::ApplyStyleColorsOrangeBlue()
 	// Safe Area Padding
 	prImGuiStyle.DisplaySafeAreaPadding = ImVec2(3.0f, 3.0f);
 
-	prFileTypeInfos[".glsl"] = IGFD::FileStyle(ImVec4(0.1f, 0.9f, 0.5f, 1.0f), ICON_NDP_FILE_TEXT);
-	prFileTypeInfos[".vert"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".frag"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".tess"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".eval"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".ctrl"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".geom"] = prFileTypeInfos[".glsl"];
-
 	// dark theme so high color
 	ImGui::CustomStyle::Instance()->GoodColor = ImVec4(0.0f, 0.353f, 0.0f, 1.0f);
 	ImGui::CustomStyle::Instance()->BadColor = ImVec4(0.353f, 0.0f, 0.0f, 1.0f);
@@ -314,13 +306,6 @@ void ThemeHelper::ApplyStyleColorsGreenBlue()
 	prImGuiStyle.ButtonTextAlign = ImVec2(0.5f, 0.5f);
 	prImGuiStyle.SelectableTextAlign = ImVec2(0.0f, 0.5f);
 
-	prFileTypeInfos[".glsl"].color = ImVec4(0.1f, 0.9f, 0.5f, 1.0f); // green high
-	prFileTypeInfos[".vert"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".frag"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".tess"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".eval"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".ctrl"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".geom"] = prFileTypeInfos[".glsl"];
 	// dark theme so high color
 	ImGui::CustomStyle::Instance()->GoodColor = ImVec4(0.2f, 0.8f, 0.2f, 1.0f);
 	ImGui::CustomStyle::Instance()->BadColor = ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
@@ -422,14 +407,6 @@ void ThemeHelper::ApplyStyleColorsClassic()
 	prImGuiStyle.ColorButtonPosition = ImGuiDir_Right;
 	prImGuiStyle.ButtonTextAlign = ImVec2(0.5f, 0.5f);
 	prImGuiStyle.SelectableTextAlign = ImVec2(0.0f, 0.5f);
-
-	prFileTypeInfos[".glsl"].color = ImVec4(0.1f, 0.9f, 0.5f, 1.0f); // green high
-	prFileTypeInfos[".vert"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".frag"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".tess"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".eval"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".ctrl"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".geom"] = prFileTypeInfos[".glsl"];
 
 	// dark theme so high color
 	ImGui::CustomStyle::Instance()->GoodColor = ImVec4(0.2f, 0.8f, 0.2f, 1.0f);
@@ -533,14 +510,6 @@ void ThemeHelper::ApplyStyleColorsDark()
 	prImGuiStyle.ButtonTextAlign = ImVec2(0.5f, 0.5f);
 	prImGuiStyle.SelectableTextAlign = ImVec2(0.0f, 0.5f);
 
-	prFileTypeInfos[".glsl"].color = ImVec4(0.1f, 0.9f, 0.5f, 1.0f); // green high
-	prFileTypeInfos[".vert"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".frag"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".tess"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".eval"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".ctrl"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".geom"] = prFileTypeInfos[".glsl"];
-
 	// dark theme so high color
 	ImGui::CustomStyle::Instance()->GoodColor = ImVec4(0.2f, 0.8f, 0.2f, 1.0f);
 	ImGui::CustomStyle::Instance()->BadColor = ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
@@ -642,14 +611,6 @@ void ThemeHelper::ApplyStyleColorsLight()
 	prImGuiStyle.ColorButtonPosition = ImGuiDir_Right;
 	prImGuiStyle.ButtonTextAlign = ImVec2(0.5f, 0.5f);
 	prImGuiStyle.SelectableTextAlign = ImVec2(0.0f, 0.5f);
-
-	prFileTypeInfos[".glsl"].color = ImVec4(0.1f, 0.5f, 0.1f, 1.0f); // green low
-	prFileTypeInfos[".vert"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".frag"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".tess"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".eval"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".ctrl"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".geom"] = prFileTypeInfos[".glsl"];
 
 	// light theme so low color
 	ImGui::CustomStyle::Instance()->GoodColor = ImVec4(0.2f, 0.5f, 0.2f, 1.0f);
@@ -756,14 +717,6 @@ void ThemeHelper::ApplyStyleColorsDarcula()
 	prImGuiStyle.ButtonTextAlign = ImVec2(0.5f, 0.5f);
 	prImGuiStyle.SelectableTextAlign = ImVec2(0.0f, 0.5f);
 
-	prFileTypeInfos[".glsl"].color = ImVec4(0.1f, 0.9f, 0.5f, 1.0f); // green high
-	prFileTypeInfos[".vert"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".frag"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".tess"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".eval"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".ctrl"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".geom"] = prFileTypeInfos[".glsl"];
-
 	// dark theme so high color
 	ImGui::CustomStyle::Instance()->GoodColor = ImVec4(0.2f, 0.8f, 0.2f, 1.0f);
 	ImGui::CustomStyle::Instance()->BadColor = ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
@@ -865,14 +818,6 @@ void ThemeHelper::ApplyStyleColorsRedDark()
 	prImGuiStyle.ColorButtonPosition = ImGuiDir_Right;
 	prImGuiStyle.ButtonTextAlign = ImVec2(0.5f, 0.5f);
 	prImGuiStyle.SelectableTextAlign = ImVec2(0.0f, 0.5f);
-
-	prFileTypeInfos[".glsl"] = IGFD::FileStyle(ImVec4(0.1f, 0.5f, 0.1f, 1.0f), ICON_NDP_FILE_TEXT);
-	prFileTypeInfos[".vert"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".frag"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".tess"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".eval"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".ctrl"] = prFileTypeInfos[".glsl"];
-	prFileTypeInfos[".geom"] = prFileTypeInfos[".glsl"];
 
 	// dark theme so high color
 	ImGui::CustomStyle::Instance()->GoodColor = ImVec4(0.2f, 0.8f, 0.2f, 1.0f);

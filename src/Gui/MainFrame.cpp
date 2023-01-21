@@ -21,7 +21,6 @@
 
 #include <ctools/cTools.h>
 #include <ctools/FileHelper.h>
-#include <cctype>
 #include <GLFW/glfw3.h>
 #include <Helper/Messaging.h>
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
@@ -93,7 +92,7 @@ void MainFrame::Init()
 	LayoutManager::Instance()->InitPanes();
 	ThemeHelper::Instance(); // default theme
 
-	LoadConfigFile("config.xml");
+	LoadConfigFile("config.xml", "");
 
 	ThemeHelper::Instance()->ApplyStyle();
 	LuaEngine::Instance()->Init();
@@ -103,7 +102,7 @@ void MainFrame::Init()
 
 void MainFrame::Unit()
 {
-	SaveConfigFile("config.xml");
+	SaveConfigFile("config.xml", "");
 
 	LuaEngine::Instance()->Unit();
 	LayoutManager::Instance()->UnitPanes();
@@ -148,8 +147,6 @@ void MainFrame::SaveAsProject(const std::string& vFilePathName)
 //// DRAW ////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
-#define NewWidgetId() ++widgetId
-
 void MainFrame::Display(ImVec2 vPos, ImVec2 vSize)
 {
 	m_DisplayPos = vPos;
@@ -171,8 +168,6 @@ void MainFrame::Display(ImVec2 vPos, ImVec2 vSize)
 			ImGui::Spacing(ImGui::GetContentRegionAvail().x - size.x - ImGui::GetStyle().FramePadding.x * 2.0f);
 			ImGui::Text("%s", label.c_str());
 
-			//MainFrame::sAnyWindowsHovered |= ImGui::IsWindowHovered();
-
 			ImGui::EndMainMenuBar();
 		}
 
@@ -180,14 +175,14 @@ void MainFrame::Display(ImVec2 vPos, ImVec2 vSize)
 		{
 			Messaging::Instance()->DrawBar();
 
+#ifdef _DEBUG
 			// ImGui Infos
 			const auto& io = ImGui::GetIO();
 			const auto fps = ct::toStr("%.1f ms/frame (%.1f fps)", 1000.0f / io.Framerate, io.Framerate);
 			const auto size = ImGui::CalcTextSize(fps.c_str());
 			ImGui::Spacing(ImGui::GetContentRegionAvail().x - size.x - ImGui::GetStyle().FramePadding.x * 2.0f);
 			ImGui::Text("%s", fps.c_str());
-
-			//MainFrame::sAnyWindowsHovered |= ImGui::IsWindowHovered();
+#endif
 
 			ImGui::EndMainStatusBar();
 		}
@@ -199,7 +194,8 @@ void MainFrame::Display(ImVec2 vPos, ImVec2 vSize)
 			LayoutManager::Instance()->EndDockSpace();
 		}
 
-		ImGui::CustomStyle::Instance()->pushId = LayoutManager::Instance()->DisplayPanes(0U, ImGui::CustomStyle::Instance()->pushId);
+        auto* cstyle = ImGui::CustomStyle::Instance();
+        cstyle->pushId = LayoutManager::Instance()->DisplayPanes(0U, cstyle->pushId, "");
 
 		DisplayDialogsAndPopups();
 
@@ -314,10 +310,7 @@ void MainFrame::DisplayDialogsAndPopups()
 
 	if (ProjectFile::Instance()->IsLoaded())
 	{
-		LayoutManager::Instance()->DrawDialogsAndPopups(0U);
-
-		ImVec2 min = MainFrame::Instance()->m_DisplaySize * 0.5f;
-		ImVec2 max = MainFrame::Instance()->m_DisplaySize;
+		LayoutManager::Instance()->DrawDialogsAndPopups(0U, "");
 	}
 }
 
@@ -380,7 +373,7 @@ bool MainFrame::ShowUnSavedDialog()
 
 				ImGui::CloseCurrentPopup();
 				ImGui::OpenPopup("Do you want to save before ?");
-				if (ImGui::BeginPopupModal("Do you want to save before ?", (bool*)0,
+				if (ImGui::BeginPopupModal("Do you want to save before ?", (bool*)nullptr,
 					ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 				{
 					if (ImGui::ContrastedButton("Save"))
@@ -430,7 +423,7 @@ new project :
 */
 	m_ActionSystem.Clear();
 	Action_OpenUnSavedDialog_IfNeeded();
-	m_ActionSystem.Add([this]()
+	m_ActionSystem.Add([]()
 		{
 			ProjectFile::Instance()->New();
 			return true; // one time action
@@ -540,7 +533,7 @@ Close project :
 */
 	m_ActionSystem.Clear();
 	Action_OpenUnSavedDialog_IfNeeded();
-	m_ActionSystem.Add([this]()
+	m_ActionSystem.Add([]()
 		{
 			ProjectFile::Instance()->Clear();
 			return true;
@@ -754,7 +747,7 @@ std::string MainFrame::getXml(const std::string& vOffset, const std::string& vUs
 
 	std::string str;
 
-	str += ThemeHelper::Instance()->getXml(vOffset);
+	str += ThemeHelper::Instance()->getXml(vOffset, "app");
 	str += LayoutManager::Instance()->getXml(vOffset, "app");
 	str += vOffset + "<bookmarks>" + ImGuiFileDialog::Instance()->SerializeBookmarks() + "</bookmarks>\n";
 	str += vOffset + "<showaboutdialog>" + (m_ShowAboutDialog ? "true" : "false") + "</showaboutdialog>\n";
@@ -772,15 +765,15 @@ bool MainFrame::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vP
 	// The value of this child identifies the name of this element
 	std::string strName;
 	std::string strValue;
-	std::string strParentName;
+	/*std::string strParentName;*/
 
 	strName = vElem->Value();
 	if (vElem->GetText())
 		strValue = vElem->GetText();
-	if (vParent != 0)
-		strParentName = vParent->Value();
+	/*if (vParent != nullptr)
+		strParentName = vParent->Value();*/
 
-	ThemeHelper::Instance()->setFromXml(vElem, vParent);
+	ThemeHelper::Instance()->setFromXml(vElem, vParent, "app");
 	LayoutManager::Instance()->setFromXml(vElem, vParent, "app");
 
 	if (strName == "bookmarks")
