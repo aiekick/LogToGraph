@@ -18,10 +18,6 @@
 	path = 3rdparty/ctools
 	url = https://github.com/aiekick/cTools.git
 	branch = master
-[submodule "3rdparty/ImGuiFileDialog"]
-	path = 3rdparty/ImGuiFileDialog
-	url = https://github.com/aiekick/ImGuiFileDialog.git
-	branch = Lib_Only
 [submodule "3rdparty/imgui"]
 	path = 3rdparty/imgui
 	url = https://github.com/ocornut/imgui.git
