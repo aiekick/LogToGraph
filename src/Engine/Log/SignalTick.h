@@ -26,7 +26,7 @@ limitations under the License.
 #include <tinyxml2/tinyxml2.h>
 #include <ctools/ConfigAbstract.h>
 
-class SignalTick final : public conf::ConfigAbstract
+class SignalTick : public conf::ConfigAbstract
 {
 public:
 	static SignalTickPtr Create();

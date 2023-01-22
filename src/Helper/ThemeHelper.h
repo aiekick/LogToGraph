@@ -22,7 +22,7 @@ limitations under the License.
 #include <string>
 #include <map>
 
-class ThemeHelper final : public conf::ConfigAbstract
+class ThemeHelper : public conf::ConfigAbstract
 {
 public:
 #ifdef USE_SHADOW

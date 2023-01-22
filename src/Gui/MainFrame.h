@@ -99,7 +99,7 @@ confirmation dialog for close font :
 */
 
 struct GLFWwindow;
-class MainFrame final : public conf::ConfigAbstract
+class MainFrame : public conf::ConfigAbstract
 {
 public:
 	bool leftMouseClicked = false;
@@ -116,7 +116,6 @@ private:
 	bool m_ShowAboutDialog = false;			// show about dlg
 	bool m_NeedToCloseApp = false;			// whenn app closing app is required
 	bool m_SaveDialogIfRequired = false;	// open save options dialog (save / save as / continue without saving / cancel)
-	bool m_SaveDialogActionWasDone = false;	// if action was done by save options dialog
 	FrameActionSystem m_ActionSystem;
 
 	std::string m_ProjectToLoad;

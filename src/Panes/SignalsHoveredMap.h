@@ -26,7 +26,7 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class SignalsHoveredMap final : public AbstractPane
+class SignalsHoveredMap : public AbstractPane
 {
 private:
 	ImGuiListClipper m_VirtualClipper;

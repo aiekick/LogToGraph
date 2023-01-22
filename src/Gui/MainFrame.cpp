@@ -54,7 +54,6 @@
 #include <implot/implot.h>
 
 #define WIDGET_ID_MAGIC_NUMBER 4577
-static int widgetId = WIDGET_ID_MAGIC_NUMBER;
 
 MainFrame::MainFrame(GLFWwindow *vWin)
 {

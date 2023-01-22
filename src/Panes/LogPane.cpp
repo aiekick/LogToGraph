@@ -36,6 +36,7 @@ limitations under the License.
 #include <Engine/Log/SignalTick.h>
 #include <Engine/Lua/LuaEngine.h>
 #include <Panes/GraphListPane.h>
+#include <Engine/Graphs/GraphView.h>
 
 static int GeneratorPaneWidgetId = 0;
 

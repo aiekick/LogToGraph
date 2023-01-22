@@ -25,7 +25,7 @@ limitations under the License.
 #include <ImGuiColorTextEdit/TextEditor.h>
 
 class ProjectFile;
-class CodePane final : public AbstractPane, public conf::ConfigAbstract
+class CodePane : public AbstractPane, public conf::ConfigAbstract
 {
 private:
 	TextEditor m_CodeEditor;

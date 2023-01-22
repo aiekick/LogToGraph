@@ -308,7 +308,6 @@ void SignalsPreview::DrawTable()
 			{
 				const int& rowCount = (int)ct::ceil((double)signals_count / (double)signals_max_count_x);
 
-				ImVec4 color;
 				uint32_t idx = 0U;
 				m_VirtualClipper.Begin(rowCount, cell_size.y);
 				while (m_VirtualClipper.Step())

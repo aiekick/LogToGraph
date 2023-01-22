@@ -26,14 +26,14 @@ limitations under the License.
 #include <Headers/Globals.h>
 #include <tinyxml2/tinyxml2.h>
 
-struct SignalSetting final
+struct SignalSetting
 {
 	bool visibility = false;
 	uint32_t color = 0U;
 	uint32_t group = 0U;
 };
 
-class LogEngine final
+class LogEngine
 {
 private:
 	// for searching, so no need the category

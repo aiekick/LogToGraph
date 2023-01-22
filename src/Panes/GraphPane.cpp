@@ -86,8 +86,12 @@ int GraphPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId
 
 					// on calcule la taille de chaque graphs
 					ImVec2 amh = ImGui::GetContentRegionAvail();
-					amh.y -= ImGui::GetStyle().ItemInnerSpacing.y * (float)(count_graphs - 1U);
-					amh.y /= (float)count_graphs;
+
+					if (count_graphs)
+					{
+						amh.y -= ImGui::GetStyle().ItemInnerSpacing.y * (float)(count_graphs - 1U);
+						amh.y /= (float)count_graphs;
+					}
 
 					// on les affichent
 					if (ImPlot::BeginAlignedPlots("AlignedGroup"))

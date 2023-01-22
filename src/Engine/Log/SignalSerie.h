@@ -26,7 +26,7 @@ limitations under the License.
 #include <tinyxml2/tinyxml2.h>
 #include <ctools/ConfigAbstract.h>
 
-class SignalSerie final : public conf::ConfigAbstract
+class SignalSerie : public conf::ConfigAbstract
 {
 public:
 	static SignalSeriePtr Create();
@@ -36,7 +36,7 @@ public:
 	size_t count_base_records = 0U; // nombre d'enregistrements. on peut pas utiliser datas_values
 	std::string low_case_name_for_search;
 	SignalValueRange range_value = SignalValueRange(0.5, -0.5) * DBL_MAX;
-	uint32_t graph_groupd_idx = 0U;
+	GraphGroupPtr graph_groupd_ptr = nullptr;
 	std::vector<SignalTickWeak> datas_values;
 	SignalCategory category;
 	SignalName name;

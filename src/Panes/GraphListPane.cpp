@@ -212,25 +212,9 @@ void GraphListPane::DrawTree()
 {
 	auto& search_string = ProjectFile::Instance()->m_AllGraphSignalsSearchString;
 
-	bool _collapse_all = false;
-	bool _expand_all = false;
-	
 	if (ImGui::BeginMenuBar())
 	{
-		if (search_string.empty())
-		{
-			if (ImGui::ContrastedButton("Collapse All##GraphListPaneDrawTree"))
-			{
-				_collapse_all = true;
-			}
-
-			if (ImGui::ContrastedButton("Expand All##GraphListPaneDrawTree"))
-			{
-				_expand_all = true;
-			}
-		}
-
-		ImGui::Text("Search : ");
+		ImGui::Text("%s", "Search : ");
 
 		snprintf(m_search_buffer, 1024, "%s", search_string.c_str());
 		if (ImGui::ContrastedButton("R##GraphListPane_SearchDrawTree"))

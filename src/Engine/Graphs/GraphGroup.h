@@ -26,7 +26,7 @@ limitations under the License.
 #include <ctools/ConfigAbstract.h>
 #include <Panes/Abstract/AbstractPane.h>
 
-class GraphGroup final
+class GraphGroup
 {
 public:
 	static GraphGroupPtr Create();

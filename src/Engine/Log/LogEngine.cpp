@@ -124,10 +124,13 @@ void LogEngine::Finalize()
 		m_SignalTicks.front() && 
 		m_SignalTicks.back())
 	{
+		// first tick of all signals
 		auto global_first_time_tick = m_SignalTicks.front()->time_epoch;
+
+		// last tick of all signals
 		auto global_last_time_tick = m_SignalTicks.back()->time_epoch;
 
-		// on va ajouter les 1er et derniers ticks
+		// we will add first and last tickes for all signals
 		for (auto& item_cat : m_SignalSeries)
 		{
 			for (auto& item_name : item_cat.second)
@@ -139,7 +142,7 @@ void LogEngine::Finalize()
 
 					if (local_first_tick_ptr && local_last_tick_ptr)
 					{
-						// on va ajouter le 1er tick
+						// first tick
 						if (global_first_time_tick < local_first_tick_ptr->time_epoch)
 						{
 							auto tick_Ptr = SignalTick::Create();
@@ -147,13 +150,13 @@ void LogEngine::Finalize()
 							tick_Ptr->name = item_name.first;
 							tick_Ptr->time_epoch = global_first_time_tick;
                             tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(global_first_time_tick);
-							tick_Ptr->value = 0.0;
+							tick_Ptr->value = local_first_tick_ptr->value;// 0.0; // is a default value can be 0.0 ???
 
 							m_VirtualTicks.push_back(tick_Ptr);// for retain the shared_pointer
 							item_name.second->InsertTick(tick_Ptr, 0U, false);
 						}
 
-						// on va ajouter le dernier tick
+						// last tick
 						if (global_last_time_tick > local_last_tick_ptr->time_epoch)
 						{
 							auto tick_Ptr = SignalTick::Create();
@@ -194,14 +197,15 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
 
 				if (ptr->show)
 				{
-					GraphView::Instance()->AddSerieToGroup(ptr, 0U);
+					GraphView::Instance()->AddSerieToDefaultGroup(ptr);
 				}
 				else
 				{
-					GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_idx);
+					GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_ptr);
 				}
 
 				ProjectFile::Instance()->SetProjectChange();
+				GraphView::Instance()->ComputeGraphsCount();
 			}
 		}
 	}
@@ -223,14 +227,15 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
 
 				if (ptr->show)
 				{
-					GraphView::Instance()->AddSerieToGroup(ptr, 0U);
+					GraphView::Instance()->AddSerieToDefaultGroup(ptr);
 				}
 				else
 				{
-					GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_idx);
+					GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_ptr);
 				}
 
 				ProjectFile::Instance()->SetProjectChange();
+				GraphView::Instance()->ComputeGraphsCount();
 			}
 		}
 	}
@@ -395,7 +400,7 @@ void LogEngine::PrepareForSave()
 				SignalSetting ss;
 				ss.visibility = item_name.second->show;
 				ss.color = item_name.second->color_u32;
-				ss.group = item_name.second->graph_groupd_idx;
+				ss.group = GraphView::Instance()->GetGroupID(item_name.second->graph_groupd_ptr);
 				m_SignalSettings[item_cat.first][item_name.first] = ss;
 			}
 		}
@@ -414,6 +419,7 @@ void LogEngine::PrepareAfterLoad()
 		}
 	}
 
+	GraphView::Instance()->ComputeGraphsCount();
 	SetFirstDiffMark(ProjectFile::Instance()->m_DiffFirstMark);
 	SetSecondDiffMark(ProjectFile::Instance()->m_DiffSecondMark);
 }
@@ -506,8 +512,6 @@ const int32_t& LogEngine::GetVisibleCount() const
 
 void LogEngine::SetSignalSetting(const SignalCategory& vCategory, const SignalName& vName, const SignalSetting& vSignalSetting)
 {
-	//LogEngine::s_WorkerThread_Mutex.lock();
-	
 	if (m_SignalSeries.find(vCategory) != m_SignalSeries.end())
 	{
 		auto& cat = m_SignalSeries.at(vCategory);
@@ -524,11 +528,11 @@ void LogEngine::SetSignalSetting(const SignalCategory& vCategory, const SignalNa
 				// group
 				if (ptr->show)
 				{
-					GraphView::Instance()->AddSerieToGroup(ptr, vSignalSetting.group);
+					GraphView::Instance()->AddSerieToGroupID(ptr, vSignalSetting.group);
 				}
 				else
 				{
-					GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_idx);
+					GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_ptr);
 				}
 
 				// color
@@ -537,8 +541,6 @@ void LogEngine::SetSignalSetting(const SignalCategory& vCategory, const SignalNa
 			}
 		}
 	}
-
-	//LogEngine::s_WorkerThread_Mutex.unlock();
 }
 
 const int32_t& LogEngine::GetSignalsCount() const
@@ -551,7 +553,6 @@ void LogEngine::SetFirstDiffMark(const SignalEpochTime& vSignalEpochTime)
 	ProjectFile::Instance()->m_DiffFirstMark = vSignalEpochTime;
 
 	ProjectFile::Instance()->SetProjectChange();
-
 
 	if (m_DiffFirstTicks.empty())
 	{

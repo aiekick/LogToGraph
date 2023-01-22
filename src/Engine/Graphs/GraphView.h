@@ -27,7 +27,7 @@ limitations under the License.
 #include <ctools/ConfigAbstract.h>
 #include <implot/implot.h>
 
-class GraphView final : public conf::ConfigAbstract
+class GraphView
 {
 public:
 	// https://www.shadertoy.com/view/ld3fzf
@@ -44,25 +44,26 @@ private:
 
 public:
 	void Clear();
-	void AddSerieToGroup(const SignalSerieWeak& vSignalSerie, const size_t& vToGroupIdx);
-	void RemoveSerieFromGroup(const SignalSerieWeak& vSignalSerie, const size_t& vFromGroupIdx);
-	void MoveSerieFromGroupToGroup(const SignalSerieWeak& vSignalSerie, const size_t& vFromGroupIdx, const size_t& vToGroupIdx);
+	void AddSerieToGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vToGroupPtr);
+	void AddSerieToDefaultGroup(const SignalSerieWeak& vSignalSerie);
+	void RemoveSerieFromGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vToGroupPtr);
+	void MoveSerieFromGroupToGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vFromGroupPtr, const GraphGroupPtr& vToGroupPtr);
 	GraphGroupsRef GetGraphGroups();
+
+	void ComputeGraphsCount();
+	int32_t GetGraphCount() const;
+
+	void AddSerieToGroupID(const SignalSerieWeak& vSignalSerie, const size_t& vToGroupID);
+	size_t GetGroupID(const GraphGroupPtr& vToGroupPtr) const;
 
 	void DrawGraphGroupTable();
 	void DrawMenuBar();
 	void DrawAloneGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph);
 	void DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph);
 
-	void ComputeGraphsCount();
-	int32_t GetGraphCount() const;
-
-public:
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
-
 private:
 	GraphGroupPtr prGetGroupAt(const size_t& vIdx);
+	void RemoveEmptyGroups();
 
 	void prEraseGroupAt(const size_t& vIdx);
 	void prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool& vFirstGraph);

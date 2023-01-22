@@ -25,7 +25,7 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class GraphListPane final : public AbstractPane
+class GraphListPane : public AbstractPane
 {
 private:
 	ImGuiListClipper m_VirtualClipper;

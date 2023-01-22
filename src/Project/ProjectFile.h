@@ -23,7 +23,7 @@
 #include <ctools/ConfigAbstract.h>
 #include <implot/implot.h>
 
-struct GraphColor final
+struct GraphColor
 {
     ImVec4 graphBarColor = ImVec4(0.2f, 0.5f, 0.8f, 0.5f);
     ImVec4 graphHoveredTimeColor = ImVec4(0.8f, 0.8f, 0.2f, 0.8f);
@@ -32,7 +32,7 @@ struct GraphColor final
     ImVec4 graphSecondDiffMarkColor = ImVec4(0.2f, 0.2f, 0.8f, 0.8f);
 };
 
-class ProjectFile final : public conf::ConfigAbstract
+class ProjectFile : public conf::ConfigAbstract
 {
 public: // to save
 	std::string m_ProjectFilePathName;

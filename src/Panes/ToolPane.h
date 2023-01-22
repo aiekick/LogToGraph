@@ -25,7 +25,7 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class ToolPane final : public AbstractPane
+class ToolPane : public AbstractPane
 {
 private:
 	ImGuiListClipper m_FileListClipper;

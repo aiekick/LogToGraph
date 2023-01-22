@@ -61,17 +61,18 @@ GraphView::GraphView()
 void GraphView::Clear()
 {
 	m_GraphGroups.clear(); 
-	m_GraphGroups.push_back(GraphGroup::Create()); // default group
-	m_GraphGroups.push_back(GraphGroup::Create()); // and G0 group
+	m_GraphGroups.push_back(GraphGroup::Create()); // first group : default group
+	m_GraphGroups.push_back(GraphGroup::Create()); // last group
 	m_Range_Value = SignalValueRange(0.5, -0.5) * DBL_MAX;
 }
 
-void GraphView::AddSerieToGroup(const SignalSerieWeak& vSignalSerie, const size_t& vToGroupIdx)
+void GraphView::AddSerieToGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vToGroupPtr)
 {
 	auto ptr = vSignalSerie.lock();
-	if (ptr)
+	if (ptr && vToGroupPtr)
 	{
-		while (m_GraphGroups.size() <= vToGroupIdx + 1) // +1 because always one more than the current max
+		// if this is the last, the last group will become a new group
+		if (vToGroupPtr == m_GraphGroups.back())
 		{
 			auto _ptr = GraphGroup::Create();
 			if (_ptr)
@@ -79,11 +80,34 @@ void GraphView::AddSerieToGroup(const SignalSerieWeak& vSignalSerie, const size_
 				m_GraphGroups.push_back(_ptr);
 			}
 		}
-		
-		auto group_ptr = prGetGroupAt(vToGroupIdx);
+
+		ptr->graph_groupd_ptr = vToGroupPtr;
+
+		vToGroupPtr->AddSignalSerie(vSignalSerie);
+
+		m_Range_Value.x = ct::mini(m_Range_Value.x, vToGroupPtr->GetSignalSeriesRange().x);
+		m_Range_Value.y = ct::maxi(m_Range_Value.y, vToGroupPtr->GetSignalSeriesRange().y);
+	}
+}
+
+void GraphView::AddSerieToGroupID(const SignalSerieWeak& vSignalSerie, const size_t& vToGroupID)
+{
+	auto ptr = vSignalSerie.lock();
+	if (ptr)
+	{
+		while (m_GraphGroups.size() <= vToGroupID + 1) // +1 because always one more than the current max
+		{
+			auto _ptr = GraphGroup::Create();
+			if (_ptr)
+			{
+				m_GraphGroups.push_back(_ptr);
+			}
+		}
+
+		auto group_ptr = prGetGroupAt(vToGroupID);
 		if (group_ptr)
 		{
-			ptr->graph_groupd_idx = (uint32_t)vToGroupIdx;
+			ptr->graph_groupd_ptr = group_ptr;
 
 			group_ptr->AddSignalSerie(vSignalSerie);
 
@@ -95,35 +119,79 @@ void GraphView::AddSerieToGroup(const SignalSerieWeak& vSignalSerie, const size_
 	}
 }
 
-void GraphView::RemoveSerieFromGroup(const SignalSerieWeak& vSignalSerie, const size_t& vFromGroupIdx)
+void GraphView::AddSerieToDefaultGroup(const SignalSerieWeak& vSignalSerie)
 {
-	auto ptr = vSignalSerie.lock();
-	if (ptr)
-	{
-		if (m_GraphGroups.size() > vFromGroupIdx)
-		{
-			ptr->graph_groupd_idx = 0U; 
-			auto group_ptr = prGetGroupAt(vFromGroupIdx);
-			if (group_ptr)
-			{
-				group_ptr->RemoveSignalSerie(vSignalSerie);
+	AddSerieToGroup(vSignalSerie, m_GraphGroups.front());
+}
 
-				// tofix : dont erase if not offset of 2 or more
-				// erase if this is the before last group and if he is empty()
-				if (m_GraphGroups.size() == (vFromGroupIdx + 2U) &&
-					group_ptr->GetSignalSeries().empty())
-				{
-					prEraseGroupAt(vFromGroupIdx);
-				}
-			}
-		}
+void GraphView::RemoveSerieFromGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vFromGroupPtr)
+{
+	if (vFromGroupPtr)
+	{
+		vFromGroupPtr->RemoveSignalSerie(vSignalSerie);
+
+		m_Range_Value.x = ct::mini(m_Range_Value.x, vFromGroupPtr->GetSignalSeriesRange().x);
+		m_Range_Value.y = ct::maxi(m_Range_Value.y, vFromGroupPtr->GetSignalSeriesRange().y);
 	}
 }
 
-void GraphView::MoveSerieFromGroupToGroup(const SignalSerieWeak& vSignalSerie, const size_t& vFromGroupIdx, const size_t& vToGroupIdx)
+void GraphView::RemoveEmptyGroups()
 {
-	RemoveSerieFromGroup(vSignalSerie, vFromGroupIdx);
-	AddSerieToGroup(vSignalSerie, vToGroupIdx);
+	if (m_GraphGroups.size() > 2U)
+	{
+		std::list<size_t> group_to_erase;
+
+		// first pass : we will save the group id of empty groups
+		size_t idx = 0U;
+		for (const auto& group_ptr : m_GraphGroups)
+		{
+			if (group_ptr &&							// valid group ptr
+				group_ptr != m_GraphGroups.front() &&	// not the first group (must always be selectable, so we keep it)
+				group_ptr != m_GraphGroups.back() &&	// not the last group (must always be selectable, so we keep it)
+				group_ptr->GetSignalSeries().empty())	// no signals series
+			{
+				// we insert in front
+				// like that we will erase in inverse order
+				// because if we delete e index 1 before a 2
+				// after the 2 is in fact the 1 and we can have an issue
+				// if we delete the 2 before the 1, all is ok
+				group_to_erase.push_front(idx);
+			}
+
+			++idx;
+		}
+
+		// second pass : we will delete the found group ids
+		for (const auto& group_id : group_to_erase)
+		{
+			prEraseGroupAt(group_id);
+		}
+	}
+
+	ComputeGraphsCount();
+}
+
+void GraphView::MoveSerieFromGroupToGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vFromGroupPtr, const GraphGroupPtr& vToGroupPtr)
+{
+	RemoveSerieFromGroup(vSignalSerie, vFromGroupPtr);
+	AddSerieToGroup(vSignalSerie, vToGroupPtr);
+	RemoveEmptyGroups();
+}
+
+size_t GraphView::GetGroupID(const GraphGroupPtr& vToGroupPtr) const
+{
+	size_t idx = 0U;
+	for (const auto& group_ptr : m_GraphGroups)
+	{
+		if (group_ptr == vToGroupPtr)
+		{
+			break;
+		}
+
+		++idx;
+	}
+
+	return idx;
 }
 
 GraphGroupsRef GraphView::GetGraphGroups()
@@ -162,6 +230,10 @@ void GraphView::DrawGraphGroupTable()
 		ImGui::TableHeadersRow();
 
 		auto visible_count = LogEngine::Instance()->GetVisibleCount();
+
+		// var for move singla from group ptr to group idx
+		SignalSeriePtr move_signal_ptr = nullptr;
+		GraphGroupPtr move_to_group_ptr = nullptr;
 
 		int32_t visible_idx = 0;
 		for (auto& item_cat : LogEngine::Instance()->GetSignalSeries())
@@ -209,18 +281,21 @@ void GraphView::DrawGraphGroupTable()
 								ProjectFile::Instance()->SetProjectChange();
 							}
 
-							for (int32_t _col_idx = 0; _col_idx < _column_count; ++_col_idx)
+							int32_t _col_idx = 0;
+							for (auto& group_ptr : m_GraphGroups)
 							{
 								ImGui::TableSetColumnIndex(2 + _col_idx);
 								ImGui::PushID(ImGui::IncPUSHID());
 								{
-									if (ImGui::RadioButtonLabeled(ImGui::GetFrameHeight(), "x", datas_ptr->graph_groupd_idx == (uint32_t)_col_idx, false))
+									if (ImGui::RadioButtonLabeled(ImGui::GetFrameHeight(), "x", datas_ptr->graph_groupd_ptr == group_ptr, false))
 									{
-										MoveSerieFromGroupToGroup(datas_ptr, datas_ptr->graph_groupd_idx, _col_idx);
-										ProjectFile::Instance()->SetProjectChange();
+										move_signal_ptr = datas_ptr;
+										move_to_group_ptr = group_ptr;
 									}
 								}
 								ImGui::PopID();
+
+								++_col_idx;
 							}
 						}
 						ImGui::PopID();
@@ -232,6 +307,16 @@ void GraphView::DrawGraphGroupTable()
 		}
 
 		ImGui::EndTable();
+
+		// apply the move
+		if (move_signal_ptr && move_to_group_ptr)
+		{
+			MoveSerieFromGroupToGroup(move_signal_ptr, move_signal_ptr->graph_groupd_ptr, move_to_group_ptr);
+			ProjectFile::Instance()->SetProjectChange();
+
+			move_signal_ptr = nullptr;
+			move_to_group_ptr = nullptr;
+		}
 	}
 }
 
@@ -356,8 +441,6 @@ void GraphView::prEraseGroupAt(const size_t& vIdx)
 
 bool GraphView::prBeginPlot(const std::string& vLabel, ct::dvec2 vRangeValue, const ImVec2& vSize, const bool& vFirstGraph) const
 {
-	ImGui::PushID(ImGui::IncPUSHID()); 
-		
 	const auto& time_range = LogEngine::Instance()->GetTicksTimeSerieRange();
 	if (ImPlot::BeginPlot(vLabel.c_str(), vSize, ImPlotFlags_NoChild | ImPlotFlags_NoTitle))
 	{
@@ -445,7 +528,7 @@ void GraphView::prEndPlot()
 			LogEngine::Instance()->SetFirstDiffMark(ProjectFile::Instance()->m_DiffFirstMark);
 		}
 
-		ImPlot::TagX(ProjectFile::Instance()->m_DiffFirstMark, ProjectFile::Instance()->m_GraphColors.graphFirstDiffMarkColor, "|>", ProjectFile::Instance()->m_DiffFirstMark);
+		ImPlot::TagX(ProjectFile::Instance()->m_DiffFirstMark, ProjectFile::Instance()->m_GraphColors.graphFirstDiffMarkColor, "%s", "|>");
 	}
 
 	// draw diff second marks
@@ -457,7 +540,7 @@ void GraphView::prEndPlot()
 			LogEngine::Instance()->SetSecondDiffMark(ProjectFile::Instance()->m_DiffSecondMark);
 		}
 
-		ImPlot::TagX(ProjectFile::Instance()->m_DiffSecondMark, ProjectFile::Instance()->m_GraphColors.graphSecondDiffMarkColor, "<|");
+		ImPlot::TagX(ProjectFile::Instance()->m_DiffSecondMark, ProjectFile::Instance()->m_GraphColors.graphSecondDiffMarkColor, "%s", "<|");
 	}
 
 	auto hovered_time = LogEngine::Instance()->GetHoveredTime();
@@ -466,8 +549,6 @@ void GraphView::prEndPlot()
 		1.5f, ImPlotDragToolFlags_NoInputs | ImPlotDragToolFlags_NoCursors);
 
 	ImPlot::EndPlot();
-
-	ImGui::PopID();
 }
 
 void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool& vFirstGraph)
@@ -475,11 +556,11 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 	auto datas_ptr = vSignalSerie.lock();
 	if (datas_ptr)
 	{
-		auto time_range = LogEngine::Instance()->GetTicksTimeSerieRange();
-		
-		ImVec2 last_value_pos, value_pos, hovered_min_pos, hovered_max_pos;
+		ImVec2 last_value_pos, value_pos;
 
 		ImDrawList* draw_list = ImPlot::GetPlotDrawList();
+
+		ImGui::PushID(ImGui::IncPUSHID());
 
 		double hovered_time = LogEngine::Instance()->GetHoveredTime();
 		const auto& name_str = datas_ptr->category + " / " + datas_ptr->name;
@@ -557,6 +638,8 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 
 			prEndPlot();
 		}
+
+		ImGui::PopID();
 	}
 }
 
@@ -586,14 +669,16 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 	{
 		if (!vGraphGroupPtr->GetSignalSeries().empty()) // if not empty
 		{
-			ImVec2 last_value_pos, value_pos, hovered_min_pos, hovered_max_pos;
+			ImVec2 last_value_pos, value_pos;
 
-			ImDrawList* draw_list = ImPlot::GetPlotDrawList();
-			
+			ImGui::PushID(ImGui::IncPUSHID());
+
 			if (prBeginPlot(vGraphGroupPtr->GetName(), vGraphGroupPtr->GetSignalSeriesRange(), vSize, vFirstGraph))
 			{
 				const auto& hoveredTime = LogEngine::Instance()->GetHoveredTime();
 				
+				ImDrawList* draw_list = ImPlot::GetPlotDrawList();
+
 				for (auto& cat : vGraphGroupPtr->GetSignalSeries())
 				{
 					for (auto& name : cat.second)
@@ -678,6 +763,8 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 				prEndPlot();
 			}
 
+			ImGui::PopID();
+
 			vFirstGraph = false;
 		}
 	}
@@ -716,27 +803,4 @@ void GraphView::ComputeGraphsCount()
 int32_t GraphView::GetGraphCount() const
 {
 	return m_GraphsCount;
-}
-
-std::string GraphView::getXml(const std::string& /*vOffset*/, const std::string& /*vUserDatas*/)
-{
-	std::string str;
-
-	return str;
-}
-
-bool GraphView::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
-{
-	// The value of this chld identifies the name of this element
-	std::string strName;
-	std::string strValue;
-	std::string strParentName;
-
-	strName = vElem->Value();
-	if (vElem->GetText())
-		strValue = vElem->GetText();
-	if (vParent != nullptr)
-		strParentName = vParent->Value();
-
-	return true;
 }

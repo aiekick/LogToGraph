@@ -27,7 +27,7 @@ limitations under the License.
 */
 
 class ProjectFile;
-class FrameActionSystem final
+class FrameActionSystem
 {
 private:
 	typedef std::function<bool()> ActionStamp;

@@ -253,6 +253,9 @@ void LayoutManager::ApplyInitialDockingLayout(const ImVec2& vSize)
 				ImGui::DockBuilderDockWindow(pane.first.c_str(), dockTopID);
 				break;
 			}
+			case PaneDisposal::Count:
+			default:
+				break;
 			};
 
 			panePtr->DoVirtualLayout();

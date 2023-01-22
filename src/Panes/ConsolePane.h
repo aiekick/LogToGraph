@@ -21,7 +21,7 @@
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 
 class ProjectFile;
-class ConsolePane final : public AbstractPane, public conf::ConfigAbstract
+class ConsolePane : public AbstractPane, public conf::ConfigAbstract
 {
 public:
 	bool Init() override;

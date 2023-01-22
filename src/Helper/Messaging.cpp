@@ -447,7 +447,7 @@ void Messaging::DrawConsole()
 						if (ImGui::TableNextColumn()) // str
 						{
 							auto str = std::get<0>(msg);
-							ImGui::Text(str.c_str());
+							ImGui::Text("%s", str.c_str());
 						}
 					}
 					else if (type == MessageTypeEnum::MESSAGE_TYPE_ERROR && (puMessageExistFlags & MESSAGE_EXIST_ERROR))
@@ -467,7 +467,7 @@ void Messaging::DrawConsole()
 						if (ImGui::TableNextColumn()) // str
 						{
 							auto str = std::get<0>(msg);
-							ImGui::Text(str.c_str());
+							ImGui::Text("%s", str.c_str());
 						}
 					}
 					else if (type == MessageTypeEnum::MESSAGE_TYPE_WARNING && (puMessageExistFlags & MESSAGE_EXIST_WARNING))
@@ -487,7 +487,7 @@ void Messaging::DrawConsole()
 						if (ImGui::TableNextColumn()) // str
 						{
 							auto str = std::get<0>(msg);
-							ImGui::Text(str.c_str());
+							ImGui::Text("%s", str.c_str());
 						}
 					}
 				}

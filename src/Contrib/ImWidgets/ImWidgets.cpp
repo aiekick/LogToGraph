@@ -558,7 +558,7 @@ bool ImGui::CheckBoxBoolDefault(const char* vName, bool* vVar, bool vDefault, co
 
 	if (vHelp)
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(vHelp);
+			ImGui::SetTooltip("%s", vHelp);
 
 	return change;
 }
@@ -599,7 +599,7 @@ bool ImGui::CheckBoxIntDefault(const char* vName, int* vVar, int vDefault, const
 
 	if (vHelp)
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(vHelp);
+			ImGui::SetTooltip("%s", vHelp);
 
 	return change;
 }
@@ -634,7 +634,7 @@ bool ImGui::CheckBoxFloatDefault(const char* vName, float* vVar, float vDefault,
 
 	if (vHelp)
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(vHelp);
+			ImGui::SetTooltip("%s", vHelp);
 
 	return change;
 }
@@ -669,7 +669,7 @@ bool ImGui::RadioFloatDefault(const char* vName, float* vVar, int vCount, float*
 
 		ImGui::CustomSameLine(0, ImGui::GetStyle().ItemInnerSpacing.x);
 
-		ImGui::Text(vName);
+		ImGui::Text("%s", vName);
 
 		if (change)
 		{
@@ -683,7 +683,7 @@ bool ImGui::RadioFloatDefault(const char* vName, float* vVar, int vCount, float*
 
 	if (vHelp)
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(vHelp);
+			ImGui::SetTooltip("%s", vHelp);
 
 	return change;
 }
@@ -1126,7 +1126,7 @@ bool ImGui::ButtonNoFrame(const char* vLabel, ImVec2 size, ImVec4 vColor, const 
 
 	if (vHelp)
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(vHelp);
+			ImGui::SetTooltip("%s", vHelp);
 
 	return pressed;
 }
@@ -1265,7 +1265,6 @@ void ImGui::Header(const char* vName, float width)
 		w = ImGui::GetContentRegionAvail().x;
 	}
 
-	ImVec2 pos = window->DC.CursorPos;
 	const ImRect frame_bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(w, label_size.y + style.FramePadding.y * 2.0f));
 	const ImRect total_bb(frame_bb.Min, frame_bb.Max + ImVec2(label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f, 0.0f));
 	
@@ -1960,7 +1959,7 @@ void ImGui::ImageRatio(ImTextureID vTexId, float vRatioX, float vWidth, ImVec4 v
 		char arr[3];
 		if (snprintf(arr, 3, "%i", (int)(size_t)vTexId))
 		{
-			ImGui::SetTooltip(arr);
+			ImGui::SetTooltip("%s", arr);
 		}
 	}
 #endif
@@ -1981,9 +1980,6 @@ bool ImGui::TextureOverLay(float vWidth, std::shared_ptr<ct::texture> vTex, ImVe
 	{
 		vWidth -= ImGui::GetStyle().ScrollbarSize;
 	}
-
-	const ImVec2 uv0 = ImVec2(0, 0);
-	const ImVec2 uv1 = ImVec2(1, 1);
 
 	ImVec2 size = ImVec2(vWidth, vWidth);
 
@@ -2314,17 +2310,8 @@ inline bool inSliderBehaviorStepperT(const ImRect& bb, ImGuiID id, ImGuiDataType
 inline bool inSliderBehaviorStepper(const ImRect& bb, ImGuiID id, ImGuiDataType data_type, void* p_v, const void* p_min, const void* p_max, const void* p_step, const char* format, ImGuiSliderFlags flags, ImRect* out_grab_bb)
 {
 	// Those MIN/MAX values are not define because we need to point to them
-	static const signed char    IM_S8_MIN = -128;
-	static const signed char    IM_S8_MAX = 127;
-	static const unsigned char  IM_U8_MIN = 0;
-	static const unsigned char  IM_U8_MAX = 0xFF;
-	static const signed short   IM_S16_MIN = -32768;
-	static const signed short   IM_S16_MAX = 32767;
-	static const unsigned short IM_U16_MIN = 0;
-	static const unsigned short IM_U16_MAX = 0xFFFF;
 	static const ImS32          IM_S32_MIN = INT_MIN;    // (-2147483647 - 1), (0x80000000);
 	static const ImS32          IM_S32_MAX = INT_MAX;    // (2147483647), (0x7FFFFFFF)
-	static const ImU32          IM_U32_MIN = 0;
 	static const ImU32          IM_U32_MAX = UINT_MAX;   // (0xFFFFFFFF)
 #ifdef LLONG_MIN
 	static const ImS64          IM_S64_MIN = LLONG_MIN;  // (-9223372036854775807ll - 1ll);
@@ -2333,7 +2320,6 @@ inline bool inSliderBehaviorStepper(const ImRect& bb, ImGuiID id, ImGuiDataType 
 	static const ImS64          IM_S64_MIN = -9223372036854775807LL - 1;
 	static const ImS64          IM_S64_MAX = 9223372036854775807LL;
 #endif
-	static const ImU64          IM_U64_MIN = 0;
 #ifdef ULLONG_MAX
 	static const ImU64          IM_U64_MAX = ULLONG_MAX; // (0xFFFFFFFFFFFFFFFFull);
 #else
@@ -3177,7 +3163,7 @@ IMGUI_API bool ImGui::InputIntDefault(float vWidth, const char* vName, int* vVar
 	ImGui::PopID();
 
 	if (ImGui::IsItemActive() || ImGui::IsItemHovered())
-		ImGui::SetTooltip("%.3f", *vVar);
+		ImGui::SetTooltip("%i", *vVar);
 
 	return change;
 }
@@ -3207,7 +3193,7 @@ IMGUI_API bool ImGui::InputUIntDefault(float vWidth, const char* vName, uint32_t
 	ImGui::PopID();
 
 	if (ImGui::IsItemActive() || ImGui::IsItemHovered())
-		ImGui::SetTooltip("%.3f", *vVar);
+		ImGui::SetTooltip("%u", *vVar);
 
 	return change;
 }
@@ -3216,7 +3202,7 @@ IMGUI_API bool ImWidgets::InputText::DisplayInputText(const float& vWidth, const
 {
 	bool res = false;
 	float px = ImGui::GetCursorPosX();
-	ImGui::Text(vLabel.c_str());
+	ImGui::Text("%s", vLabel.c_str());
 	ImGui::SameLine();
 	const float w = vWidth - (ImGui::GetCursorPosX() - px);
 	ImGui::PushID(++ImGui::CustomStyle::Instance()->pushId);
