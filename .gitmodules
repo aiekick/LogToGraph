@@ -42,3 +42,7 @@
 	path = 3rdparty/ImGuiColorTextEdit
 	url = https://github.com/aiekick/ImGuiColorTextEdit.git
 	branch = master
+[submodule "3rdparty/ImGuiFileDialog"]
+	path = 3rdparty/ImGuiFileDialog
+	url = https://github.com/aiekick/ImGuiFileDialog.git
+	branch = Lib_Only
