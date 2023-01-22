@@ -21,7 +21,7 @@
 [submodule "3rdparty/ImGuiFileDialog"]
 	path = 3rdparty/ImGuiFileDialog
 	url = https://github.com/aiekick/ImGuiFileDialog.git
-	branch = master
+	branch = Lib_Only
 [submodule "3rdparty/imgui"]
 	path = 3rdparty/imgui
 	url = https://github.com/ocornut/imgui.git
@@ -34,10 +34,6 @@
 	path = 3rdparty/imgui_node_editor
 	url = https://github.com/aiekick/imgui-node-editor.git
 	branch = master
-[submodule "3rdparty/imguifiledialog"]
-	path = 3rdparty/imguifiledialog
-	url = https://github.com/aiekick/ImGuiFileDialog.git
-	branch = Lib_Only
 [submodule "3rdparty/implot"]
 	path = 3rdparty/implot
 	url = https://github.com/epezent/implot.git
