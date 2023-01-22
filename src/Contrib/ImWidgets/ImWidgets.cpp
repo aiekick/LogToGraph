@@ -2070,6 +2070,74 @@ bool ImGui::TextureOverLay(float vWidth, std::shared_ptr<ct::texture> vTex, ImVe
 ///// SLIDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+// Convert a parametric position on a slider into a value v in the output space (the logical opposite of ScaleRatioFromValueT)
+template<typename TYPE, typename SIGNEDTYPE, typename FLOATTYPE>
+inline TYPE inScaleValueFromRatioT(ImGuiDataType data_type, float t, TYPE v_min, TYPE v_max, bool is_logarithmic, float logarithmic_zero_epsilon, float zero_deadzone_halfsize)
+{
+	// We special-case the extents because otherwise our logarithmic fudging can lead to "mathematically correct"
+	// but non-intuitive behaviors like a fully-left slider not actually reaching the minimum value. Also generally simpler.
+	if (t <= 0.0f || v_min == v_max)
+		return v_min;
+	if (t >= 1.0f)
+		return v_max;
+
+	TYPE result = (TYPE)0;
+	if (is_logarithmic)
+	{
+		// Fudge min/max to avoid getting silly results close to zero
+		FLOATTYPE v_min_fudged = (ImAbs((FLOATTYPE)v_min) < logarithmic_zero_epsilon) ? ((v_min < 0.0f) ? -logarithmic_zero_epsilon : logarithmic_zero_epsilon) : (FLOATTYPE)v_min;
+		FLOATTYPE v_max_fudged = (ImAbs((FLOATTYPE)v_max) < logarithmic_zero_epsilon) ? ((v_max < 0.0f) ? -logarithmic_zero_epsilon : logarithmic_zero_epsilon) : (FLOATTYPE)v_max;
+
+		const bool flipped = v_max < v_min; // Check if range is "backwards"
+		if (flipped)
+			ImSwap(v_min_fudged, v_max_fudged);
+
+		// Awkward special case - we need ranges of the form (-100 .. 0) to convert to (-100 .. -epsilon), not (-100 .. epsilon)
+		if ((v_max == 0.0f) && (v_min < 0.0f))
+			v_max_fudged = -logarithmic_zero_epsilon;
+
+		float t_with_flip = flipped ? (1.0f - t) : t; // t, but flipped if necessary to account for us flipping the range
+
+		if ((v_min * v_max) < 0.0f) // Range crosses zero, so we have to do this in two parts
+		{
+			float zero_point_center = (-(float)ImMin(v_min, v_max)) / ImAbs((float)v_max - (float)v_min); // The zero point in parametric space
+			float zero_point_snap_L = zero_point_center - zero_deadzone_halfsize;
+			float zero_point_snap_R = zero_point_center + zero_deadzone_halfsize;
+			if (t_with_flip >= zero_point_snap_L && t_with_flip <= zero_point_snap_R)
+				result = (TYPE)0.0f; // Special case to make getting exactly zero possible (the epsilon prevents it otherwise)
+			else if (t_with_flip < zero_point_center)
+				result = (TYPE)-(logarithmic_zero_epsilon * ImPow(-v_min_fudged / logarithmic_zero_epsilon, (FLOATTYPE)(1.0f - (t_with_flip / zero_point_snap_L))));
+			else
+				result = (TYPE)(logarithmic_zero_epsilon * ImPow(v_max_fudged / logarithmic_zero_epsilon, (FLOATTYPE)((t_with_flip - zero_point_snap_R) / (1.0f - zero_point_snap_R))));
+		}
+		else if ((v_min < 0.0f) || (v_max < 0.0f)) // Entirely negative slider
+			result = (TYPE)-(-v_max_fudged * ImPow(-v_min_fudged / -v_max_fudged, (FLOATTYPE)(1.0f - t_with_flip)));
+		else
+			result = (TYPE)(v_min_fudged * ImPow(v_max_fudged / v_min_fudged, (FLOATTYPE)t_with_flip));
+	}
+	else
+	{
+		// Linear slider
+		const bool is_floating_point = (data_type == ImGuiDataType_Float) || (data_type == ImGuiDataType_Double);
+		if (is_floating_point)
+		{
+			result = ImLerp(v_min, v_max, t);
+		}
+		else if (t < 1.0)
+		{
+			// - For integer values we want the clicking position to match the grab box so we round above
+			//   This code is carefully tuned to work with large values (e.g. high ranges of U64) while preserving this property..
+			// - Not doing a *1.0 multiply at the end of a range as it tends to be lossy. While absolute aiming at a large s64/u64
+			//   range is going to be imprecise anyway, with this check we at least make the edge values matches expected limits.
+			FLOATTYPE v_new_off_f = (SIGNEDTYPE)(v_max - v_min) * t;
+			result = (TYPE)((SIGNEDTYPE)v_min + (SIGNEDTYPE)(v_new_off_f + (FLOATTYPE)(v_min > v_max ? -0.5 : 0.5)));
+		}
+	}
+
+	return result;
+}
+
 // FIXME: Move more of the code into SliderBehavior()
 template<typename TYPE, typename SIGNEDTYPE, typename FLOATTYPE>
 inline bool inSliderBehaviorStepperT(const ImRect& bb, ImGuiID id, ImGuiDataType data_type, TYPE* v, const TYPE v_min, const TYPE v_max, const TYPE v_step, const char* format, ImGuiSliderFlags flags, ImRect* out_grab_bb)
@@ -2197,7 +2265,7 @@ inline bool inSliderBehaviorStepperT(const ImRect& bb, ImGuiID id, ImGuiDataType
 
 		if (set_new_value)
 		{
-			TYPE v_new = ScaleValueFromRatioT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, clicked_t, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
+			TYPE v_new = inScaleValueFromRatioT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, clicked_t, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
 
 			if (v_step)
 			{
@@ -2227,7 +2295,7 @@ inline bool inSliderBehaviorStepperT(const ImRect& bb, ImGuiID id, ImGuiDataType
 	else
 	{
 		// Output grab position so it can be displayed by the caller
-		float grab_t = ScaleRatioFromValueT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, *v, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
+		float grab_t = inScaleValueFromRatioT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, *v, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
 		if (axis == ImGuiAxis_Y)
 			grab_t = 1.0f - grab_t;
 		const float grab_pos = ImLerp(slider_usable_pos_min, slider_usable_pos_max, grab_t);

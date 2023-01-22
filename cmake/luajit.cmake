@@ -4,7 +4,7 @@ include_directories(
     ${LUA_JIT_INCLUDE_DIR}/src	
 )
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty/luajit)
+add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty/luajit EXCLUDE_FROM_ALL)
     
 set_target_properties(libluajit PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(luajit PROPERTIES FOLDER 3rdparty/luajit)
