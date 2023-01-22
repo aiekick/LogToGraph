@@ -43,10 +43,14 @@ std::string LogEngine::sConvertEpochToDateTimeString(const double& vTime)
     double seconds = ct::fract(vTime); // 0.067365000
     auto _epoch_time = (std::time_t)vTime;
     auto tm = std::localtime(&_epoch_time);
-    double _sec = (double)tm->tm_sec + seconds;
-    return ct::toStr("%i/%i/%i %i:%i:%f",
-                     tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
-                     tm->tm_hour, tm->tm_min, _sec);
+	if (tm)
+	{
+		double _sec = (double)tm->tm_sec + seconds;
+		return ct::toStr("%i/%i/%i %i:%i:%f",
+			tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
+			tm->tm_hour, tm->tm_min, _sec);
+	}
+	return "";
 }
 
 ///////////////////////////////////////////////////

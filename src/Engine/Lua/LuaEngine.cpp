@@ -183,14 +183,24 @@ static int Lua_int_GetRowCount_void(lua_State* L)
 // LogInfos(string)
 static int Lua_void_LogInfo_string(lua_State* L)
 {
-    const auto arg_0_string = std::string(lua_tostring(L, 1)); // first param from stack
+    std::string res;
 
-    if (arg_0_string.empty())
+    // first param from stack
+    size_t len;
+    auto str = lua_tolstring(L, 1, &len);
+    if (str && len)
     {
-        LogVarLightError("%s", "Lua code error : the string passed to LogValue is empty");
+        res = std::string(str, len);
     }
 
-    LogVarLightInfo("%s", arg_0_string.c_str());
+    if (res.empty())
+    {
+        LogVarLightError("%s", "Lua code error : the string passed to LogInfo is empty");
+    }
+    else
+    {
+        LogVarLightInfo("%s", res.c_str());
+    }
 
     return 0;
 }
@@ -198,14 +208,24 @@ static int Lua_void_LogInfo_string(lua_State* L)
 // LogWarning(string)
 static int Lua_void_LogWarning_string(lua_State* L)
 {
-    const auto arg_0_string = std::string(lua_tostring(L, 1)); // first param from stack
+    std::string res;
 
-    if (arg_0_string.empty())
+    // first param from stack
+    size_t len;
+    auto str = lua_tolstring(L, 1, &len);
+    if (str && len)
     {
-        LogVarLightError("%s", "Lua code error : the string passed to LogValue is empty");
+        res = std::string(str, len);
     }
 
-    LogVarLightWarning("%s", arg_0_string.c_str());
+    if (res.empty())
+    {
+        LogVarLightError("%s", "Lua code error : the string passed to LogWarning is empty");
+    }
+    else
+    {
+        LogVarLightWarning("%s", res.c_str());
+    }
 
     return 0;
 }
@@ -213,15 +233,24 @@ static int Lua_void_LogWarning_string(lua_State* L)
 // LogError(string)
 static int Lua_void_LogError_string(lua_State* L)
 {
-    const auto arg_0_string = std::string(lua_tostring(L, 1)); // first param from stack
+    std::string res;
 
-    if (arg_0_string.empty())
+    // first param from stack
+    size_t len;
+    auto str = lua_tolstring(L, 1, &len);
+    if (str && len)
     {
-        LogVarLightError("%s", "Lua code error : the string passed to LogValue is empty");
+        res = std::string(str, len);
     }
 
-    LogVarLightError("%s", arg_0_string.c_str());
-
+    if (res.empty())
+    {
+        LogVarLightError("%s", "Lua code error : the string passed to LogError is empty");
+    }
+    else
+    {
+        LogVarLightError("%s", res.c_str());
+    }
 
     return 0;
 }
@@ -310,7 +339,6 @@ void LuaEngine::sLuAnalyse(
     std::string luaFilePathName = LuaEngine::Instance()->GetLuaFilePathName();
     std::string logFilePathName = LuaEngine::Instance()->GetLogFilePathName();
     std::string lua_Current_Buffer_Row_Var_Name;		// current line of buffer
-    std::string lua_Current_Buffer_Row_Content;			// current line of buffer
     std::string lua_Function_To_Call_For_Each_Row;	    // the function to call for each lines
     std::string lua_Function_To_Call_End_File;			// the fucntion to call for the end of the file
     size_t lua_Row_Index = 0U;					        // the current line pos read from file
@@ -354,11 +382,15 @@ void LuaEngine::sLuAnalyse(
                             auto file_lines = ct::splitStringToVector(file_string, '\n');
                             lua_Row_Count = file_lines.size();
 
+                            LuaEngine::Instance()->SetRowCount(lua_Row_Count);
+
                             lua_Row_Index = 0U;
-                            for (auto lua_Current_Buffer_Line : file_lines)
+                            for (auto lua_Current_Buffer_Row_Content : file_lines)
                             {
                                 if (!vWorking)
                                     break;
+
+                                LuaEngine::Instance()->SetRowIndex(lua_Row_Index);
 
                                 // time
                                 const int64_t secondTimeMark = std::chrono::duration_cast<std::chrono::milliseconds>
