@@ -686,7 +686,9 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 						auto datas_ptr = name.second.lock();
 						if (datas_ptr)
 						{
-							if (ImPlot::BeginItem(datas_ptr->name.c_str()))
+
+							const auto& name_str = datas_ptr->category + " / " + datas_ptr->name; 
+							if (ImPlot::BeginItem(name_str.c_str()))
 							{
 								ImPlot::GetCurrentItem()->Color = datas_ptr->color_u32;
 
