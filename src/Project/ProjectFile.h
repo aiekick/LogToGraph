@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Stephane Cuillerdier (aka Aiekick)
+ * Copyright 2022-2023 Stephane Cuillerdier (aka Aiekick)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

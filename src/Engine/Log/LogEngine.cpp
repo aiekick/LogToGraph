@@ -2,7 +2,7 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 /*
-Copyright 2022-2022 Stephane Cuillerdier (aka aiekick)
+Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -400,7 +400,7 @@ void LogEngine::PrepareForSave()
 				SignalSetting ss;
 				ss.visibility = item_name.second->show;
 				ss.color = item_name.second->color_u32;
-				ss.group = GraphView::Instance()->GetGroupID(item_name.second->graph_groupd_ptr);
+				ss.group = (uint32_t)GraphView::Instance()->GetGroupID(item_name.second->graph_groupd_ptr);
 				m_SignalSettings[item_cat.first][item_name.first] = ss;
 			}
 		}

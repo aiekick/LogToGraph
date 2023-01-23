@@ -6,8 +6,6 @@ enable_language(C CXX)
 
 project(${PROJECT} CXX)
 
-option(USE_LOG_GENERATION_APP "Use the log Generation app" OFF)
-
 set(LLVM_USE_CRT_DEBUG MTd CACHE STRING "" FORCE)
 set(LLVM_USE_CRT_MINSIZEREL MT CACHE STRING "" FORCE)
 set(LLVM_USE_CRT_RELEASE MT CACHE STRING "" FORCE)
@@ -122,26 +120,18 @@ file(GLOB IMGUI_FREETYPE_SOURCES
 		${CMAKE_SOURCE_DIR}/3rdparty/imgui/misc/freetype/imgui_freetype.h)
 source_group(src\\ImGui_FreeType FILES ${IMGUI_FREETYPE_SOURCES})
 
+if (MSVC)
+	set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/res/appicon.rc")
+endif()
+
 add_executable(${PROJECT}
-	##${ICON}
 	${SRC_LUA}
 	${SRC_CMAKE}
 	${PROJECT_MAIN}
 	${IMGUIIMPL_SOURCES}
 	${PROJECT_SRC_RECURSE}
-	${IMGUI_FREETYPE_SOURCES})
-
-if(WIN32)
-	if (MINGW)
-		set_target_properties(${PROJECT} PROPERTIES	OUTPUT_NAME "${PROJECT}_Mingw_${ARCH}")
-	elseif (CYGWIN)
-		set_target_properties(${PROJECT} PROPERTIES	OUTPUT_NAME "${PROJECT}_Cygwin_${ARCH}")
-	elseif(MSVC)
-		set_target_properties(${PROJECT} PROPERTIES	OUTPUT_NAME "${PROJECT}_Msvc_${ARCH}")
-	endif()
-elseif(UNIX)
-	set_target_properties(${PROJECT} PROPERTIES	OUTPUT_NAME "${PROJECT}_${ARCH}")
-endif()
+	${IMGUI_FREETYPE_SOURCES}
+	${APP_ICON_RESOURCE_WINDOWS})
 
 include_directories(
 	src
@@ -208,14 +198,48 @@ if(MSVC)
 endif()
 
 #############################################################
+### OUTPUT NAME #############################################
+#############################################################
+
+if(WIN32)
+	if (MINGW)
+		set(${PROJECT}_Output_Name "${PROJECT}_Mingw32_${ARCH}")
+	elseif (CYGWIN)
+		set(${PROJECT}_Output_Name "${PROJECT}_Cygwin_${ARCH}")
+	elseif(MSVC)
+		set(${PROJECT}_Output_Name "${PROJECT}_Msvc_${ARCH}")
+	endif()
+	set_target_properties(${PROJECT} PROPERTIES	OUTPUT_NAME "${${PROJECT}_Output_Name}")
+elseif(UNIX)
+	set(${PROJECT}_Output_Name "${PROJECT}_Linux_${ARCH}")
+	set_target_properties(${PROJECT} PROPERTIES	OUTPUT_NAME "${${PROJECT}_Output_Name}")
+endif()
+
+#############################################################
 ### INSTALL #################################################
 #############################################################
 
-install(TARGETS 
-	${PROJECT} 
-	RUNTIME 
-	DESTINATION /
-	COMPONENT APP_BINARY)
+install(TARGETS ${PROJECT} RUNTIME DESTINATION / COMPONENT APP_BINARY)
+
+if (WIN32)
+install(FILES 
+	C:/Windows/System32/downlevel/api-ms-win-crt-convert-l1-1-0.dll
+	C:/Windows/System32/downlevel/api-ms-win-crt-environment-l1-1-0.dll
+	C:/Windows/System32/downlevel/api-ms-win-crt-filesystem-l1-1-0.dll
+	C:/Windows/System32/downlevel/api-ms-win-crt-heap-l1-1-0.dll
+	C:/Windows/System32/downlevel/api-ms-win-crt-locale-l1-1-0.dll
+	C:/Windows/System32/downlevel/api-ms-win-crt-math-l1-1-0.dll
+	C:/Windows/System32/downlevel/api-ms-win-crt-runtime-l1-1-0.dll
+	C:/Windows/System32/downlevel/api-ms-win-crt-stdio-l1-1-0.dll
+	C:/Windows/System32/downlevel/api-ms-win-crt-string-l1-1-0.dll
+	C:/Windows/System32/downlevel/api-ms-win-crt-time-l1-1-0.dll
+	C:/Windows/System32/downlevel/api-ms-win-crt-utility-l1-1-0.dll
+	C:/Windows/System32/MSVCP140.dll
+	C:/Windows/System32/VCRUNTIME140.dll
+	C:/Windows/System32/VCRUNTIME140_1.dll
+    DESTINATION /
+	COMPONENT APP_FILES)
+endif()
 
 #############################################################
 ### VERSION #################################################
@@ -253,17 +277,5 @@ set(CPACK_PACKAGE_VERSION_MINOR "${MinorNumber}")
 set(CPACK_PACKAGE_VERSION_PATCH "${BuildNumber}")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "${FINAL_BIN_DIR}")
 set(CPACK_COMPONENT_APPLICATIONS_DISPLAY_NAME "${CMAKE_PROJECT_NAME}")
-##set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
-##set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/VERSION")
 SET(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_INSTALL_PREFIX}")
 include(CPack)
-
-#############################################################
-### LOG GENERATION APP ######################################
-#############################################################
-
-if (USE_LOG_GENERATION_APP)
-	add_executable(LogGen ${CMAKE_SOURCE_DIR}/LogGenApp/main.cpp)
-	target_include_directories(LogGen PRIVATE ${CMAKE_SOURCE_DIR}/3rdparty)
-	target_link_libraries(LogGen PRIVATE ${CTOOLS_LIBRARIES})
-endif()

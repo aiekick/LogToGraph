@@ -26,10 +26,6 @@
 	path = 3rdparty/freetype2
 	url = https://github.com/freetype/freetype2.git
 	branch = master
-[submodule "3rdparty/imgui_node_editor"]
-	path = 3rdparty/imgui_node_editor
-	url = https://github.com/aiekick/imgui-node-editor.git
-	branch = master
 [submodule "3rdparty/implot"]
 	path = 3rdparty/implot
 	url = https://github.com/epezent/implot.git

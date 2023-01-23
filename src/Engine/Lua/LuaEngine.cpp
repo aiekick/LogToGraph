@@ -2,7 +2,7 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 /*
-Copyright 2022-2022 Stephane Cuillerdier (aka aiekick)
+Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -341,8 +341,8 @@ void LuaEngine::sLuAnalyse(
     std::string lua_Current_Buffer_Row_Var_Name;		// current line of buffer
     std::string lua_Function_To_Call_For_Each_Row;	    // the function to call for each lines
     std::string lua_Function_To_Call_End_File;			// the fucntion to call for the end of the file
-    size_t lua_Row_Index = 0U;					        // the current line pos read from file
-    size_t lua_Row_Count = 0U;					        // the current line pos read from file
+    int32_t lua_Row_Index = 0;					        // the current line pos read from file
+    int32_t lua_Row_Count = 0;					        // the current line pos read from file
 
     auto _luaState = CreateLuaState();
     if (_luaState)
@@ -380,7 +380,7 @@ void LuaEngine::sLuAnalyse(
                             }
 
                             auto file_lines = ct::splitStringToVector(file_string, '\n');
-                            lua_Row_Count = file_lines.size();
+                            lua_Row_Count = (int32_t)file_lines.size();
 
                             LuaEngine::Instance()->SetRowCount(lua_Row_Count);
 

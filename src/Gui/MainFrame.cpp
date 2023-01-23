@@ -2,7 +2,7 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 /*
- * Copyright 2020 Stephane Cuillerdier (aka Aiekick)
+ * Copyright 2022-2023 Stephane Cuillerdier (aka Aiekick)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,11 @@
 
 #include <ctools/cTools.h>
 #include <ctools/FileHelper.h>
+
 #include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+
 #include <Helper/Messaging.h>
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 #include <Contrib/ImWidgets/ImWidgets.h>
@@ -91,6 +95,10 @@ void MainFrame::Init()
 	LayoutManager::Instance()->InitPanes();
 	ThemeHelper::Instance(); // default theme
 
+	SetEmbeddedIconApp("IDI_ICON1");
+	//m_AppIconID = ExtractEmbeddedIcon("IDI_ICON1");
+	m_BigAppIconID = ExtractEmbeddedImage("IDB_BMP1");
+
 	LoadConfigFile("config.xml", "");
 
 	ThemeHelper::Instance()->ApplyStyle();
@@ -105,6 +113,10 @@ void MainFrame::Unit()
 
 	LuaEngine::Instance()->Unit();
 	LayoutManager::Instance()->UnitPanes();
+
+	// free opengl texture m_AppIconID
+	if (m_AppIconID) { glDeleteTextures(GL_TEXTURE_2D, &m_AppIconID); m_AppIconID = 0U; }
+	if (m_BigAppIconID) { glDeleteTextures(GL_TEXTURE_2D, &m_BigAppIconID); m_BigAppIconID = 0U; }
 }
 
 void MainFrame::NewProject(const std::string& vFilePathName)
@@ -120,7 +132,7 @@ void MainFrame::LoadProject(const std::string& vFilePathName)
 		SetAppTitle(vFilePathName);
 		ProjectFile::Instance()->SetProjectChange(false);
 	}
-	else
+	else if (!vFilePathName.empty())
 	{
 		Messaging::Instance()->AddError(true, nullptr, nullptr,
 			"Failed to load project %s", vFilePathName.c_str());
@@ -140,6 +152,140 @@ void MainFrame::SaveAsProject(const std::string& vFilePathName)
 	{
 		glfwSetWindowShouldClose(m_Window, GL_TRUE); // close app
 	}
+}
+
+void MainFrame::SetEmbeddedIconApp(const char* vEmbeddedIconID)
+{
+#if WIN32
+	auto icon_h_inst = LoadIconA(GetModuleHandle(NULL), vEmbeddedIconID);
+	SetClassLongPtrA(glfwGetWin32Window(m_Window), GCLP_HICON, (LONG_PTR)icon_h_inst);
+#endif
+}
+
+GLuint MainFrame::ExtractEmbeddedIcon(const char* vEmbeddedIconID)
+{
+#if WIN32
+	// embedded icon to opengl texture
+
+	auto icon_h_inst = LoadIconA(GetModuleHandle(NULL), vEmbeddedIconID);
+
+	ICONINFO app_icon_info;
+	if (GetIconInfo(icon_h_inst, &app_icon_info))
+	{
+		HDC hdc = GetDC(0);
+
+		BITMAPINFO MyBMInfo = { 0 };
+		MyBMInfo.bmiHeader.biSize = sizeof(MyBMInfo.bmiHeader);
+		if (GetDIBits(hdc, app_icon_info.hbmColor, 0, 0, NULL, &MyBMInfo, DIB_RGB_COLORS)) 
+		{
+			uint8_t* bytes = new uint8_t[MyBMInfo.bmiHeader.biSizeImage];
+
+			MyBMInfo.bmiHeader.biCompression = BI_RGB;
+			if (GetDIBits(hdc, app_icon_info.hbmColor, 0, MyBMInfo.bmiHeader.biHeight, (LPVOID)bytes, &MyBMInfo, DIB_RGB_COLORS))
+			{
+				uint8_t R, G, B;
+
+				int index, i;
+
+				// swap BGR to RGB
+				for (i = 0; i < MyBMInfo.bmiHeader.biWidth * MyBMInfo.bmiHeader.biHeight; i++)
+				{
+					index = i * 4;
+
+					B = bytes[index];
+					G = bytes[index + 1];
+					R = bytes[index + 2];
+
+					bytes[index] = R;
+					bytes[index + 1] = G;
+					bytes[index + 2] = B;
+				}
+
+				//create texture from loaded bmp image 
+
+				glEnable(GL_TEXTURE_2D);
+
+				GLuint texID = 0;
+				glGenTextures(1, &texID);
+
+				glBindTexture(GL_TEXTURE_2D, texID);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+				glTexImage2D(GL_TEXTURE_2D, 0, 4, MyBMInfo.bmiHeader.biWidth, MyBMInfo.bmiHeader.biHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+				glFinish();
+
+				glBindTexture(GL_TEXTURE_2D, 0);
+
+				glDisable(GL_TEXTURE_2D);
+
+				return texID;
+			}
+		}
+	}
+#endif
+
+	return 0;
+}
+
+GLuint MainFrame::ExtractEmbeddedImage(const char* vEmbeddedImageID)
+{
+#if WIN32
+	// embedded icon to opengl texture
+
+	auto hBitmap = LoadImageA(GetModuleHandle(NULL), vEmbeddedImageID, IMAGE_BITMAP, 0, 0, LR_COPYFROMRESOURCE | LR_CREATEDIBSECTION);
+
+	BITMAP bm;
+	if (GetObjectA(hBitmap, sizeof(BITMAP), &bm))
+	{
+		uint8_t* bytes = (uint8_t*)bm.bmBits;
+		uint8_t R, G, B;
+
+		int index, i;
+
+		// swap BGR to RGB
+		for (i = 0; i < bm.bmWidth * bm.bmHeight; i++)
+		{
+			index = i * 3;
+
+			B = bytes[index];
+			G = bytes[index + 1];
+			R = bytes[index + 2];
+
+			bytes[index] = R;
+			bytes[index + 1] = G;
+			bytes[index + 2] = B;
+		}
+
+		//create texture from loaded bmp image 
+
+		glEnable(GL_TEXTURE_2D);
+
+		GLuint texID = 0;
+		glGenTextures(1, &texID);
+
+		glBindTexture(GL_TEXTURE_2D, texID);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, 4, bm.bmWidth, bm.bmHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, bytes);
+		glFinish();
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glDisable(GL_TEXTURE_2D);
+
+		return texID;
+	}
+#endif
+
+	return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -311,6 +457,8 @@ void MainFrame::DisplayDialogsAndPopups()
 	{
 		LayoutManager::Instance()->DrawDialogsAndPopups(0U, "");
 	}
+
+	DrawAboutDialog();
 }
 
 void MainFrame::SetAppTitle(const std::string& vFilePathName)
@@ -328,6 +476,89 @@ void MainFrame::SetAppTitle(const std::string& vFilePathName)
 		{
 			snprintf(bufTitle, 1023, "%s %s - Project : %s." APP_PROJECT_FILE_EXT, APP_TITLE, LogToGraph_BuildId, ps.name.c_str());
 			glfwSetWindowTitle(m_Window, bufTitle);
+		}
+	}
+}
+
+void MainFrame::DrawAboutDialog()
+{
+	if (m_ShowAboutDialog)
+	{
+		ImGui::OpenPopup("About");
+		if (ImGui::BeginPopupModal("About", &m_ShowAboutDialog, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar))
+		{
+			ImGui::BeginGroup();
+
+			// texture is inverted, so we invert uv.y
+			ImGui::Image((ImTextureID)(void*)(size_t)m_BigAppIconID, ImVec2(128, 128), ImVec2(0,1), ImVec2(1,0));
+
+			auto str = ct::toStr("%s %s", APP_TITLE, LogToGraph_BuildId);
+			ImGui::ClickableTextUrl(str.c_str(), "https://github.com/aiekick/LogToGraph");
+
+			ImGui::EndGroup();
+
+			ImGui::SameLine();
+
+			ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+
+			ImGui::SameLine();
+
+			ImGui::BeginGroup();
+
+			ImGui::Text("License : %s", u8R"(
+Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at)");
+			ImGui::ClickableTextUrl("http://www.apache.org/licenses/LICENSE-2.0", "http://www.apache.org/licenses/LICENSE-2.0");
+
+			ImGui::Text("%s", u8R"(Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+)");
+
+			ImGui::Separator();
+
+			ImGui::Text("%s", "Frameworks / Libraries used :");
+			ImGui::Indent();
+			{
+				// glfw3
+				ImGui::ClickableTextUrl("Glfw (ZLIB)", "https://github.com/glfw/glfw"); ImGui::SameLine();
+				// glad
+				ImGui::ClickableTextUrl("Glad (MIT)", "https://github.com/Dav1dde/glad"); ImGui::SameLine();
+				// stb
+				ImGui::ClickableTextUrl("Stb (MIT)", "https://github.com/nothings/stb"); ImGui::SameLine();
+				// tinyxml2
+				ImGui::ClickableTextUrl("tinyxml2 (ZLIB)", "https://github.com/leethomason/tinyxml2");
+				// dirent
+				ImGui::ClickableTextUrl("dirent (MIT)", "https://github.com/tronkko/dirent/blob/master/include/dirent.h"); ImGui::SameLine();
+				// freetype 2
+				ImGui::ClickableTextUrl("FreeType2 (FreeType2)", "https://github.com/freetype/freetype2"); ImGui::SameLine();
+				// cTools
+				ImGui::ClickableTextUrl("cTools (MIT)", "https://github.com/aiekick/cTools"); ImGui::SameLine();
+				// LuaJit
+				ImGui::ClickableTextUrl("Lua Jit (MIT)", "https://github.com/LuaJIT/LuaJIT");
+				// BuildInc
+				ImGui::ClickableTextUrl("BuildInc (MIT)", "https://github.com/aiekick/buildinc"); ImGui::SameLine();
+				// ImGui
+				ImGui::ClickableTextUrl("ImGui (MIT)", "https://github.com/ocornut/imgui"); ImGui::SameLine();
+				// ImPlot
+				ImGui::ClickableTextUrl("ImPlot (MIT)", "https://github.com/epezent/implot");
+				// ImGui MarkDown
+				ImGui::ClickableTextUrl("ImGui MarkDown (Zlib)", "https://github.com/juliettef/imgui_markdown"); ImGui::SameLine();
+				// ImGuiColorTextEdit
+				ImGui::ClickableTextUrl("ImGuiColorTextEdit (Zlib)", "https://github.com/BalazsJako/ImGuiColorTextEdit"); ImGui::SameLine();
+				// ImGuiFileDialog
+				ImGui::ClickableTextUrl("ImGuiFileDialog (MIT)", "https://github.com/aiekick/ImGuiFileDialog");
+			}
+			ImGui::Unindent();
+			
+			ImGui::EndGroup();
+
+			ImGui::EndPopup();
 		}
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Stephane Cuillerdier (aka Aiekick)
+ * Copyright 2022-2023 Stephane Cuillerdier (aka Aiekick)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -120,6 +120,9 @@ private:
 
 	std::string m_ProjectToLoad;
 
+	GLuint m_AppIconID = 0U;
+	GLuint m_BigAppIconID = 0U;
+
 public:
 	void Init();
 	void Unit();
@@ -136,6 +139,10 @@ public:
 
 	void OpenAboutDialog();
 
+	void SetEmbeddedIconApp(const char* vEmbeddedIconID);
+	GLuint ExtractEmbeddedIcon(const char* vEmbeddedIconID);
+	GLuint ExtractEmbeddedImage(const char* vEmbeddedImageID);
+
 public: // save : on quit or project loading
 	void IWantToCloseTheApp(); // user want close app, but we want to ensure its saved
 
@@ -145,6 +152,7 @@ public: // drop
 private: // imgui pane / dialogs
 	void DisplayDialogsAndPopups();
 	void DrawMainMenuBar();
+	void DrawAboutDialog();
 
 private: // save : on quit or project loading
 	void OpenUnSavedDialog(); // show a dialog because the project file is not saved

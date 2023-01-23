@@ -1,5 +1,5 @@
 /*
-Copyright 2022-2022 Stephane Cuillerdier (aka aiekick)
+Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -268,14 +268,7 @@ int SignalsPreview::DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, ImV
 
 			if (ImGui::IsItemHovered())
 			{
-				// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
-				double seconds = ct::fract(vPtr->time_epoch); // 0.067365000
-				std::time_t _epoch_time = (std::time_t)vPtr->time_epoch;
-				auto tm = std::localtime(&_epoch_time);
-				double _sec = (double)tm->tm_sec + seconds;
-				auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
-					tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
-					tm->tm_hour, tm->tm_min, _sec);
+				auto date_str = LogEngine::sConvertEpochToDateTimeString(vPtr->time_epoch);
 				ImGui::SetTooltip("%s : %f\ntime : %f\ndate : %s", parent_ptr->name.c_str(), vPtr->value, vPtr->time_epoch, date_str.c_str());
 			}
 		}

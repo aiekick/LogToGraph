@@ -1,5 +1,5 @@
 /*
-Copyright 2022-2022 Stephane Cuillerdier (aka aiekick)
+Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -2291,7 +2291,7 @@ inline bool inSliderBehaviorStepperT(const ImRect& bb, ImGuiID id, ImGuiDataType
 	else
 	{
 		// Output grab position so it can be displayed by the caller
-		float grab_t = inScaleValueFromRatioT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, *v, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
+		float grab_t = (float)inScaleValueFromRatioT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, (float)*v, (TYPE)v_min, (TYPE)v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
 		if (axis == ImGuiAxis_Y)
 			grab_t = 1.0f - grab_t;
 		const float grab_pos = ImLerp(slider_usable_pos_min, slider_usable_pos_max, grab_t);

@@ -1,5 +1,5 @@
 /*
-Copyright 2022-2022 Stephane Cuillerdier (aka aiekick)
+Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -133,7 +133,7 @@ void GraphListPane::DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSe
 		{
 			ImGui::PushID(vIdx);
 			ImGui::TableSetColumnIndex(0);
-			if (ImGui::Selectable(datas_ptr->name.c_str(), &datas_ptr->show, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, GRAPHS_HEIGHT)))
+			if (ImGui::Selectable(datas_ptr->category.c_str(), &datas_ptr->show, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, GRAPHS_HEIGHT)))
 			{
 				LogEngine::Instance()->ShowHideSignal(datas_ptr->category, datas_ptr->name, datas_ptr->show);
 				if (ProjectFile::Instance()->m_CollapseLogSelection) { LogPane::Instance()->PrepareLog(); }
@@ -141,7 +141,7 @@ void GraphListPane::DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSe
 			}
 			
 			ImGui::TableSetColumnIndex(1);
-			if (ImGui::Selectable(datas_ptr->category.c_str(), &datas_ptr->show, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, GRAPHS_HEIGHT)))
+			if (ImGui::Selectable(datas_ptr->name.c_str(), &datas_ptr->show, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, GRAPHS_HEIGHT)))
 			{
 				LogEngine::Instance()->ShowHideSignal(datas_ptr->category, datas_ptr->name, datas_ptr->show);
 				if (ProjectFile::Instance()->m_CollapseLogSelection) { LogPane::Instance()->PrepareLog(); }
@@ -282,7 +282,7 @@ void GraphListPane::DrawTree()
 
 void GraphListPane::PrepareLog(const std::string& vSearchString)
 {
-	const bool& is_their_some_search = vSearchString.empty();
+	const bool& is_their_some_search = !vSearchString.empty();
 
 	m_FilteredSignalSeries.clear();
 

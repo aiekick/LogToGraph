@@ -2,7 +2,7 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 /*
-Copyright 2022-2022 Stephane Cuillerdier (aka aiekick)
+Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -61,8 +61,8 @@ static void glfw_window_close_callback(GLFWwindow* window)
 }
 
 int main(int, char**argv)
-{
-	FileHelper::Instance()->SetAppPath(std::string(argv[0]));
+{	
+    FileHelper::Instance()->SetAppPath(std::string(argv[0]));
     FileHelper::Instance()->SetCurDirectory(FileHelper::Instance()->GetAppPath());
 
     glfwSetErrorCallback(glfw_error_callback);

@@ -2,7 +2,7 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 /*
-Copyright 2022-2022 Stephane Cuillerdier (aka aiekick)
+Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -622,14 +622,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 
 			if (ImPlot::IsPlotHovered())
 			{
-				// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
-				double seconds = ct::fract(hovered_time); // 0.067365000
-				auto _epoch_time = (std::time_t)hovered_time;
-				auto tm = std::localtime(&_epoch_time);
-				double _sec = (double)tm->tm_sec + seconds;
-				auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
-					tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
-					tm->tm_hour, tm->tm_min, _sec);
+				auto date_str = LogEngine::sConvertEpochToDateTimeString(hovered_time);
 				ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
 				ImGui::Text("time : %f\ndate : %s",
 					hovered_time, date_str.c_str());
@@ -747,16 +740,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 				if (ImPlot::IsPlotHovered())
 				{
 					ImPlotPoint plotHoveredMouse = ImPlot::GetPlotMousePos();
-
-					// 1668687822.067365000 => 17/11/2022 13:23:42.067365000
-					double seconds = ct::fract(plotHoveredMouse.x); // 0.067365000
-					auto _epoch_time = (std::time_t)plotHoveredMouse.x;
-					auto tm = std::localtime(&_epoch_time);
-					double _sec = (double)tm->tm_sec + seconds;
-					auto date_str = ct::toStr("%i/%i/%i %i:%i:%f",
-						tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
-						tm->tm_hour, tm->tm_min, _sec);
-
+					auto date_str = LogEngine::sConvertEpochToDateTimeString(plotHoveredMouse.x);
 					ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
 					ImGui::Text("time : %f\ndate : %s", plotHoveredMouse.x, date_str.c_str());
 					ImGui::EndTooltip();
