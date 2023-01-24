@@ -558,6 +558,13 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 	{
 		ImVec2 last_value_pos, value_pos;
 
+		const auto& isp = ImGui::GetStyle().ItemSpacing;
+		const auto& fpa = ImGui::GetStyle().FramePadding;
+		const auto& spacing_L = fpa.x;
+		const auto& spacing_U = isp.y;
+		const auto& spacing_R = isp.x + fpa.x;
+		const auto& spacing_D = isp.y;
+
 		ImDrawList* draw_list = ImPlot::GetPlotDrawList();
 
 		ImGui::PushID(ImGui::IncPUSHID());
@@ -605,7 +612,16 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 									draw_list->AddCircle(pos, 5.0f, ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor), 24, 2.0f);
 
 									ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
+									
+									const auto p_min = ImGui::GetCursorScreenPos() - ImVec2(spacing_L, spacing_U);
+									const auto p_max = ImVec2(p_min.x + ImGui::GetContentRegionAvail().x + spacing_R, p_min.y + ImGui::GetFrameHeight() - spacing_D);
+									ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, datas_ptr->color_u32);
+									const bool pushed = ImGui::PushStyleColorWithContrast(ImGuiCol_Button, ImGuiCol_Text,
+										ImGui::CustomStyle::Instance()->puContrastedTextColor, ImGui::CustomStyle::Instance()->puContrastRatio);
 									ImGui::Text("%s : %f", name_str.c_str(), last_value);
+									if (pushed)
+										ImGui::PopStyleColor();
+
 									ImGui::EndTooltip();
 								}
 
@@ -664,6 +680,13 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 		{
 			ImVec2 last_value_pos, value_pos;
 
+			const auto& isp = ImGui::GetStyle().ItemSpacing;
+			const auto& fpa = ImGui::GetStyle().FramePadding;
+			const auto& spacing_L = fpa.x;
+			const auto& spacing_U = isp.y;
+			const auto& spacing_R = isp.x + fpa.x;
+			const auto& spacing_D = isp.y;
+
 			ImGui::PushID(ImGui::IncPUSHID());
 
 			if (prBeginPlot(vGraphGroupPtr->GetName(), vGraphGroupPtr->GetSignalSeriesRange(), vSize, vFirstGraph))
@@ -679,7 +702,6 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 						auto datas_ptr = name.second.lock();
 						if (datas_ptr)
 						{
-
 							const auto& name_str = datas_ptr->category + " / " + datas_ptr->name; 
 							if (ImPlot::BeginItem(name_str.c_str()))
 							{
@@ -719,7 +741,16 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 													draw_list->AddCircle(pos, 5.0f, ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor), 24, 2.0f);
 
 													ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
+
+													const auto p_min = ImGui::GetCursorScreenPos() - ImVec2(spacing_L, spacing_U);
+													const auto p_max = ImVec2(p_min.x + ImGui::GetContentRegionAvail().x + spacing_R, p_min.y + ImGui::GetFrameHeight() - spacing_D);
+													ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, datas_ptr->color_u32);
+													const bool pushed = ImGui::PushStyleColorWithContrast(ImGuiCol_Button, ImGuiCol_Text, 
+														ImGui::CustomStyle::Instance()->puContrastedTextColor, ImGui::CustomStyle::Instance()->puContrastRatio);
 													ImGui::Text("%s : %f", datas_ptr->name.c_str(), last_value);
+													if (pushed)
+														ImGui::PopStyleColor();
+
 													ImGui::EndTooltip();
 												}
 
