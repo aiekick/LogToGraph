@@ -695,6 +695,8 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 				
 				ImDrawList* draw_list = ImPlot::GetPlotDrawList();
 
+				bool _already_drawn = false;
+
 				for (auto& cat : vGraphGroupPtr->GetSignalSeries())
 				{
 					for (auto& name : cat.second)
@@ -736,10 +738,18 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 													hoveredTime <= current_time)
 												{
 													auto pos = ImPlot::PlotToPixels(hoveredTime, last_value);
-													draw_list->AddLine(pos - ImVec2(20.0f, 0.0f), pos + ImVec2(20.0f, 0.0f),
-														ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphMouseHoveredTimeColor), 1.0f);
+
+													if (!_already_drawn)
+													{
+														draw_list->AddLine(pos - ImVec2(20.0f, 0.0f), pos + ImVec2(20.0f, 0.0f),
+															ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphMouseHoveredTimeColor), 1.0f);
+														_already_drawn = true;
+													}
+
+													// a circle by signal
 													draw_list->AddCircle(pos, 5.0f, ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor), 24, 2.0f);
 
+													// the first begin tootlip call open the tooltip and add a signal, the next begins will fill it with another signals
 													ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
 
 													const auto p_min = ImGui::GetCursorScreenPos() - ImVec2(spacing_L, spacing_U);
@@ -772,6 +782,8 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 				{
 					ImPlotPoint plotHoveredMouse = ImPlot::GetPlotMousePos();
 					auto date_str = LogEngine::sConvertEpochToDateTimeString(plotHoveredMouse.x);
+
+					// will finalize the tooltip by adding the current time of the mouse hover pos
 					ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
 					ImGui::Text("time : %f\ndate : %s", plotHoveredMouse.x, date_str.c_str());
 					ImGui::EndTooltip();

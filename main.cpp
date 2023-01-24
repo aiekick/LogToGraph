@@ -119,6 +119,9 @@ int main(int, char**argv)
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Viewport
 	io.FontAllowUserScaling = true; // activate zoom feature with ctrl + mousewheel
+#ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
+    io.ConfigViewportsNoDecoration = false; // toujours mettre une frame au fenetre enfant
+#endif
 
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
     ImGuiStyle& style = ImGui::GetStyle();
@@ -155,9 +158,6 @@ int main(int, char**argv)
             glfwWaitEventsTimeout(1.0);
         }
         glfwPollEvents();
-
-        // maintain active, prevent user change via imgui dialog
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
 
         glfwGetFramebufferSize(mainWindow, &display_w, &display_h);
         
