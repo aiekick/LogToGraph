@@ -23,6 +23,7 @@ limitations under the License.
 #include <Engine/Log/SignalSerie.h>
 #include <Panes/Manager/LayoutManager.h>
 #include <Project/ProjectFile.h>
+#include <implot/implot.h>
 #include <chrono>
 
 //////////////////////////////////////////////////////
@@ -36,19 +37,44 @@ GraphAnnotationPtr GraphAnnotation::Create()
 	return res;
 }
 
+static inline double s_dot(ImPlotPoint a, ImPlotPoint b) { return a.x * b.x + a.y * b.y; }
+static inline ImPlotPoint operator - (ImPlotPoint v, ImPlotPoint f) { return ImPlotPoint(v.x - f.x, v.y - f.y); }
+static inline ImPlotPoint operator + (ImPlotPoint v, ImPlotPoint f) { return ImPlotPoint(v.x + f.x, v.y + f.y); }
+static inline ImPlotPoint operator * (double v, ImPlotPoint f) { return ImPlotPoint(v * f.x, v * f.y); }
+static inline ImPlotPoint operator / (ImPlotPoint v, double f) { return ImPlotPoint(v.x * f, v.y / f); }
+static inline ct::dvec2 s_toDVec2(const ImPlotPoint& v) { return ct::dvec2(v.x, v.y); }
 
-bool GraphAnnotation::IsMouseHoverLine(const ct::dvec2& vMousePos, const double& vRadius, const ct::dvec2& vStart, const ct::dvec2& vEnd)
+bool GraphAnnotation::IsMouseHoverLine(const ct::dvec2& vMousePos, const double& vRadius, const ct::dvec2& vStart, const ct::dvec2& vEnd, ct::dvec2& vOutLinePoint)
 {
-	// line sdf // https://iquilezles.org/articles/distfunctions2d/
-	// d < 0.0 => inside
-	// d > 0.0 => outside
+	const auto mp = ImPlot::PixelsToPlot(ct::toImVec2(vMousePos));
+	const auto st = ImPlot::PixelsToPlot(ct::toImVec2(vStart));
+	const auto en = ImPlot::PixelsToPlot(ct::toImVec2(vEnd));
+	
+	const auto a = mp - st;
+	const auto b = en - st;
+	const auto dot_b = s_dot(b, b);
+	if (IS_DOUBLE_EQUAL(dot_b, 0.0))
+		return false;
 
-	const auto a = vMousePos - vEnd;
-	const auto b = vStart - vEnd;
-	auto h = ct::clamp(ct::dot(a, b) / ct::dot(b, b), 0., 1.);
-	const auto pp = a - b * h;
-	const auto dist_to_line = ct::dot(pp, pp) - vRadius * vRadius;
-	return (dist_to_line < 0.0);
+	//projected point on infinite line
+	auto proj_pt = st + s_dot(a, b) * b / dot_b;
+
+	// limitation of projected point to the extremities of the segments
+	if (s_dot(proj_pt - st, en - st) <= 0.0)
+	{
+		vOutLinePoint = vStart;
+	}
+	else if (s_dot(proj_pt - en, st - en) <= 0.0)
+	{
+		vOutLinePoint = vEnd;
+	}
+	else
+	{
+		vOutLinePoint = s_toDVec2(ImPlot::PlotToPixels(proj_pt));
+	}
+
+	auto dist_to_line = (vMousePos - vOutLinePoint).length();
+	return (dist_to_line <= vRadius);
 }
 
 //////////////////////////////////////////////////////
@@ -86,52 +112,19 @@ void GraphAnnotation::SetEndPoint(const ImPlotPoint& vEndPoint)
 	m_Color = ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor;
 }
 
-void GraphAnnotation::ComputeElapsedTime()
+void GraphAnnotation::SetSignalSerieParent(const SignalSerieWeak& vSignalSerie)
 {
-	int64_t nano_seconds = static_cast<int64_t>((m_EndPos.x - m_StartPos.x) * 1e9);
-	int64_t micro_seconds = nano_seconds / 1000;
-	int64_t milli_seconds = micro_seconds / 1000;
-	int64_t seconds = milli_seconds / 1000;
-	int64_t minutes = seconds / 60;
-	int64_t hours = minutes / 60;
-	int64_t days = hours / 24;
+	m_ParentSignalSerie = vSignalSerie;
+}
 
-	nano_seconds = nano_seconds % 1000;
-	micro_seconds = micro_seconds % 1000;
-	milli_seconds = milli_seconds % 1000;
-	seconds = seconds % 60;
-	minutes = minutes % 60;
-	hours = hours % 24;
+SignalSerieWeak GraphAnnotation::GetParentSignalSerie()
+{
+	return m_ParentSignalSerie;
+}
 
-	m_ElapsedTimeStr.clear();
-
-	// elapsed time dont need year or month, the biggest supported unity is day count
-	
-	// todo : can be optimized in time i guess ...
-	if (days) {
-		m_ElapsedTimeStr += ct::toStr("%iD:", days);
-	}
-	if (hours) {
-		m_ElapsedTimeStr += ct::toStr("%iH:", hours);
-	}
-	if (minutes) {
-		m_ElapsedTimeStr += ct::toStr("%im:", minutes);
-	}
-	if (seconds) {
-		m_ElapsedTimeStr += ct::toStr("%is:", seconds);
-	}
-	if (milli_seconds) {
-		m_ElapsedTimeStr += ct::toStr("%ims:", milli_seconds);
-	}
-	if (micro_seconds) {
-		m_ElapsedTimeStr += ct::toStr("%ius:", micro_seconds);
-	}
-	if (nano_seconds) {
-		m_ElapsedTimeStr += ct::toStr("%ins:", nano_seconds);
-	}
-
-	// for ImPlot
-	m_Label = m_ElapsedTimeStr.c_str();
+UInt8ConstPtr GraphAnnotation::GetLabel() const
+{
+	return m_Label;
 }
 
 void GraphAnnotation::DrawToPoint(const ImVec2& vMousePoint)
@@ -183,4 +176,57 @@ void GraphAnnotation::Draw()
 
 		ImGui::PopID();
 	}
+}
+
+//////////////////////////////////////////////////////
+///// PRIVATE ////////////////////////////////////////
+//////////////////////////////////////////////////////
+
+void GraphAnnotation::ComputeElapsedTime()
+{
+	// always positiv delta
+	int64_t nano_seconds = static_cast<int64_t>(ct::abs((m_EndPos.x - m_StartPos.x) * 1e9));
+	int64_t micro_seconds = nano_seconds / 1000;
+	int64_t milli_seconds = micro_seconds / 1000;
+	int64_t seconds = milli_seconds / 1000;
+	int64_t minutes = seconds / 60;
+	int64_t hours = minutes / 60;
+	int64_t days = hours / 24;
+
+	nano_seconds = nano_seconds % 1000;
+	micro_seconds = micro_seconds % 1000;
+	milli_seconds = milli_seconds % 1000;
+	seconds = seconds % 60;
+	minutes = minutes % 60;
+	hours = hours % 24;
+
+	m_ElapsedTimeStr.clear();
+
+	// elapsed time dont need year or month, the biggest supported unity is day count
+
+	// todo : can be optimized in time i guess ...
+	if (days) {
+		m_ElapsedTimeStr += ct::toStr("%iD:", days);
+	}
+	if (hours) {
+		m_ElapsedTimeStr += ct::toStr("%iH:", hours);
+	}
+	if (minutes) {
+		m_ElapsedTimeStr += ct::toStr("%im:", minutes);
+	}
+	if (seconds) {
+		m_ElapsedTimeStr += ct::toStr("%is:", seconds);
+	}
+	if (milli_seconds) {
+		m_ElapsedTimeStr += ct::toStr("%ims:", milli_seconds);
+	}
+	if (micro_seconds) {
+		m_ElapsedTimeStr += ct::toStr("%ius:", micro_seconds);
+	}
+	if (nano_seconds) {
+		m_ElapsedTimeStr += ct::toStr("%ins:", nano_seconds);
+	}
+
+	// for ImPlot
+	m_Label = m_ElapsedTimeStr.c_str();
 }

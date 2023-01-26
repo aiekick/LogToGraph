@@ -15,6 +15,12 @@ public:
 	// create a new annotation with the frist point and return a shared pointer
 	GraphAnnotationPtr NewGraphAnnotation(const ImPlotPoint& vStartPos);
 
+	std::vector<GraphAnnotationPtr>::iterator begin();
+	std::vector<GraphAnnotationPtr>::iterator end();
+	GraphAnnotationPtr& at(const size_t& vIdx);
+	void erase(GraphAnnotationPtr vGraphAnnotationPtr);
+	size_t size();
+
 public: // singleton
 	static std::shared_ptr<GraphAnnotationModel> Instance()
 	{

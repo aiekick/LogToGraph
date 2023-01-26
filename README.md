@@ -123,6 +123,20 @@ You have more fucntions available, you can check theme in the sample lua script 
 
 ![display_a_diff_list_of_signal_between_two_frame_time_markers](doc/gifs/display_a_diff_list_of_signal_between_two_frame_time_markers.gif)
 
+### measure delta time between two time marks
+
+1) available only on alone graph
+2) mouse hover a curve
+3) when the cruve is thick, clik with the middle mouse button
+4) then move the mouse on another part of the curve
+5) when this new pos is thick too, click with the middle mouse ubtton agian
+6) and you have a Annotation wiht the delta time. hte biggest unit is the day, the lowest the nano seconds.
+
+for delete or see all your Annotations, open the layout menu, then click on Annotation Pane
+then you have a list of all annotations per signal, then you can click on the cross on the left for delete what you want.
+
+![measure_delta_time_between_two_time_marks](doc/gifs/measure_delta_time_between_two_time_marks.gif)
+
 ### save project file
 
 1) got in menu then press on close item

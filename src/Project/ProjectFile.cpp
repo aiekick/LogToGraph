@@ -176,6 +176,9 @@ std::string ProjectFile::getXml(const std::string& vOffset, const std::string& /
 	str += vOffset + "\t<graph_synchronize>" + (m_SyncGraphs ? "true" : "false") + "</graph_synchronize>\n";
 	str += vOffset + "\t<graph_sync_limits>" + ct::toStr("%f;%f;%f;%f", m_SyncGraphsLimits.X.Min, m_SyncGraphsLimits.X.Max, m_SyncGraphsLimits.Y.Min, m_SyncGraphsLimits.Y.Max) + "</graph_sync_limits>\n";
 	str += vOffset + "\t<code_file_path_name>" + m_CodeFilePathName + "</code_file_path_name>\n";
+	str += vOffset + "\t<curve_radius_detection>" + ct::toStr(m_CurveRadiusDetection) + "</curve_radius_detection>\n";
+	str += vOffset + "\t<selected_curve_display_thickness>" + ct::toStr(m_SelectedCurveDisplayThickNess) + "</selected_curve_display_thickness>\n";
+	str += vOffset + "\t<default_curve_display_thickness>" + ct::toStr(m_DefaultCurveDisplayThickNess) + "</default_curve_display_thickness>\n";
 	str += vOffset + "</project>\n";
 
 	return str;
@@ -271,6 +274,18 @@ bool ProjectFile::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* 
 		else if (strName == "code_file_path_name")
 		{
 			m_CodeFilePathName = strValue;
+		}
+		else if (strName == "curve_radius_detection")
+		{
+			m_CurveRadiusDetection = ct::dvariant(strValue).GetD();
+		}
+		else if (strName == "selected_curve_display_thickness")
+		{
+			m_SelectedCurveDisplayThickNess = ct::dvariant(strValue).GetD();
+		}
+		else if (strName == "default_curve_display_thickness")
+		{
+			m_DefaultCurveDisplayThickNess = ct::dvariant(strValue).GetD();
 		}
 	}
 	

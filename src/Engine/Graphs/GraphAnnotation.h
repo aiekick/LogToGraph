@@ -36,10 +36,12 @@ class GraphAnnotation
 {
 public:
 	static GraphAnnotationPtr Create();
-	static bool IsMouseHoverLine(const ct::dvec2& vMousePos, const double& vRadius, const ct::dvec2& vStart, const ct::dvec2& vEnd);
+	// will check if mouse pos in at less than vRadius to the line from vStart to vEnd, and return true the line nearest point vOutLinePoint
+	static bool IsMouseHoverLine(const ct::dvec2& vMousePos, const double& vRadius, const ct::dvec2& vStart, const ct::dvec2& vEnd, ct::dvec2& vOutLinePoint);
 
 private: // datas
 	GraphAnnotationWeak m_This;
+	SignalSerieWeak m_ParentSignalSerie;
 	std::string m_ElapsedTimeStr;
 	ImPlotPoint m_StartPos;
 	ImPlotPoint m_EndPos;
@@ -52,8 +54,15 @@ public:
 
 	void SetStartPoint(const ImPlotPoint& vStartPoint);
 	void SetEndPoint(const ImPlotPoint& vEndPoint);
-	void ComputeElapsedTime();
 
 	void DrawToPoint(const ImVec2& vMousePoint);
 	void Draw();
+
+	void SetSignalSerieParent(const SignalSerieWeak& vSignalSerie);
+	SignalSerieWeak GetParentSignalSerie();
+	UInt8ConstPtr GetLabel() const;
+
+private:
+	void ComputeElapsedTime();
+
 };

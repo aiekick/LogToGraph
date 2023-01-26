@@ -52,6 +52,7 @@
 #include <Panes/SignalsHoveredMap.h>
 #include <Panes/LogPaneSecondView.h>
 #include <Panes/GraphListPane.h>
+#include <Panes/AnnotationPane.h>
 
 #include <Engine/Lua/LuaEngine.h>
 
@@ -87,6 +88,8 @@ void MainFrame::Init()
 	LayoutManager::Instance()->AddPane(SignalsHoveredDiff::Instance(), ICON_NDP2_VECTOR_DIFFERENCE " Signals Hovered Diff", "", PaneDisposal::RIGHT, false, false);
 	LayoutManager::Instance()->AddPane(ConsolePane::Instance(), ICON_NDP2_COMMENT_TEXT_MULTIPLE " Console", "", PaneDisposal::BOTTOM, false, false);
 	LayoutManager::Instance()->AddPane(CodePane::Instance(), ICON_NDP2_COMMENT_TEXT " Code", "", PaneDisposal::RIGHT, false, false);
+	LayoutManager::Instance()->AddPane(AnnotationPane::Instance(), ICON_NDP2_CARDS " Annotations", "", PaneDisposal::RIGHT, false, false);
+
 
 	// ConsolePane have a flag only after AddPane() call
 	Messaging::sMessagePaneId = ConsolePane::Instance()->GetPaneFlag();

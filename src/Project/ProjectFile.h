@@ -51,6 +51,9 @@ public: // to save
 	bool m_SyncGraphs = true;
 	ImPlotRect m_SyncGraphsLimits = ImPlotRect(0, 1, 0, 1);
 	std::string m_CodeFilePathName;
+	double m_CurveRadiusDetection = 12.0; // for select curve for annotation
+	double m_SelectedCurveDisplayThickNess = 6.0; // for display a thick curve
+	double m_DefaultCurveDisplayThickNess = 2.0; // for display a default curve
 
 private: // dont save
 	bool m_IsLoaded = false;
