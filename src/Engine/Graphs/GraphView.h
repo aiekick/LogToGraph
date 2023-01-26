@@ -41,6 +41,7 @@ private:
 	bool m_need_show_hide_x_axis = false;
 	bool m_need_show_hide_y_axis = false; 
 	int32_t m_GraphsCount = 0;
+	GraphAnnotationPtr m_CurrentAnnotationPtr = nullptr;
 
 public:
 	void Clear();

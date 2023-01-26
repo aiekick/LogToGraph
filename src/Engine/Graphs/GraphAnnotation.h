@@ -20,6 +20,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <implot/implot.h>
 #include <ctools/cTools.h>
 #include <Headers/Globals.h>
 #include <tinyxml2/tinyxml2.h>
@@ -27,15 +28,32 @@ limitations under the License.
 #include <Panes/Abstract/AbstractPane.h>
 
 /*
-sera rattaché a chque graph, groupé ou seuls
+sera rattaché a chaque graph, groupé ou seuls
 comme cela on pourra en creer autant qu'on veut, et il faudra un pane pour les gerer
 */
 
 class GraphAnnotation
 {
-private:
+public:
+	static GraphAnnotationPtr Create();
+	static bool IsMouseHoverLine(const ct::dvec2& vMousePos, const double& vRadius, const ct::dvec2& vStart, const ct::dvec2& vEnd);
+
+private: // datas
+	GraphAnnotationWeak m_This;
+	std::string m_ElapsedTimeStr;
+	ImPlotPoint m_StartPos;
+	ImPlotPoint m_EndPos;
+	ImPlotPoint m_LabelPos;
+	UInt8ConstPtr m_Label = nullptr;
+	ImVec4 m_Color;
 
 public:
 	void Clear();
+
+	void SetStartPoint(const ImPlotPoint& vStartPoint);
+	void SetEndPoint(const ImPlotPoint& vEndPoint);
+	void ComputeElapsedTime();
+
+	void DrawToPoint(const ImVec2& vMousePoint);
 	void Draw();
 };

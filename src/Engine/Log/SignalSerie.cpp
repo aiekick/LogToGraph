@@ -20,6 +20,7 @@ limitations under the License.
 #include "SignalSerie.h"
 #include <ctools/cTools.h>
 #include <Engine/Log/SignalTick.h>
+#include <Engine/Graphs/GraphAnnotation.h>
 
 SignalSeriePtr SignalSerie::Create()
 {
@@ -64,7 +65,6 @@ void SignalSerie::AddTick(const SignalTickWeak& vTick, const bool& vIncBaseRecor
 		range_value.y = ct::maxi(range_value.y, ptr->value);
 		datas_values.push_back(vTick);
 
-
 		if (vIncBaseRecordsCount)
 		{
 			++count_base_records;
@@ -72,25 +72,19 @@ void SignalSerie::AddTick(const SignalTickWeak& vTick, const bool& vIncBaseRecor
 	}
 }
 
-std::string SignalSerie::getXml(const std::string& /*vOffset*/, const std::string& /*vUserDatas*/)
+void SignalSerie::AddGraphAnnotation(GraphAnnotationWeak vGraphAnnotation)
 {
-	std::string str;
-
-	return str;
+	m_GraphAnnotations.push_back(vGraphAnnotation);
 }
 
-bool SignalSerie::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
+void SignalSerie::DrawAnnotations()
 {
-	// The value of this child identifies the name of this element
-	std::string strName;
-	std::string strValue;
-	std::string strParentName;
-
-	strName = vElem->Value();
-	if (vElem->GetText())
-		strValue = vElem->GetText();
-	if (vParent != nullptr)
-		strParentName = vParent->Value();
-
-	return true;
+	for (const auto& anno : m_GraphAnnotations)
+	{
+		auto ptr = anno.lock();
+		if (ptr)
+		{
+			ptr->Draw();
+		}
+	}
 }

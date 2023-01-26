@@ -57,3 +57,7 @@ typedef std::shared_ptr<GraphGroup> GraphGroupPtr;
 typedef std::weak_ptr<GraphGroup> GraphGroupWeak;
 typedef std::list<GraphGroupPtr> GraphGroups;
 typedef std::list<GraphGroupPtr>& GraphGroupsRef;
+
+class GraphAnnotation;
+typedef std::shared_ptr<GraphAnnotation> GraphAnnotationPtr;
+typedef std::weak_ptr<GraphAnnotation> GraphAnnotationWeak;
