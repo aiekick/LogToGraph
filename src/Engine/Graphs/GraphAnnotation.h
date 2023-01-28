@@ -55,7 +55,7 @@ public:
 	void SetStartPoint(const ImPlotPoint& vStartPoint);
 	void SetEndPoint(const ImPlotPoint& vEndPoint);
 
-	void DrawToPoint(const ImVec2& vMousePoint);
+	void DrawToPoint(SignalSeriePtr vSignalSeriePtr, const ImVec2& vMousePoint);
 	void Draw();
 
 	void SetSignalSerieParent(const SignalSerieWeak& vSignalSerie);

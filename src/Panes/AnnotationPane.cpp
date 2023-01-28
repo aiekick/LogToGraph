@@ -193,45 +193,48 @@ void AnnotationPane::DrawContent()
 						selected = signal_ptr->show;
 						color = signal_ptr->color_u32;
 
-						if (selected && color)
+						if (anno_ptr->GetLabel())
 						{
-							ImGui::PushStyleColor(ImGuiCol_Header, (ImU32)color);
-							ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
-							ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
-							count_color_push = 3U;
-							if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
-								ImGui::CustomStyle::Instance()->puContrastedTextColor,
-								ImGui::CustomStyle::Instance()->puContrastRatio))
+							if (selected && color)
 							{
-								count_color_push = 4U;
+								ImGui::PushStyleColor(ImGuiCol_Header, (ImU32)color);
+									ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
+									ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
+									count_color_push = 3U;
+									if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
+										ImGui::CustomStyle::Instance()->puContrastedTextColor,
+										ImGui::CustomStyle::Instance()->puContrastRatio))
+									{
+										count_color_push = 4U;
+									}
 							}
-						}
-						else
-						{
-							color = 0U;
-						}
-
-						if (ImGui::TableNextColumn()) // delete
-						{
-							if (ImGui::ContrastedButton(ICON_NDP_CANCEL))
+							else
 							{
-								annotation_to_remove_ptr = anno_ptr;
+								color = 0U;
 							}
-						}
-						if (ImGui::TableNextColumn()) // signal name
-						{
-							ImGui::Selectable(signal_ptr->name.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
-							CheckItem(signal_ptr);
-						}
-						if (ImGui::TableNextColumn()) // annotation label
-						{
-							ImGui::Selectable(anno_ptr->GetLabel(), &selected, ImGuiSelectableFlags_SpanAllColumns);
-							CheckItem(signal_ptr);
-						}
 
-						if (color)
-						{
-							ImGui::PopStyleColor(count_color_push);
+							if (ImGui::TableNextColumn()) // delete
+							{
+								if (ImGui::ContrastedButton(ICON_NDP_CANCEL))
+								{
+									annotation_to_remove_ptr = anno_ptr;
+								}
+							}
+							if (ImGui::TableNextColumn()) // signal name
+							{
+								ImGui::Selectable(signal_ptr->name.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+								CheckItem(signal_ptr);
+							}
+							if (ImGui::TableNextColumn()) // annotation label
+							{
+								ImGui::Selectable(anno_ptr->GetLabel(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+								CheckItem(signal_ptr);
+							}
+
+							if (color)
+							{
+								ImGui::PopStyleColor(count_color_push);
+							}
 						}
 					}
 				}

@@ -559,6 +559,10 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 	auto datas_ptr = vSignalSerie.lock();
 	if (datas_ptr)
 	{
+		ImDrawList* draw_list = ImPlot::GetPlotDrawList();
+		if (!draw_list)
+			return;
+
 		ImVec2 last_value_pos, value_pos;
 
 		const auto& isp = ImGui::GetStyle().ItemSpacing;
@@ -567,9 +571,6 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 		const auto& spacing_U = isp.y;
 		const auto& spacing_R = isp.x + fpa.x;
 		const auto& spacing_D = isp.y;
-
-		ImDrawList* draw_list = ImPlot::GetPlotDrawList();
-
 		ct::dvec2 projected_point;
 		const auto& _CurveRadiusDetection = ProjectFile::Instance()->m_CurveRadiusDetection;
 		const auto& _GraphMouseHoveredTimeColor = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphMouseHoveredTimeColor);
@@ -579,6 +580,8 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 		ImGui::PushID(ImGui::IncPUSHID());
 
 		const double& hovered_time = LogEngine::Instance()->GetHoveredTime();
+		bool _already_drawn = false;
+
 		const auto& name_str = datas_ptr->category + " / " + datas_ptr->name;
 		if (prBeginPlot(name_str, datas_ptr->range_value, vSize, vFirstGraph))
 		{
@@ -620,7 +623,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 								// current annotation creation
 								if (m_CurrentAnnotationPtr)
 								{
-									m_CurrentAnnotationPtr->DrawToPoint(ImGui::GetMousePos());
+									m_CurrentAnnotationPtr->DrawToPoint(datas_ptr, ImGui::GetMousePos());
 								}
 
 								if (ImPlot::IsPlotHovered() &&
@@ -644,23 +647,34 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 									{
 										if (m_CurrentAnnotationPtr)
 										{
-											m_CurrentAnnotationPtr->SetEndPoint(ImPlot::PixelsToPlot(
-												ct::toImVec2(projected_point)));
-											datas_ptr->AddGraphAnnotation(m_CurrentAnnotationPtr);
-											m_CurrentAnnotationPtr->SetSignalSerieParent(datas_ptr);
-											m_CurrentAnnotationPtr = nullptr; // remove the "draw to mouse point" of the current annotation 
+											if (m_CurrentAnnotationPtr->GetParentSignalSerie().lock() == datas_ptr)
+											{
+												m_CurrentAnnotationPtr->SetEndPoint(ImPlot::PixelsToPlot(
+													ct::toImVec2(projected_point)));
+												m_CurrentAnnotationPtr = nullptr; // remove the "draw to mouse point" of the current annotation 
+											}
 										}
 										else
 										{
-											m_CurrentAnnotationPtr = GraphAnnotationModel::Instance()->NewGraphAnnotation(
-												ImPlot::PixelsToPlot(ct::toImVec2(projected_point)));
+											m_CurrentAnnotationPtr = 
+												GraphAnnotationModel::Instance()->NewGraphAnnotation(
+													ImPlot::PixelsToPlot(ct::toImVec2(projected_point)));
+											m_CurrentAnnotationPtr->SetSignalSerieParent(datas_ptr);
+											datas_ptr->AddGraphAnnotation(m_CurrentAnnotationPtr);
 										}
 									}
 
 									// draw vertical cursor
-									const auto pos = ct::toImVec2(projected_point); // ImPlot::PlotToPixels(hovered_time, last_value);
-									draw_list->AddLine(pos - ImVec2(20.0f, 0.0f), pos + ImVec2(20.0f, 0.0f), _GraphMouseHoveredTimeColor, 1.0f);
-									draw_list->AddCircle(pos, _SelectedCurveDisplayThickNess, _GraphMouseHoveredTimeColor, 24, _DefaultCurveDisplayThickNess);
+									auto pos = ImPlot::PlotToPixels(hovered_time, last_value);
+									if (!_already_drawn)
+									{
+										draw_list->AddLine(pos - ImVec2(20.0f, 0.0f), pos + ImVec2(20.0f, 0.0f),
+											ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphMouseHoveredTimeColor), 1.0f);
+										_already_drawn = true;
+									}
+
+									// a circle by signal
+									draw_list->AddCircle(pos, 5.0f, ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor), 24, 2.0f);
 
 									// draw info tooltip
 									ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
@@ -694,6 +708,8 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 			if (ImPlot::IsPlotHovered())
 			{
 				auto date_str = LogEngine::sConvertEpochToDateTimeString(hovered_time);
+
+				// will finalize the tooltip by adding the current time of the mouse hover pos
 				ImGui::BeginTooltipEx(ImGuiTooltipFlags_None, ImGuiWindowFlags_None);
 				ImGui::Text("time : %f\ndate : %s",
 					hovered_time, date_str.c_str());
@@ -731,6 +747,10 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 {
 	if (vGraphGroupPtr)
 	{
+		ImDrawList* draw_list = ImPlot::GetPlotDrawList();
+		if (!draw_list)
+			return;
+
 		if (!vGraphGroupPtr->GetSignalSeries().empty()) // if not empty
 		{
 			ImVec2 last_value_pos, value_pos;
@@ -741,14 +761,17 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 			const auto& spacing_U = isp.y;
 			const auto& spacing_R = isp.x + fpa.x;
 			const auto& spacing_D = isp.y;
+			ct::dvec2 projected_point;
+			const auto& _CurveRadiusDetection = ProjectFile::Instance()->m_CurveRadiusDetection;
+			const auto& _GraphMouseHoveredTimeColor = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphMouseHoveredTimeColor);
+			const auto& _SelectedCurveDisplayThickNess = ProjectFile::Instance()->m_SelectedCurveDisplayThickNess;
+			const auto& _DefaultCurveDisplayThickNess = ProjectFile::Instance()->m_DefaultCurveDisplayThickNess;
 
 			ImGui::PushID(ImGui::IncPUSHID());
 
 			if (prBeginPlot(vGraphGroupPtr->GetName(), vGraphGroupPtr->GetSignalSeriesRange(), vSize, vFirstGraph))
 			{
-				const auto& hoveredTime = LogEngine::Instance()->GetHoveredTime();
-				
-				ImDrawList* draw_list = ImPlot::GetPlotDrawList();
+				const auto& hovered_time = LogEngine::Instance()->GetHoveredTime();
 
 				bool _already_drawn = false;
 
@@ -762,6 +785,8 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 							const auto& name_str = datas_ptr->category + " / " + datas_ptr->name; 
 							if (ImPlot::BeginItem(name_str.c_str()))
 							{
+								const float thickness = datas_ptr->hovered_by_mouse ? _SelectedCurveDisplayThickNess : _DefaultCurveDisplayThickNess;
+
 								ImPlot::GetCurrentItem()->Color = datas_ptr->color_u32;
 
 								auto& _data_values = datas_ptr->datas_values;
@@ -784,16 +809,56 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 
 												ImPlot::FitPoint(ImPlotPoint(current_time, current_value));
 
-												draw_list->AddLine(last_value_pos, ImVec2(value_pos.x, last_value_pos.y), datas_ptr->color_u32, 2.0f);
-												draw_list->AddLine(ImVec2(value_pos.x, last_value_pos.y), value_pos, datas_ptr->color_u32, 2.0f);
+												draw_list->AddLine(last_value_pos, ImVec2(value_pos.x, last_value_pos.y), datas_ptr->color_u32, thickness);
+												draw_list->AddLine(ImVec2(value_pos.x, last_value_pos.y), value_pos, datas_ptr->color_u32, thickness);
+
+												// current annotation creation
+												if (m_CurrentAnnotationPtr)
+												{
+													m_CurrentAnnotationPtr->DrawToPoint(datas_ptr, ImGui::GetMousePos());
+												}
 
 												// draw gizmo for mouse over tick
 												if (ImPlot::IsPlotHovered() &&
-													hoveredTime >= last_time &&
-													hoveredTime <= current_time)
+													hovered_time >= last_time &&
+													hovered_time <= current_time)
 												{
-													auto pos = ImPlot::PlotToPixels(hoveredTime, last_value);
+													// mouse hover curve
+													const auto mouse_pos = ImGui::GetMousePos();
+													const auto last_pos = ImVec2(value_pos.x, last_value_pos.y);
+													datas_ptr->hovered_by_mouse = GraphAnnotation::IsMouseHoverLine(
+														mouse_pos, _CurveRadiusDetection, last_value_pos, last_pos, projected_point);
+													if (!datas_ptr->hovered_by_mouse)
+													{
+														datas_ptr->hovered_by_mouse = GraphAnnotation::IsMouseHoverLine(
+															mouse_pos, _CurveRadiusDetection, last_pos, value_pos, projected_point);
+													}
 
+													// annotation start and end points
+													if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle) &&
+														datas_ptr->hovered_by_mouse)
+													{
+														if (m_CurrentAnnotationPtr)
+														{
+															if (m_CurrentAnnotationPtr->GetParentSignalSerie().lock() == datas_ptr)
+															{
+																m_CurrentAnnotationPtr->SetEndPoint(ImPlot::PixelsToPlot(
+																	ct::toImVec2(projected_point)));
+																m_CurrentAnnotationPtr = nullptr; // remove the "draw to mouse point" of the current annotation 
+															}
+														}
+														else
+														{
+															m_CurrentAnnotationPtr =
+																GraphAnnotationModel::Instance()->NewGraphAnnotation(
+																	ImPlot::PixelsToPlot(ct::toImVec2(projected_point)));
+															m_CurrentAnnotationPtr->SetSignalSerieParent(datas_ptr);
+															datas_ptr->AddGraphAnnotation(m_CurrentAnnotationPtr);
+														}
+													}
+
+													// draw vertical cursor
+													auto pos = ImPlot::PlotToPixels(hovered_time, last_value);
 													if (!_already_drawn)
 													{
 														draw_list->AddLine(pos - ImVec2(20.0f, 0.0f), pos + ImVec2(20.0f, 0.0f),
@@ -824,6 +889,9 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 												last_value = current_value;
 											}
 										}
+
+										// draw annotations
+										datas_ptr->DrawAnnotations();
 									}
 								}
 

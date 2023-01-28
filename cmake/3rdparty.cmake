@@ -8,6 +8,7 @@ endif ()
 ## contrib
 include(cmake/stb.cmake)
 include(cmake/luajit.cmake)
+include(cmake/sqlite.cmake)
 include(cmake/glad.cmake)
 include(cmake/glfw.cmake)
 include(cmake/imgui.cmake)

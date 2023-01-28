@@ -127,21 +127,24 @@ UInt8ConstPtr GraphAnnotation::GetLabel() const
 	return m_Label;
 }
 
-void GraphAnnotation::DrawToPoint(const ImVec2& vMousePoint)
+void GraphAnnotation::DrawToPoint(SignalSeriePtr vSignalSeriePtr, const ImVec2& vMousePoint)
 {
-	auto win_ptr = ImGui::GetCurrentWindowRead();
-	if (win_ptr) 
+	if (vSignalSeriePtr && vSignalSeriePtr == m_ParentSignalSerie.lock())
 	{
-		auto draw_list_ptr = win_ptr->DrawList;
-		if (draw_list_ptr) 
+		auto win_ptr = ImGui::GetCurrentWindowRead();
+		if (win_ptr)
 		{
-			const auto col = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor);
-			const auto st = ImPlot::PlotToPixels(m_StartPos);
-			const auto en = vMousePoint;
+			auto draw_list_ptr = win_ptr->DrawList;
+			if (draw_list_ptr)
+			{
+				const auto col = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor);
+				const auto st = ImPlot::PlotToPixels(m_StartPos);
+				const auto en = vMousePoint;
 
-			draw_list_ptr->AddLine(st, en, col, 2.0f);
-			draw_list_ptr->AddCircleFilled(st, 5.0f, col, 24);
-			draw_list_ptr->AddCircleFilled(en, 5.0f, col, 24);
+				draw_list_ptr->AddLine(st, en, col, 2.0f);
+				draw_list_ptr->AddCircleFilled(st, 5.0f, col, 24);
+				draw_list_ptr->AddCircleFilled(en, 5.0f, col, 24);
+			}
 		}
 	}
 }
