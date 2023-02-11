@@ -41,40 +41,128 @@ static inline double s_dot(ImPlotPoint a, ImPlotPoint b) { return a.x * b.x + a.
 static inline ImPlotPoint operator - (ImPlotPoint v, ImPlotPoint f) { return ImPlotPoint(v.x - f.x, v.y - f.y); }
 static inline ImPlotPoint operator + (ImPlotPoint v, ImPlotPoint f) { return ImPlotPoint(v.x + f.x, v.y + f.y); }
 static inline ImPlotPoint operator * (double v, ImPlotPoint f) { return ImPlotPoint(v * f.x, v * f.y); }
+static inline ImPlotPoint operator * (ImPlotPoint f, double v) { return ImPlotPoint(v * f.x, v * f.y); }
 static inline ImPlotPoint operator / (ImPlotPoint v, double f) { return ImPlotPoint(v.x * f, v.y / f); }
 static inline ct::dvec2 s_toDVec2(const ImPlotPoint& v) { return ct::dvec2(v.x, v.y); }
+static inline ImPlotPoint ImpClamp(ImPlotPoint v, double a, double b) { return ImPlotPoint(ct::clamp(v.x,a,b), ct::clamp(v.y, a, b)); }
+static inline double ImpDot(ImPlotPoint a, ImPlotPoint b) { return a.x * b.x + a.y * b.y; }
+static inline double ImpLength(ImPlotPoint a) { return sqrt(ImpDot(a,a)); }
+static inline double ImpDistance(ImPlotPoint A, ImPlotPoint B) { double dx = A.x - B.x;	double dy = A.y - B.y; return sqrt(dx * dx + dy * dy); }
 
-bool GraphAnnotation::IsMouseHoverLine(const ct::dvec2& vMousePos, const double& vRadius, const ct::dvec2& vStart, const ct::dvec2& vEnd, ct::dvec2& vOutLinePoint)
+bool GraphAnnotation::IsMouseHoverLine2P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vStart, const ImVec2& vEnd, ImVec2& vOutLinePoint, double& vOutDistToLine)
 {
-	const auto mp = ImPlot::PixelsToPlot(ct::toImVec2(vMousePos));
-	const auto st = ImPlot::PixelsToPlot(ct::toImVec2(vStart));
-	const auto en = ImPlot::PixelsToPlot(ct::toImVec2(vEnd));
+	const auto P = ImPlot::PixelsToPlot(vMousePos);
+	const auto A = ImPlot::PixelsToPlot(vStart);
+	const auto B = ImPlot::PixelsToPlot(vEnd);
 	
-	const auto a = mp - st;
-	const auto b = en - st;
-	const auto dot_b = s_dot(b, b);
-	if (IS_DOUBLE_EQUAL(dot_b, 0.0))
+	const auto BA = B - A;
+	const auto PA = P - A;
+
+	const auto id = ImpDot(BA, BA);
+	if (IS_DOUBLE_EQUAL(id, 0.0))
 		return false;
 
-	//projected point on infinite line
-	auto proj_pt = st + s_dot(a, b) * b / dot_b;
+	const auto H = ct::clamp(ImpDot(PA, PA) / id, 0.0, 1.0);
+	const auto Q = PA - H * BA;
+	const auto D = ImpLength(Q);
 
-	// limitation of projected point to the extremities of the segments
-	if (s_dot(proj_pt - st, en - st) <= 0.0)
+	vOutLinePoint = ImPlot::PlotToPixels(P - Q);
+	vOutDistToLine = D;
+
+	ImDrawList* draw_list = ImPlot::GetPlotDrawList();
+	draw_list->AddLine(vStart, vEnd, ImGui::GetColorU32(ImVec4(1, 1, 0, 1)), 2.0);
+	draw_list->AddLine(vMousePos, vStart, ImGui::GetColorU32(ImVec4(0, 1, 0, 1)), 2.0);
+	draw_list->AddLine(vMousePos, vEnd, ImGui::GetColorU32(ImVec4(0, 0, 1, 1)), 2.0);
+	draw_list->AddLine(vMousePos, vOutLinePoint, ImGui::GetColorU32(ImVec4(1,0,1,1)), 2.0);
+
+	return (vOutDistToLine <= vRadius);
+}
+
+bool GraphAnnotation::IsMouseHoverLine3P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vStart, const ImVec2& vMiddle, const ImVec2& vEnd, ImVec2& vOutLinePoint)
+{
+	ImVec2 p0, p1;
+	double d0, d1;
+	IsMouseHoverLine2P(vMousePos, vRadius, vStart, vMiddle, p0, d0);
+	IsMouseHoverLine2P(vMousePos, vRadius, vMiddle, vEnd, p1, d1);
+
+	if (d0 < d1)
 	{
-		vOutLinePoint = vStart;
-	}
-	else if (s_dot(proj_pt - en, st - en) <= 0.0)
-	{
-		vOutLinePoint = vEnd;
-	}
-	else
-	{
-		vOutLinePoint = s_toDVec2(ImPlot::PlotToPixels(proj_pt));
+		vOutLinePoint = p0;
+		return (d0 <= vRadius);
+
 	}
 
-	auto dist_to_line = (vMousePos - vOutLinePoint).length();
-	return (dist_to_line <= vRadius);
+	vOutLinePoint = p1;
+	return (d1 <= vRadius);
+}
+
+bool GraphAnnotation::IsMouseHoverLine4P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vp0, const ImVec2& vp1, const ImVec2& vp2, const ImVec2& vp3, ImVec2& vOutLinePoint)
+{
+	const auto M = ImPlot::PixelsToPlot(vMousePos);
+	const auto A = ImPlot::PixelsToPlot(vp0);
+	const auto B = ImPlot::PixelsToPlot(vp1);
+	const auto C = ImPlot::PixelsToPlot(vp2);
+	const auto D = ImPlot::PixelsToPlot(vp3);
+
+	/*
+	   B ---- C
+	   |      |
+	   |   P  D
+	   |
+	   A
+
+	      ou
+
+	   A
+	   |      
+	   |   P  D
+	   |      |
+	   B ---- C
+	*/
+
+	ImPlotPoint pH = { M.x, B.y };
+	ImPlotPoint pV1 = { A.x, M.y };
+	ImPlotPoint pV2 = { D.x, M.y };
+
+	ImPlotPoint P;
+	double dist = 0.0;
+
+	if (M.x >= A.x && M.x <= D.x) {
+		double distH = ImpDistance(M, pH);
+		double distV1 = ImpDistance(M, pV1);
+		double distV2 = ImpDistance(M, pV2);
+		if (distH <= distV1 && distH <= distV2) {
+			P = pH;
+			dist = distH;
+		}
+		else if (distV1 <= distH && distV1 <= distV2) {
+			P = pV1;
+			dist = distH;
+		}
+		else {
+			P = pV2;
+			dist = distV2;
+		}
+	}
+	else if (M.x < A.x) {
+		P = pV1;
+		dist = ImpDistance(M, pV2);
+	}
+	else {
+		P = pV2;
+		dist = ImpDistance(M, pV1);
+	}
+
+	vOutLinePoint = ImPlot::PlotToPixels(P);
+
+	ImDrawList* draw_list = ImPlot::GetPlotDrawList();
+	draw_list->AddLine(vMousePos, vOutLinePoint, ImGui::GetColorU32(ImVec4(1, 0, 1, 1)), 2.0);
+	draw_list->AddCircleFilled(vp0, 10.0f, ImGui::GetColorU32(ImVec4(1, 0, 1, 1)));
+	draw_list->AddCircleFilled(vp1, 10.0f, ImGui::GetColorU32(ImVec4(1, 0, 1, 1)));
+	draw_list->AddCircleFilled(vp2, 10.0f, ImGui::GetColorU32(ImVec4(1, 0, 1, 1)));
+	draw_list->AddCircleFilled(vp3, 10.0f, ImGui::GetColorU32(ImVec4(1, 0, 1, 1)));
+
+	return (dist <= vRadius);
 }
 
 //////////////////////////////////////////////////////

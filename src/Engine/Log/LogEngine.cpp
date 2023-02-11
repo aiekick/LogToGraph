@@ -25,6 +25,7 @@ limitations under the License.
 #include <Engine/Log/SignalSerie.h>
 #include <Engine/Log/SignalTick.h>
 #include <Engine/Graphs/GraphView.h>
+#include <Engine/DB/DBEngine.h>
 
 #include <Panes/LogPane.h>
 #include <Panes/LogPaneSecondView.h>

@@ -24,8 +24,17 @@ typedef uint32_t SignalColor;
 typedef double SignalEpochTime;
 
 typedef std::string SignalName;
+typedef int32_t SignalNameID;
+
+typedef std::string DBFile;
+
+typedef std::string SourceFile;
+typedef int32_t SourceFileID;
 
 typedef std::string SignalCategory;
+typedef int32_t SignalCategoryID;
+
+typedef int32_t DBRowID;
 
 typedef std::string SignalDateTime;
 

@@ -31,8 +31,17 @@ limitations under the License.
 #include <Panes/LogPaneSecondView.h>
 #include <lua.hpp>
 
+#include <Engine/DB/DBEngine.h>
+#include <Project/ProjectFile.h>
+
 #include <Panes/ToolPane.h>
 #include <Panes/LogPane.h>
+
+///////////////////////////////////////////////////
+/// STATIC ////////////////////////////////////////
+///////////////////////////////////////////////////
+
+static size_t source_file_id = 0U;
 
 ///////////////////////////////////////////////////
 /// CUSTOM LUA FUNCTIONS //////////////////////////
@@ -270,6 +279,7 @@ static int Lua_void_AddSignalValue_category_name_date_value(lua_State* L)
     }
     else
     {
+        DBEngine::Instance()->AddSignalTick(source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_2_value);
         LuaEngine::Instance()->AddSignalValue(arg_0_category, arg_1_name, arg_2_date, arg_2_value);
     }
 
@@ -361,6 +371,14 @@ void LuaEngine::sLuAnalyse(
                         LogEngine::Instance()->Clear();
                         GraphView::Instance()->Clear();
 
+                        auto ps = FileHelper::Instance()->ParsePathFileName(ProjectFile::Instance()->m_ProjectFilePathName);
+                        auto dbFile = ps.GetFPNE_WithExt("db");
+                        DBEngine::Instance()->OpenDBFile(dbFile);
+                        
+                        source_file_id = DBEngine::Instance()->AddSourceFile(logFilePathName);
+
+                        DBEngine::Instance()->BeginTransaction();
+                        
                         // interpret lua script
                         if (luaL_dofile(_luaState, luaFilePathName.c_str()) != LUA_OK)
                         {
@@ -429,7 +447,10 @@ void LuaEngine::sLuAnalyse(
                                 }
                             }
 
-                            LogEngine::Instance()->Finalize();
+                            DBEngine::Instance()->EndTransaction();
+                            DBEngine::Instance()->CloseDBFile();
+                            LogEngine::Instance()->Finalize(); 
+
                         }
                     }
                     catch (std::exception& e)

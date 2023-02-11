@@ -1,6 +1,6 @@
 #pragma once
 
-#define LogToGraph_BuildNumber 571
+#define LogToGraph_BuildNumber 644
 #define LogToGraph_MinorNumber 2
 #define LogToGraph_MajorNumber 0
-#define LogToGraph_BuildId "0.2.571"
+#define LogToGraph_BuildId "0.2.644"

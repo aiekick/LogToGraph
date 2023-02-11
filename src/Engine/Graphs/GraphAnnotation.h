@@ -36,8 +36,12 @@ class GraphAnnotation
 {
 public:
 	static GraphAnnotationPtr Create();
-	// will check if mouse pos in at less than vRadius to the line from vStart to vEnd, and return true the line nearest point vOutLinePoint
-	static bool IsMouseHoverLine(const ct::dvec2& vMousePos, const double& vRadius, const ct::dvec2& vStart, const ct::dvec2& vEnd, ct::dvec2& vOutLinePoint);
+	// will check if mouse pos is at less than vRadius to the segment from vStart to vEnd, and return true the line nearest point vOutLinePoint nad the dist to line vOutDistToLine
+	static bool IsMouseHoverLine2P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vStart, const ImVec2& vEnd, ImVec2& vOutLinePoint, double& vOutDistToLine);
+	// will check if mouse pos is at less than vRadius to the segment from vStart to vMiddle and vMiddle to vEnd, and return true the line nearest point vOutLinePoint
+	static bool IsMouseHoverLine3P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vStart, const ImVec2& vMiddle, const ImVec2& vEnd, ImVec2& vOutLinePoint);
+	// will check if mouse pos is at less than vRadius to the segment from vStart to vMiddle and vMiddle to vEnd, and return true the line nearest point vOutLinePoint
+	static bool IsMouseHoverLine4P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vp0, const ImVec2& vp1, const ImVec2& vp2, const ImVec2& vp3, ImVec2& vOutLinePoint);
 
 private: // datas
 	GraphAnnotationWeak m_This;

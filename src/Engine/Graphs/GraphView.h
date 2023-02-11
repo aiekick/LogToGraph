@@ -43,6 +43,9 @@ private:
 	int32_t m_GraphsCount = 0;
 	GraphAnnotationPtr m_CurrentAnnotationPtr = nullptr;
 
+	bool m_ShowPopup = false;
+	bool m_ShowCursor = false;
+
 public:
 	void Clear();
 	void AddSerieToGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vToGroupPtr);
@@ -70,7 +73,7 @@ private:
 	void prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool& vFirstGraph);
 
 	bool prBeginPlot(const std::string& vLabel, ct::dvec2 vRangeValue, const ImVec2& vSize, const bool& vFirstGraph) const;
-	static void prEndPlot();
+	void prEndPlot();
 
 public: // singleton
 	static std::shared_ptr<GraphView> Instance()

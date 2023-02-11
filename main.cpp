@@ -153,10 +153,12 @@ int main(int, char**argv)
     ImVec2 pos, size;
 	while (!glfwWindowShouldClose(mainWindow))
     {
+#ifndef _DEBUG
         if (!LuaEngine::Instance()->IsJoinable()) // for not blocking threading progress bar animation
         {
             glfwWaitEventsTimeout(1.0);
         }
+#endif
         glfwPollEvents();
 
         glfwGetFramebufferSize(mainWindow, &display_w, &display_h);
