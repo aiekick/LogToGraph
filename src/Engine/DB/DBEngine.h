@@ -42,6 +42,7 @@ requetAccountReport += " order by Date asc";
 */
 #include <memory>
 #include <string>
+#include <functional>
 #include <Headers/Globals.h>
 
 struct sqlite3;
@@ -147,7 +148,18 @@ public:
 	/// <returns>return the id of the entry, or 0</returns>
 	DBRowID GetSignalName(const SignalName& vSignalName);
 
-	
+	/// <summary>
+	/// will clear datas tables
+	/// </summary>
+	void ClearDataTables();
+
+	/// <summary>
+	/// will merged datas tables
+	/// <param name="vCallback">callback func called for each database line retrieved</param>
+	/// </summary>
+	void GetDatas(std::function<void(SourceFileID, SignalEpochTime, SignalCategory, SignalName, SignalValue, SignalString)> vCallback);
+
+
 	/// <summary>
 	/// return last error message
 	/// </summary>

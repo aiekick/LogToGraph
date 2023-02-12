@@ -387,6 +387,13 @@ void LuaEngine::sLuAnalyse(
                 LogEngine::Instance()->Clear();
                 GraphView::Instance()->Clear();
 
+#ifdef USE_SQLITE_DB
+                auto ps = FileHelper::Instance()->ParsePathFileName(ProjectFile::Instance()->m_ProjectFilePathName);
+                auto dbFile = ps.GetFPNE_WithExt("db");
+                DBEngine::Instance()->OpenDBFile(dbFile);
+                DBEngine::Instance()->ClearDataTables();
+#endif
+
                 for (const auto& source_file : source_files_ref)
                 {
                     if (!source_file.second.empty() &&
@@ -400,9 +407,6 @@ void LuaEngine::sLuAnalyse(
                                 source_file_parent = LogEngine::Instance()->SetSourceFile(source_file.second);
 
 #ifdef USE_SQLITE_DB
-                                auto ps = FileHelper::Instance()->ParsePathFileName(ProjectFile::Instance()->m_ProjectFilePathName);
-                                auto dbFile = ps.GetFPNE_WithExt("db");
-                                DBEngine::Instance()->OpenDBFile(dbFile);
                                 source_file_id = DBEngine::Instance()->AddSourceFile(source_file.second);
                                 DBEngine::Instance()->BeginTransaction();
 #endif
@@ -477,9 +481,7 @@ void LuaEngine::sLuAnalyse(
 
 #ifdef USE_SQLITE_DB
                                     DBEngine::Instance()->EndTransaction();
-                                    DBEngine::Instance()->CloseDBFile();
 #endif
-                                    LogEngine::Instance()->Finalize();
                                 }
                             }
                             catch (std::exception& e)
@@ -489,6 +491,11 @@ void LuaEngine::sLuAnalyse(
                         }
                     }
                 }
+
+                DBEngine::Instance()->CloseDBFile();
+
+                // retrieve datas from database
+                LogEngine::Instance()->Finalize();
             }
         }
 
