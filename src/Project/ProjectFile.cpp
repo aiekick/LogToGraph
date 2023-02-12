@@ -179,6 +179,8 @@ std::string ProjectFile::getXml(const std::string& vOffset, const std::string& /
 	str += vOffset + "\t<curve_radius_detection>" + ct::toStr(m_CurveRadiusDetection) + "</curve_radius_detection>\n";
 	str += vOffset + "\t<selected_curve_display_thickness>" + ct::toStr(m_SelectedCurveDisplayThickNess) + "</selected_curve_display_thickness>\n";
 	str += vOffset + "\t<default_curve_display_thickness>" + ct::toStr(m_DefaultCurveDisplayThickNess) + "</default_curve_display_thickness>\n";
+	str += vOffset + "\t<use_predefined_zero_value>" + (m_UsePredefinedZeroValue ? "true" : "false") + "</use_predefined_zero_value>\n";
+	str += vOffset + "\t<predefined_zero_value>" + ct::toStr(m_PredefinedZeroValue) + "</predefined_zero_value>\n";
 	str += vOffset + "</project>\n";
 
 	return str;
@@ -286,6 +288,14 @@ bool ProjectFile::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* 
 		else if (strName == "default_curve_display_thickness")
 		{
 			m_DefaultCurveDisplayThickNess = ct::dvariant(strValue).GetD();
+		}
+		else if (strName == "use_predefined_zero_value")
+		{
+			m_UsePredefinedZeroValue = ct::ivariant(strValue).GetB();
+		}
+		else if (strName == "predefined_zero_value")
+		{
+			m_PredefinedZeroValue = ct::dvariant(strValue).GetD();
 		}
 	}
 	

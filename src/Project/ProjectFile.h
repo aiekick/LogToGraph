@@ -54,6 +54,8 @@ public: // to save
 	double m_CurveRadiusDetection = 12.0; // for select curve for annotation
 	double m_SelectedCurveDisplayThickNess = 6.0; // for display a thick curve
 	double m_DefaultCurveDisplayThickNess = 2.0; // for display a default curve
+	bool m_UsePredefinedZeroValue = false; // use predefined zero value
+	double m_PredefinedZeroValue = 0.0; // the predefined zero value for signals
 
 private: // dont save
 	bool m_IsLoaded = false;

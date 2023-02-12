@@ -590,7 +590,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 		{
 			if (ImPlot::BeginItem(name_str.c_str()))
 			{
-				const float thickness = datas_ptr->hovered_by_mouse ? _SelectedCurveDisplayThickNess : _DefaultCurveDisplayThickNess;
+				const float thickness = (double)(datas_ptr->hovered_by_mouse ? _SelectedCurveDisplayThickNess : _DefaultCurveDisplayThickNess);
 
 				ImPlot::GetCurrentItem()->Color = datas_ptr->color_u32;
 
@@ -784,7 +784,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 
 			ImGui::PushID(ImGui::IncPUSHID());
 
-			if (prBeginPlot(vGraphGroupPtr->GetName(), vGraphGroupPtr->GetSignalSeriesRange(), vSize, vFirstGraph))
+			if (prBeginPlot(vGraphGroupPtr->GetImGuiLabel(), vGraphGroupPtr->GetSignalSeriesRange(), vSize, vFirstGraph))
 			{
 				const auto& hovered_time = LogEngine::Instance()->GetHoveredTime();
 

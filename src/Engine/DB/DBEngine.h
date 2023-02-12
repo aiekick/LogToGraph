@@ -90,7 +90,7 @@ public:
 	/// </summary>
 	/// <param name="vSourceFile"></param>
 	/// <returns>return the id of the entry, or 0</returns>
-	DBRowID AddSourceFile(const SourceFile& vSourceFile);
+	DBRowID AddSourceFile(const SourceFileName& vSourceFile);
 
 	/// <summary>
 	/// Add a signal category in database
@@ -116,11 +116,22 @@ public:
 	void AddSignalTick(const SourceFileID& vSourceFileID, const SignalCategory& vSignalCategory, const SignalName& vSignalName, const SignalEpochTime& vDate, const SignalValue& vValue);
 	
 	/// <summary>
+	/// add a signal tick in database with value of type string
+	/// will also add source file, signal category and signal name
+	/// </summary>
+	/// <param name="vSourceFile"></param>
+	/// <param name="vSignalCategory"></param>
+	/// <param name="vName"></param>
+	/// <param name="vDate"></param>
+	/// <param name="vValue"></param>
+	void AddSignalTick(const SourceFileID& vSourceFileID, const SignalCategory& vSignalCategory, const SignalName& vSignalName, const SignalEpochTime& vDate, const SignalString& vString);
+	
+	/// <summary>
 	/// Get the id of a source file from database
 	/// </summary>
 	/// <param name="vSourceFile"></param>
 	/// <returns>return the id of the entry, or 0</returns>
-	DBRowID GetSourceFile(const SourceFile& vSourceFile);
+	DBRowID GetSourceFile(const SourceFileName& vSourceFile);
 
 	/// <summary>
 	/// Get the id of a signal category from database

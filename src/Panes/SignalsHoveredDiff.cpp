@@ -86,38 +86,6 @@ int SignalsHoveredDiff::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& 
 
 void SignalsHoveredDiff::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
 {
-	if (ProjectFile::Instance()->IsLoaded())
-	{
-		ImVec2 maxSize = MainFrame::Instance()->m_DisplaySize;
-		ImVec2 minSize = maxSize * 0.5f;
-
-		if (ImGuiFileDialog::Instance()->Display("OPEN_LUA_SCRIPT_FILE",
-			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking,
-			minSize, maxSize))
-		{
-			if (ImGuiFileDialog::Instance()->IsOk())
-			{
-				LuaEngine::Instance()->SetLuaFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
-				CodePane::Instance()->SetCodeFile(ImGuiFileDialog::Instance()->GetFilePathName());
-				ProjectFile::Instance()->SetProjectChange();
-			}
-
-			ImGuiFileDialog::Instance()->Close();
-		}
-		
-		if (ImGuiFileDialog::Instance()->Display("OPEN_LOG_FILE",
-			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking,
-			minSize, maxSize))
-		{
-			if (ImGuiFileDialog::Instance()->IsOk())
-			{
-				LuaEngine::Instance()->SetLogFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
-				ProjectFile::Instance()->SetProjectChange();
-			}
-
-			ImGuiFileDialog::Instance()->Close();
-		}
-	}
 }
 
 int SignalsHoveredDiff::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
@@ -256,7 +224,14 @@ void SignalsHoveredDiff::DrawTable()
 							}
 							if (ImGui::TableNextColumn()) // second value
 							{
-								ImGui::Text("%f", diff_second_mark_ptr->value);
+								if (diff_second_mark_ptr->string.empty())
+								{
+									ImGui::Text("%f", diff_second_mark_ptr->value);
+								}
+								else
+								{
+									ImGui::Text("%s", diff_second_mark_ptr->string.c_str());
+								}
 								CheckItem(diff_second_mark_ptr);
 							}
 

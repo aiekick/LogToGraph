@@ -37,11 +37,14 @@ limitations under the License.
 #include <Panes/ToolPane.h>
 #include <Panes/LogPane.h>
 
+#define USE_SQLITE_DB
+
 ///////////////////////////////////////////////////
 /// STATIC ////////////////////////////////////////
 ///////////////////////////////////////////////////
 
 static size_t source_file_id = 0U;
+static SourceFileWeak source_file_parent;
 
 ///////////////////////////////////////////////////
 /// CUSTOM LUA FUNCTIONS //////////////////////////
@@ -66,21 +69,26 @@ static int lua_int_print_args(lua_State* L)
     }
     res += '\n';
     LogVarLightInfo("%s", res.c_str());
-    return 0;
+    return 0; // return 0 item
+}
+
+// secure string args
+static std::string get_lua_secure_string(lua_State* L, int arg_idx)
+{
+    size_t len;
+    auto str = lua_tolstring(L, arg_idx, &len);
+    if (str && len)
+    {
+        return std::string(str, len);
+    }
+
+    return "";
 }
 
 // SetInfos(string)
 static int Lua_void_SetInfos_string(lua_State* L)
 {
-    std::string res;
-
-    // first param from stack
-    size_t len;
-    auto str = lua_tolstring(L, 1, &len);
-    if (str && len)
-    {
-        res = std::string(str, len);
-    }
+    std::string res = get_lua_secure_string(L, 1);
 
     if (res.empty())
     {
@@ -91,21 +99,13 @@ static int Lua_void_SetInfos_string(lua_State* L)
         LuaEngine::Instance()->SetInfos(res);
     }
 
-    return 0;
+    return 0; // return 0 item
 }
 
 // SetRowBufferName(string)
 static int Lua_void_SetRowBufferName_string(lua_State* L)
 {
-    std::string res;
-
-    // first param from stack
-    size_t len;
-    auto str = lua_tolstring(L, 1, &len);
-    if (str && len)
-    {
-        res = std::string(str, len);
-    }
+    std::string res = get_lua_secure_string(L, 1);
 
     if (res.empty())
     {
@@ -116,21 +116,13 @@ static int Lua_void_SetRowBufferName_string(lua_State* L)
         LuaEngine::Instance()->SetRowBufferName(res);
     }
 
-    return 0;
+    return 0; // return 0 item
 }
 
 // SetFunctionForEachRow(string)
 static int Lua_void_SetFunctionForEachRow_string(lua_State* L)
 {
-    std::string res;
-
-    // first param from stack
-    size_t len;
-    auto str = lua_tolstring(L, 1, &len);
-    if (str && len)
-    {
-        res = std::string(str, len);
-    }
+    std::string res = get_lua_secure_string(L, 1);
 
     if (res.empty())
     {
@@ -141,21 +133,13 @@ static int Lua_void_SetFunctionForEachRow_string(lua_State* L)
         LuaEngine::Instance()->SetFunctionForEachRow(res);
     }
 
-    return 0;
+    return 0; // return 0 item
 }
 
 // SetFunctionForEndFile(string)
 static int Lua_void_SetFunctionForEndFile_string(lua_State* L)
 {
-    std::string res;
-
-    // first param from stack
-    size_t len;
-    auto str = lua_tolstring(L, 1, &len);
-    if (str && len)
-    {
-        res = std::string(str, len);
-    }
+    std::string res = get_lua_secure_string(L, 1);
 
     if (res.empty())
     {
@@ -166,7 +150,7 @@ static int Lua_void_SetFunctionForEndFile_string(lua_State* L)
         LuaEngine::Instance()->SetFunctionForEndFile(res);
     }
 
-    return 0;
+    return 0; // return 0 item
 }
 
 // int GetRowIndex()
@@ -176,7 +160,7 @@ static int Lua_int_GetRowIndex_void(lua_State* L)
 
     lua_pushinteger(L, row_index);
 
-    return 1;
+    return 1; // return 1 item
 }
 
 // int GetRowCount()
@@ -186,21 +170,13 @@ static int Lua_int_GetRowCount_void(lua_State* L)
 
     lua_pushinteger(L, row_count);
 
-    return 1;
+    return 1; // return 1 item
 }
 
 // LogInfos(string)
 static int Lua_void_LogInfo_string(lua_State* L)
 {
-    std::string res;
-
-    // first param from stack
-    size_t len;
-    auto str = lua_tolstring(L, 1, &len);
-    if (str && len)
-    {
-        res = std::string(str, len);
-    }
+    std::string res = get_lua_secure_string(L, 1);
 
     if (res.empty())
     {
@@ -211,21 +187,13 @@ static int Lua_void_LogInfo_string(lua_State* L)
         LogVarLightInfo("%s", res.c_str());
     }
 
-    return 0;
+    return 0; // return 0 item
 }
 
 // LogWarning(string)
 static int Lua_void_LogWarning_string(lua_State* L)
 {
-    std::string res;
-
-    // first param from stack
-    size_t len;
-    auto str = lua_tolstring(L, 1, &len);
-    if (str && len)
-    {
-        res = std::string(str, len);
-    }
+    std::string res = get_lua_secure_string(L, 1);
 
     if (res.empty())
     {
@@ -236,21 +204,13 @@ static int Lua_void_LogWarning_string(lua_State* L)
         LogVarLightWarning("%s", res.c_str());
     }
 
-    return 0;
+    return 0; // return 0 item
 }
 
 // LogError(string)
 static int Lua_void_LogError_string(lua_State* L)
 {
-    std::string res;
-
-    // first param from stack
-    size_t len;
-    auto str = lua_tolstring(L, 1, &len);
-    if (str && len)
-    {
-        res = std::string(str, len);
-    }
+    std::string res = get_lua_secure_string(L, 1);
 
     if (res.empty())
     {
@@ -261,17 +221,17 @@ static int Lua_void_LogError_string(lua_State* L)
         LogVarLightError("%s", res.c_str());
     }
 
-    return 0;
+    return 0; // return 0 item
 }
 
 // AddSignalValue(signal_category, signal_name, signal_epoch_time, signal_value)
 static int Lua_void_AddSignalValue_category_name_date_value(lua_State* L)
 {
     // params from stack
-    const auto arg_0_category = std::string(lua_tostring(L, 1));
-    const auto arg_1_name = std::string(lua_tostring(L, 2));
+    const auto arg_0_category = get_lua_secure_string(L, 1);
+    const auto arg_1_name = get_lua_secure_string(L, 2);
     const auto arg_2_date = lua_tonumber(L, 3);
-    const auto arg_2_value = lua_tonumber(L, 4);
+    const auto arg_3_value = lua_tonumber(L, 4);
 
     if (arg_0_category.empty() || arg_1_name.empty())
     {
@@ -279,11 +239,71 @@ static int Lua_void_AddSignalValue_category_name_date_value(lua_State* L)
     }
     else
     {
-        DBEngine::Instance()->AddSignalTick(source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_2_value);
-        LuaEngine::Instance()->AddSignalValue(arg_0_category, arg_1_name, arg_2_date, arg_2_value);
+#ifdef USE_SQLITE_DB
+        DBEngine::Instance()->AddSignalTick(source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_value);
+#endif
+        LuaEngine::Instance()->AddSignalValue(arg_0_category, arg_1_name, arg_2_date, arg_3_value);
     }
 
-    return 0;
+    return 0; // return 0 item
+}
+
+// AddSignalValue(signal_category, signal_name, signal_epoch_time, signal_string)
+static int Lua_void_AddSignalValue_category_name_date_string(lua_State* L)
+{
+    // params from stack
+    const auto arg_0_category = get_lua_secure_string(L, 1);
+    const auto arg_1_name = get_lua_secure_string(L, 2);
+    const auto arg_2_date = lua_tonumber(L, 3);
+    const auto arg_3_string = get_lua_secure_string(L, 4);
+
+    if (arg_0_category.empty() || arg_1_name.empty())
+    {
+        LogVarLightError("%s", "Lua code error : the string passed to LogValue is empty");
+    }
+    else
+    {
+#ifdef USE_SQLITE_DB
+        DBEngine::Instance()->AddSignalTick(source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string);
+#endif
+        LuaEngine::Instance()->AddSignalString(arg_0_category, arg_1_name, arg_2_date, arg_3_string);
+    }
+
+    return 0; // return 0 item
+}
+
+// number GetEpochTime(date_time, hour_offset)
+// date_time is in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS"
+static int Lua_number_GetEpochTimeFrom_date_time_string_offset_int(lua_State* L)
+{
+    // params from stack
+    const auto arg_0_datetime = get_lua_secure_string(L, 1);
+    const auto arg_1_offset = lua_tonumber(L, 2);
+    if (!arg_0_datetime.empty())
+    {
+        std::tm date_heure = {};
+        double millisecondes = 0;
+
+        std::stringstream ss(arg_0_datetime);
+        ss >> std::get_time(&date_heure, "%Y-%m-%d %H:%M:%S");
+        if (ss.peek() == ',' || ss.peek() == '.')
+        {
+            ss.ignore();
+            ss >> millisecondes;
+        }
+
+        // temporaire
+        date_heure.tm_hour += (int)arg_1_offset;
+
+        std::time_t temps_epoch = std::mktime(&date_heure);
+        double time_number = temps_epoch + millisecondes / 1000;
+
+        lua_pushnumber(L, time_number);
+
+        return 1; // return 1 item
+    }
+
+    return 0; // return 0 item
 }
 
 static lua_State* CreateLuaState()
@@ -307,6 +327,8 @@ static lua_State* CreateLuaState()
         lua_register(lua_state_ptr, "GetRowIndex", Lua_int_GetRowIndex_void);
         lua_register(lua_state_ptr, "GetRowCount", Lua_int_GetRowCount_void);
         lua_register(lua_state_ptr, "AddSignalValue", Lua_void_AddSignalValue_category_name_date_value);
+        lua_register(lua_state_ptr, "AddSignalString", Lua_void_AddSignalValue_category_name_date_string);
+        lua_register(lua_state_ptr, "GetEpochTime", Lua_number_GetEpochTimeFrom_date_time_string_offset_int);
     }
 
     return lua_state_ptr;
@@ -346,8 +368,9 @@ void LuaEngine::sLuAnalyse(
     const int64_t firstTimeMark = std::chrono::duration_cast<std::chrono::milliseconds>
         (std::chrono::system_clock::now().time_since_epoch()).count();
     
-    std::string luaFilePathName = LuaEngine::Instance()->GetLuaFilePathName();
-    std::string logFilePathName = LuaEngine::Instance()->GetLogFilePathName();
+    const auto& luaFilePathName = LuaEngine::Instance()->GetLuaFilePathName();
+    const auto& source_files_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
+
     std::string lua_Current_Buffer_Row_Var_Name;		// current line of buffer
     std::string lua_Function_To_Call_For_Each_Row;	    // the function to call for each lines
     std::string lua_Function_To_Call_End_File;			// the fucntion to call for the end of the file
@@ -357,105 +380,113 @@ void LuaEngine::sLuAnalyse(
     auto _luaState = CreateLuaState();
     if (_luaState)
     {
-       if (!luaFilePathName.empty() &&
-            !logFilePathName.empty() &&
-            FileHelper::Instance()->IsFileExist(logFilePathName))
+        if (!luaFilePathName.empty())
         {
-            auto file_string = FileHelper::Instance()->LoadFileToString(logFilePathName);
-            if (!file_string.empty())
+            if (FileHelper::Instance()->IsFileExist(luaFilePathName))
             {
-                if (FileHelper::Instance()->IsFileExist(luaFilePathName))
+                LogEngine::Instance()->Clear();
+                GraphView::Instance()->Clear();
+
+                for (const auto& source_file : source_files_ref)
                 {
-                    try
+                    if (!source_file.second.empty() &&
+                        FileHelper::Instance()->IsFileExist(source_file.second))
                     {
-                        LogEngine::Instance()->Clear();
-                        GraphView::Instance()->Clear();
-
-                        auto ps = FileHelper::Instance()->ParsePathFileName(ProjectFile::Instance()->m_ProjectFilePathName);
-                        auto dbFile = ps.GetFPNE_WithExt("db");
-                        DBEngine::Instance()->OpenDBFile(dbFile);
-                        
-                        source_file_id = DBEngine::Instance()->AddSourceFile(logFilePathName);
-
-                        DBEngine::Instance()->BeginTransaction();
-                        
-                        // interpret lua script
-                        if (luaL_dofile(_luaState, luaFilePathName.c_str()) != LUA_OK)
+                        auto file_string = FileHelper::Instance()->LoadFileToString(source_file.second);
+                        if (!file_string.empty())
                         {
-                            LogVarLightError("%s", lua_tostring(_luaState, -1));
-                        }
-                        else
-                        {
-                            // call function Init
-                            lua_getglobal(_luaState, "Init");
-                            if (lua_isfunction(_luaState, -1))
+                            try
                             {
-                                lua_pcall(_luaState, 0, 0, 0);
+                                source_file_parent = LogEngine::Instance()->SetSourceFile(source_file.second);
 
-                                lua_Current_Buffer_Row_Var_Name = LuaEngine::Instance()->GetRowBufferName();
-                                lua_Function_To_Call_For_Each_Row = LuaEngine::Instance()->GetFunctionForEachRow();
-                                lua_Function_To_Call_End_File = LuaEngine::Instance()->GetFunctionForEndFile();
-                            }
+#ifdef USE_SQLITE_DB
+                                auto ps = FileHelper::Instance()->ParsePathFileName(ProjectFile::Instance()->m_ProjectFilePathName);
+                                auto dbFile = ps.GetFPNE_WithExt("db");
+                                DBEngine::Instance()->OpenDBFile(dbFile);
+                                source_file_id = DBEngine::Instance()->AddSourceFile(source_file.second);
+                                DBEngine::Instance()->BeginTransaction();
+#endif
 
-                            auto file_lines = ct::splitStringToVector(file_string, '\n');
-                            lua_Row_Count = (int32_t)file_lines.size();
-
-                            LuaEngine::Instance()->SetRowCount(lua_Row_Count);
-
-                            lua_Row_Index = 0U;
-                            for (auto lua_Current_Buffer_Row_Content : file_lines)
-                            {
-                                if (!vWorking)
-                                    break;
-
-                                LuaEngine::Instance()->SetRowIndex(lua_Row_Index);
-
-                                // time
-                                const int64_t secondTimeMark = std::chrono::duration_cast<std::chrono::milliseconds>
-                                    (std::chrono::system_clock::now().time_since_epoch()).count();
-
-                                vGenerationTime = (double)(secondTimeMark - firstTimeMark) / 1000.0;
-                                vProgress = (double)lua_Row_Index / (double)lua_Row_Count;
-
-                                // set current buffer line
-                                if (!lua_Current_Buffer_Row_Var_Name.empty())
+                                // interpret lua script
+                                if (luaL_dofile(_luaState, luaFilePathName.c_str()) != LUA_OK)
                                 {
-                                    sSetLuaBufferVarContent(_luaState, lua_Current_Buffer_Row_Var_Name, lua_Current_Buffer_Row_Content);
+                                    LogVarLightError("%s", lua_tostring(_luaState, -1));
                                 }
-
-                                // call function for each row
-                                if (!lua_Function_To_Call_For_Each_Row.empty())
+                                else
                                 {
-                                    lua_getglobal(_luaState, lua_Function_To_Call_For_Each_Row.c_str());
+                                    // call function Init
+                                    lua_getglobal(_luaState, "Init");
                                     if (lua_isfunction(_luaState, -1))
                                     {
                                         lua_pcall(_luaState, 0, 0, 0);
+
+                                        lua_Current_Buffer_Row_Var_Name = LuaEngine::Instance()->GetRowBufferName();
+                                        lua_Function_To_Call_For_Each_Row = LuaEngine::Instance()->GetFunctionForEachRow();
+                                        lua_Function_To_Call_End_File = LuaEngine::Instance()->GetFunctionForEndFile();
                                     }
+
+                                    auto file_lines = ct::splitStringToVector(file_string, '\n');
+                                    lua_Row_Count = (int32_t)file_lines.size();
+
+                                    LuaEngine::Instance()->SetRowCount(lua_Row_Count);
+
+                                    lua_Row_Index = 0U;
+                                    for (auto lua_Current_Buffer_Row_Content : file_lines)
+                                    {
+                                        if (!vWorking)
+                                            break;
+
+                                        LuaEngine::Instance()->SetRowIndex(lua_Row_Index);
+
+                                        // time
+                                        const int64_t secondTimeMark = std::chrono::duration_cast<std::chrono::milliseconds>
+                                            (std::chrono::system_clock::now().time_since_epoch()).count();
+
+                                        vGenerationTime = (double)(secondTimeMark - firstTimeMark) / 1000.0;
+                                        vProgress = (double)lua_Row_Index / (double)lua_Row_Count;
+
+                                        // set current buffer line
+                                        if (!lua_Current_Buffer_Row_Var_Name.empty())
+                                        {
+                                            sSetLuaBufferVarContent(_luaState, lua_Current_Buffer_Row_Var_Name, lua_Current_Buffer_Row_Content);
+                                        }
+
+                                        // call function for each row
+                                        if (!lua_Function_To_Call_For_Each_Row.empty())
+                                        {
+                                            lua_getglobal(_luaState, lua_Function_To_Call_For_Each_Row.c_str());
+                                            if (lua_isfunction(_luaState, -1))
+                                            {
+                                                lua_pcall(_luaState, 0, 0, 0);
+                                            }
+                                        }
+
+                                        // inc row line pos
+                                        ++lua_Row_Index;
+                                    }
+
+                                    // call function for end of file
+                                    if (!lua_Function_To_Call_End_File.empty())
+                                    {
+                                        lua_getglobal(_luaState, lua_Function_To_Call_End_File.c_str());
+                                        if (lua_isfunction(_luaState, -1))
+                                        {
+                                            lua_pcall(_luaState, 0, 0, 0);
+                                        }
+                                    }
+
+#ifdef USE_SQLITE_DB
+                                    DBEngine::Instance()->EndTransaction();
+                                    DBEngine::Instance()->CloseDBFile();
+#endif
+                                    LogEngine::Instance()->Finalize();
                                 }
-
-                                // inc row line pos
-                                ++lua_Row_Index;
                             }
-
-                            // call function for end of file
-                            if (!lua_Function_To_Call_End_File.empty())
+                            catch (std::exception& e)
                             {
-                                lua_getglobal(_luaState, lua_Function_To_Call_End_File.c_str());
-                                if (lua_isfunction(_luaState, -1))
-                                {
-                                    lua_pcall(_luaState, 0, 0, 0);
-                                }
+                                LogVarLightError("%s", e.what());
                             }
-
-                            DBEngine::Instance()->EndTransaction();
-                            DBEngine::Instance()->CloseDBFile();
-                            LogEngine::Instance()->Finalize(); 
-
                         }
-                    }
-                    catch (std::exception& e)
-                    {
-                        LogVarLightError("%s", e.what());
                     }
                 }
             }
@@ -500,7 +531,7 @@ bool LuaEngine::ExecScriptCode(const std::string& vCode, std::string& vErrors)
 {
     if (luaL_dostring(m_LuaStatePtr, vCode.c_str()) != LUA_OK)
     {
-        vErrors = std::string(lua_tostring(m_LuaStatePtr, -1));
+        vErrors = get_lua_secure_string(m_LuaStatePtr, -1);
 
         LogVarLightError("%s", vErrors.c_str());
 
@@ -580,19 +611,28 @@ std::string LuaEngine::GetLuaFilePathName()
     return m_LuaFilePathName;
 }
 
-void LuaEngine::SetLogFilePathName(const std::string& vFilePathName)
+void LuaEngine::AddSourceFilePathName(const std::string& vFilePathName)
 {
-    m_LogFilePathName = vFilePathName;
+    auto ps = FileHelper::Instance()->ParsePathFileName(vFilePathName);
+    if (ps.isOk)
+    {
+        m_SourceFilePathNames.emplace_back(ps.GetFPNE_WithPath(""), vFilePathName);
+    }
 }
 
-std::string LuaEngine::GetLogFilePathName()
+std::vector<std::pair<SourceFileName, SourceFilePathName>>& LuaEngine::GetSourceFilePathNamesRef()
 {
-    return m_LogFilePathName;
+    return m_SourceFilePathNames;
 }
 
 void LuaEngine::AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue)
 {
-    LogEngine::Instance()->AddSignalTick(vCategory, vName, vDate, vValue);
+    LogEngine::Instance()->AddSignalTick(source_file_parent, vCategory, vName, vDate, vValue);
+}
+
+void LuaEngine::AddSignalString(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalString& vString)
+{
+    LogEngine::Instance()->AddSignalTick(source_file_parent, vCategory, vName, vDate, vString);
 }
 
 ///////////////////////////////////////////////////////
@@ -677,7 +717,13 @@ std::string LuaEngine::getXml(const std::string& vOffset, const std::string& vUs
     std::string str;
 
     str += vOffset + "<lua_file>" + m_LuaFilePathName + "</lua_file>\n";
-    str += vOffset + "<log_file>" + m_LogFilePathName + "</log_file>\n";
+    str += vOffset + "<log_files>\n";
+    auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
+    for (const auto& source_file : container_ref)
+    {
+        str += vOffset + "\t<log_file>" + escapeXmlCode(source_file.second) + "</log_file>\n";
+    }
+    str += vOffset + "</log_files>\n";
 
     return str;
 }
@@ -699,8 +745,14 @@ bool LuaEngine::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vP
 
     if (strName == "lua_file")
         m_LuaFilePathName = strValue;
-    else if (strName == "log_file")
-        m_LogFilePathName = strValue;
+
+    if (strParentName == "log_files")
+    {
+        if (strName == "log_file")
+        {
+            LuaEngine::Instance()->AddSourceFilePathName(unEscapeXmlCode(strValue));
+        }
+    }
 
     return true;
 }

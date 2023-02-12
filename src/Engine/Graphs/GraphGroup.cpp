@@ -86,7 +86,7 @@ void GraphGroup::SetName(const std::string& vName)
 	m_Name = vName;
 }
 
-UInt8ConstPtr GraphGroup::GetName()
+ImGuiLabel GraphGroup::GetImGuiLabel()
 {
 	return m_Name.c_str();
 }

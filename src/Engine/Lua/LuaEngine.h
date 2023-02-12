@@ -55,7 +55,7 @@ private: // thread
 
 private: // to save
 	std::string m_LuaFilePathName;
-	std::string m_LogFilePathName;
+	std::vector<std::pair<SourceFileName,SourceFilePathName>> m_SourceFilePathNames;
 
 public:
 	bool Init();
@@ -84,10 +84,11 @@ public:
 	void SetLuaFilePathName(const std::string& vFilePathName);
 	std::string GetLuaFilePathName();
 
-	void SetLogFilePathName(const std::string& vFilePathName);
-	std::string GetLogFilePathName();
+	void AddSourceFilePathName(const SourceFilePathName& vFilePathName);
+	std::vector<std::pair<SourceFileName, SourceFilePathName>>& GetSourceFilePathNamesRef();
 
-	static void AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue);
+	void AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue);
+	void AddSignalString(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalString& vString);
 
 	void StartWorkerThread(const bool& vFirstLoad);
 	bool StopWorkerThread();

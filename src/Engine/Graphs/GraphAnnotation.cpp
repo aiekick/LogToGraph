@@ -175,7 +175,7 @@ void GraphAnnotation::Clear()
 	m_StartPos = ImPlotPoint();
 	m_EndPos = ImPlotPoint();
 	m_LabelPos = ImPlotPoint();
-	m_Label = nullptr;
+	m_ImGuiLabel = nullptr;
 	m_Color = ImVec4();
 }
 
@@ -210,9 +210,9 @@ SignalSerieWeak GraphAnnotation::GetParentSignalSerie()
 	return m_ParentSignalSerie;
 }
 
-UInt8ConstPtr GraphAnnotation::GetLabel() const
+ImGuiLabel GraphAnnotation::GetImGuiLabel() const
 {
-	return m_Label;
+	return m_ImGuiLabel;
 }
 
 void GraphAnnotation::DrawToPoint(SignalSeriePtr vSignalSeriePtr, const ImVec2& vMousePoint)
@@ -239,7 +239,7 @@ void GraphAnnotation::DrawToPoint(SignalSeriePtr vSignalSeriePtr, const ImVec2& 
 
 void GraphAnnotation::Draw()
 {
-	if (m_Label)
+	if (m_ImGuiLabel)
 	{
 		ImGui::PushID(this);
 
@@ -261,7 +261,7 @@ void GraphAnnotation::Draw()
 				ImPlot::Annotation(
 					m_LabelPos.x, m_LabelPos.y,
 					m_Color,
-					ImVec2(-15, 15), true, "%s", m_Label);
+					ImVec2(-15, 15), true, "%s", m_ImGuiLabel);
 			}
 		}
 
@@ -319,5 +319,5 @@ void GraphAnnotation::ComputeElapsedTime()
 	}
 
 	// for ImPlot
-	m_Label = m_ElapsedTimeStr.c_str();
+	m_ImGuiLabel = m_ElapsedTimeStr.c_str();
 }

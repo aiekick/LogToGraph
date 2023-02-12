@@ -90,20 +90,7 @@ int ConsolePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidget
 
 void ConsolePane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
 {
-	/*ImVec2 min = MainFrame::Instance()->puDisplaySize * 0.5f;
-	ImVec2 max = MainFrame::Instance()->puDisplaySize;
 
-	if (ImGuiFileDialog::Instance()->Display("GenerateFileDlg", ImGuiWindowFlags_NoDocking, min, max))
-	{
-		if (ImGuiFileDialog::Instance()->IsOk())
-		{
-			std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-			std::string fileName = ImGuiFileDialog::Instance()->GetCurrentFileName();
-			Generator::Instance()->Generate(filePath, fileName, vProjectFile);
-		}
-
-		ImGuiFileDialog::Instance()->CloseDialog("GenerateFileDlg");
-	}*/
 }
 
 int ConsolePane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)

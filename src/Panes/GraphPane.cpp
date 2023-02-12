@@ -124,20 +124,7 @@ int GraphPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId
 
 void GraphPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
 {
-	/*ImVec2 min = MainFrame::Instance()->puDisplaySize * 0.5f;
-	ImVec2 max = MainFrame::Instance()->puDisplaySize;
 
-	if (ImGuiFileDialog::Instance()->Display("GenerateFileDlg", ImGuiWindowFlags_NoDocking, min, max))
-	{
-		if (ImGuiFileDialog::Instance()->IsOk())
-		{
-			std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-			std::string fileName = ImGuiFileDialog::Instance()->GetCurrentFileName();
-			Generator::Instance()->Generate(filePath, fileName, vProjectFile);
-		}
-
-		ImGuiFileDialog::Instance()->CloseDialog("GenerateFileDlg");
-	}*/
 }
 
 int GraphPane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
@@ -160,7 +147,7 @@ void GraphPane::DoVirtualLayout()
 				auto graph_group_ptr = *ggIt;
 				if (graph_group_ptr)
 				{
-					ImGui::DockBuilderDockWindow(graph_group_ptr->GetName(), window_ptr->DockId);
+					ImGui::DockBuilderDockWindow(graph_group_ptr->GetImGuiLabel(), window_ptr->DockId);
 				}
 			}
 		}

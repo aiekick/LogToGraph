@@ -32,6 +32,7 @@ limitations under the License.
 
 #include <Engine/Lua/LuaEngine.h>
 #include <Engine/Log/LogEngine.h>
+#include <Engine/Log/SourceFile.h>
 #include <Engine/Log/SignalSerie.h>
 #include <Engine/Log/SignalTick.h>
 #include <Engine/Graphs/GraphView.h>
@@ -120,7 +121,7 @@ void ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std
 		{
 			if (ImGuiFileDialog::Instance()->IsOk())
 			{
-				LuaEngine::Instance()->SetLogFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
+				LuaEngine::Instance()->AddSourceFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
 				ProjectFile::Instance()->SetProjectChange();
 			}
 
@@ -149,17 +150,61 @@ void ToolPane::DrawTable()
 	}
 	ImGui::TextWrapped("%s", LuaEngine::Instance()->GetLuaFilePathName().c_str());
 
-	ImGui::Separator();
+	ImGui::Header("Log Files");
 
-	ImGui::Header("Log File");
-	if (ImGui::ContrastedButton("Choose a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
+	if (ImGui::ContrastedButton("Open a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
 	{
 		ImGuiFileDialog::Instance()->OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*",
 			LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
 	}
-	ImGui::TextWrapped("%s", LuaEngine::Instance()->GetLogFilePathName().c_str());
+	
+	auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
 
-	ImGui::Separator();
+	if (!container_ref.empty())
+	{
+		static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders;
+		if (ImGui::BeginTable("##sourcefilestable", 2, flags, ImVec2(-1.0f, container_ref.size() * ImGui::GetTextLineHeightWithSpacing())))
+		{
+			ImGui::TableSetupScrollFreeze(0, 1); // Make header always visible
+			ImGui::TableSetupColumn("Log Files", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("##Close", ImGuiTableColumnFlags_WidthFixed);
+			ImGui::TableHeadersRow();
+
+			auto it_to_erase = container_ref.end();
+			for (auto it_source_file = container_ref.begin(); it_source_file != container_ref.end(); ++it_source_file)
+			{
+				ImGui::TableNextRow();
+
+				if (ImGui::TableSetColumnIndex(0)) // first column
+				{
+					ImGui::Selectable(it_source_file->first.c_str());
+				}
+
+				if (ImGui::TableSetColumnIndex(1)) // second column
+				{
+					if (ImGui::ContrastedButton(ICON_NDP_CANCEL, nullptr, nullptr, 0.0f, ImVec2(0.0f, 0.0f)))
+					{
+						it_to_erase = it_source_file;
+					}
+				}
+			}
+
+			// erase
+			if (it_to_erase != container_ref.end())
+			{
+				container_ref.erase(it_to_erase);
+			}
+
+			ImGui::EndTable();
+		}
+	}	
+
+	ImGui::Header("Predefined Zero value");
+	ImGui::CheckBoxBoolDefault("Use Predefined Zero Value ?", &ProjectFile::Instance()->m_UsePredefinedZeroValue, false);
+	if (ProjectFile::Instance()->m_UsePredefinedZeroValue) 
+	{
+		ImGui::InputDouble("##Predefinedzerovalue", &ProjectFile::Instance()->m_PredefinedZeroValue);
+	}
 
 	ImGui::Header("Analyse");
 	if (!LuaEngine::Instance()->IsJoinable())

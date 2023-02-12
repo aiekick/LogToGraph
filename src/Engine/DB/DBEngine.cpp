@@ -80,7 +80,7 @@ std::string DBEngine::GetLastErrorMesg()
 	return std::string(m_LastErrorMsg);
 }
 
-DBRowID DBEngine::AddSourceFile(const SourceFile& vSourceFile)
+DBRowID DBEngine::AddSourceFile(const SourceFileName& vSourceFile)
 {
 	auto insert_query = ct::toStr(u8R"(insert or ignore into signal_sources (source) values("%s");)", vSourceFile.c_str());
 	if (sqlite3_exec(m_SqliteDB, insert_query.c_str(), nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
@@ -126,7 +126,24 @@ void DBEngine::AddSignalTick(const SourceFileID& vSourceFileID, const SignalCate
 	}
 }
 
-DBRowID DBEngine::GetSourceFile(const SourceFile& vSourceFile)
+void DBEngine::AddSignalTick(const SourceFileID& vSourceFileID, const SignalCategory& vSignalCategory, const SignalName& vSignalName, const SignalEpochTime& vDate, const SignalString& vString)
+{
+	AddSignalCategory(vSignalCategory);
+	AddSignalName(vSignalName);
+
+	auto insert_query = ct::toStr(u8R"(insert or ignore into signal_ticks 
+(id_signal_source, id_signal_category, id_signal_name, epoch_time, signal_string) values(%i,
+(select id from signal_categories where signal_categories.category = "%s"),
+(select id from signal_names where signal_names.name = "%s"),
+%f,"%s");)",
+(int32_t)vSourceFileID, vSignalCategory.c_str(), vSignalName.c_str(), vDate, vString);
+	if (sqlite3_exec(m_SqliteDB, insert_query.c_str(), nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
+	{
+		LogVarError("Fail to insert a tick in database : %s", m_LastErrorMsg);
+	}
+}
+
+DBRowID DBEngine::GetSourceFile(const SourceFileName& vSourceFile)
 {
 	DBRowID res = -1;
 
@@ -233,7 +250,8 @@ create table signal_ticks (
 	id_signal_category INTEGER, 
 	id_signal_name INTEGER,
 	epoch_time integer, 
-	signal_value double
+	signal_value double, 
+	signal_string varchar(255)
 );
 )";
 

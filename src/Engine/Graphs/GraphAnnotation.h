@@ -50,7 +50,7 @@ private: // datas
 	ImPlotPoint m_StartPos;
 	ImPlotPoint m_EndPos;
 	ImPlotPoint m_LabelPos;
-	UInt8ConstPtr m_Label = nullptr;
+	ImGuiLabel m_ImGuiLabel = nullptr;
 	ImVec4 m_Color;
 
 public:
@@ -64,7 +64,7 @@ public:
 
 	void SetSignalSerieParent(const SignalSerieWeak& vSignalSerie);
 	SignalSerieWeak GetParentSignalSerie();
-	UInt8ConstPtr GetLabel() const;
+	ImGuiLabel GetImGuiLabel() const;
 
 private:
 	void ComputeElapsedTime();

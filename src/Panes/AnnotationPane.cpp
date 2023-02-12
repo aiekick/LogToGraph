@@ -91,20 +91,7 @@ int AnnotationPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWid
 
 void AnnotationPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
 {
-	/*ImVec2 min = MainFrame::Instance()->puDisplaySize * 0.5f;
-	ImVec2 max = MainFrame::Instance()->puDisplaySize;
 
-	if (ImGuiFileDialog::Instance()->Display("GenerateFileDlg", ImGuiWindowFlags_NoDocking, min, max))
-	{
-		if (ImGuiFileDialog::Instance()->IsOk())
-		{
-			std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-			std::string fileName = ImGuiFileDialog::Instance()->GetCurrentFileName();
-			Generator::Instance()->Generate(filePath, fileName, vProjectFile);
-		}
-
-		ImGuiFileDialog::Instance()->CloseDialog("GenerateFileDlg");
-	}*/
 }
 
 int AnnotationPane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
@@ -193,7 +180,7 @@ void AnnotationPane::DrawContent()
 						selected = signal_ptr->show;
 						color = signal_ptr->color_u32;
 
-						if (anno_ptr->GetLabel())
+						if (anno_ptr->GetImGuiLabel())
 						{
 							if (selected && color)
 							{
@@ -227,7 +214,7 @@ void AnnotationPane::DrawContent()
 							}
 							if (ImGui::TableNextColumn()) // annotation label
 							{
-								ImGui::Selectable(anno_ptr->GetLabel(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+								ImGui::Selectable(anno_ptr->GetImGuiLabel(), &selected, ImGuiSelectableFlags_SpanAllColumns);
 								CheckItem(signal_ptr);
 							}
 

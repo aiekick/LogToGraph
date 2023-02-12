@@ -86,20 +86,7 @@ int LogPaneSecondView::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& v
 
 void LogPaneSecondView::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
 {
-	/*ImVec2 min = MainFrame::Instance()->puDisplaySize * 0.5f;
-	ImVec2 max = MainFrame::Instance()->puDisplaySize;
 
-	if (ImGuiFileDialog::Instance()->Display("GenerateFileDlg", ImGuiWindowFlags_NoDocking, min, max))
-	{
-		if (ImGuiFileDialog::Instance()->IsOk())
-		{
-			std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-			std::string fileName = ImGuiFileDialog::Instance()->GetCurrentFileName();
-			Generator::Instance()->Generate(filePath, fileName, vProjectFile);
-		}
-
-		ImGuiFileDialog::Instance()->CloseDialog("GenerateFileDlg");
-	}*/
 }
 
 int LogPaneSecondView::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
@@ -307,7 +294,14 @@ void LogPaneSecondView::DrawTable()
 					}
 					if (ImGui::TableNextColumn()) // value
 					{
-						ImGui::Text("%f", infos_ptr->value);
+						if (infos_ptr->string.empty())
+						{
+							ImGui::Text("%f", infos_ptr->value);
+						}
+						else
+						{
+							ImGui::Text("%s", infos_ptr->string.c_str());
+						}
 						CheckItem(infos_ptr);
 					}
 

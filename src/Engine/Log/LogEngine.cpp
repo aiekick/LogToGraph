@@ -24,6 +24,7 @@ limitations under the License.
 
 #include <Engine/Log/SignalSerie.h>
 #include <Engine/Log/SignalTick.h>
+#include <Engine/Log/SourceFile.h>
 #include <Engine/Graphs/GraphView.h>
 #include <Engine/DB/DBEngine.h>
 
@@ -68,11 +69,24 @@ void LogEngine::Clear()
 	m_DiffFirstTicks.clear();
 	m_DiffSecondTicks.clear();
 	m_DiffResult.clear();
+	m_SourceFiles.clear();
 	m_VisibleCount = 0;
 	m_SignalsCount = 0;
 }
 
-void LogEngine::AddSignalTick(const std::string& vCategory, const std::string& vName, const double& vTime, const double& vValue)
+SourceFileWeak LogEngine::SetSourceFile(const SourceFileName& vSourceFileName)
+{
+	SourceFileWeak res;
+
+	if (!vSourceFileName.empty())
+	{
+		res = m_SourceFiles[vSourceFileName] = SourceFile::Create(vSourceFileName);
+	}
+
+	return res;
+}
+
+void LogEngine::AddSignalTick(const SourceFileWeak& vSourceFile, const std::string& vCategory, const std::string& vName, const double& vTime, const double& vValue)
 {
 	if (!vName.empty())
 	{
@@ -103,6 +117,55 @@ void LogEngine::AddSignalTick(const std::string& vCategory, const std::string& v
 				_datas_name_ptr->AddTick(tick_Ptr, true);
 				_datas_name_ptr->low_case_name_for_search = ct::toLower(vName); // save low case signal name for search
 				_datas_name_ptr->show = false;
+				_datas_name_ptr->m_SourceFileParent = vSourceFile;
+			}
+		}
+		else // deja existant
+		{
+			auto& _datas_name_ptr = _datas_cat.at(vName);
+			if (_datas_name_ptr)
+			{
+				// on set le time et la valeur de cette frame
+				_datas_name_ptr->AddTick(tick_Ptr, true);
+				// by default not visible
+				_datas_name_ptr->show = false;
+			}
+		}
+	}
+}
+
+void LogEngine::AddSignalTick(const SourceFileWeak& vSourceFile, const std::string& vCategory, const std::string& vName, const double& vTime, const SignalString& vString)
+{
+	if (!vName.empty())
+	{
+		auto tick_Ptr = SignalTick::Create();
+		tick_Ptr->category = vCategory;
+		tick_Ptr->name = vName;
+		tick_Ptr->time_epoch = vTime;
+		tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(vTime);
+		tick_Ptr->string = vString;
+
+		m_Range_ticks_time.x = ct::mini(m_Range_ticks_time.x, vTime);
+		m_Range_ticks_time.y = ct::maxi(m_Range_ticks_time.y, vTime);
+
+		m_SignalTicks.push_back(tick_Ptr);
+
+		// ajout de la categorie
+		auto& _datas_cat = m_SignalSeries[vCategory];
+
+		if (_datas_cat.find(vName) == _datas_cat.end()) // first value of the signal
+		{
+			++m_SignalsCount;
+
+			auto& _datas_name_ptr = _datas_cat[vName] = SignalSerie::Create();
+			if (_datas_name_ptr)
+			{
+				_datas_name_ptr->category = vCategory;
+				_datas_name_ptr->name = vName;
+				_datas_name_ptr->AddTick(tick_Ptr, true);
+				_datas_name_ptr->low_case_name_for_search = ct::toLower(vName); // save low case signal name for search
+				_datas_name_ptr->show = false;
+				_datas_name_ptr->m_SourceFileParent = vSourceFile;
 			}
 		}
 		else // deja existant
@@ -267,13 +330,17 @@ bool LogEngine::isSignalShown(const SignalCategory& vCategory, const SignalName&
 	return res;
 }
 
-// get tick times
+
+SourceFilesContainerRef LogEngine::GetSourceFiles()
+{
+	return m_SourceFiles;
+}
+
 SignalValueRangeConstRef LogEngine::GetTicksTimeSerieRange() const
 { 
 	return m_Range_ticks_time;
 }
 
-// get SignalTicksContainer
 SignalTicksContainerRef LogEngine::GetSignalTicks()
 {
 	return m_SignalTicks; 
