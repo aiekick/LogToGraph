@@ -154,10 +154,16 @@ public:
 	void ClearDataTables();
 
 	/// <summary>
-	/// will merged datas tables
+	/// willreturn soruce files infos
 	/// <param name="vCallback">callback func called for each database line retrieved</param>
 	/// </summary>
-	void GetDatas(std::function<void(SourceFileID, SignalEpochTime, SignalCategory, SignalName, SignalValue, SignalString)> vCallback);
+	void GetSourceFiles(std::function<void(const SourceFileID&, const SourceFilePathName&)> vCallback);
+	
+	/// <summary>
+	/// will return merged datas in callbakk
+	/// <param name="vCallback">callback func called for each database line retrieved</param>
+	/// </summary>
+	void GetDatas(std::function<void(const SourceFileID&, const SignalEpochTime&, const SignalCategory&, const SignalName&, const SignalValue&, const SignalString&)> vCallback);
 
 
 	/// <summary>

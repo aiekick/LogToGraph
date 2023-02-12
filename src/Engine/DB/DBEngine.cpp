@@ -217,7 +217,55 @@ commit;
 	}
 }
 
-void DBEngine::GetDatas(std::function<void(SourceFileID, SignalEpochTime, SignalCategory, SignalName, SignalValue, SignalString)> vCallback)
+void DBEngine::GetSourceFiles(std::function<void(const SourceFileID&, const SourceFilePathName&)> vCallback)
+{
+	// no interest to call that without a claaback for retrieve datas
+	assert(vCallback);
+
+	std::string select_query = u8R"(
+SELECT
+  signal_sources.rowid as source_id,
+  signal_sources.source as source_name
+FROM 
+ signal_sources
+ORDER BY
+ source_id
+;
+)";
+	sqlite3_stmt* stmt = nullptr;
+	int res = sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr);
+	if (res != SQLITE_OK)
+	{
+		LogVarError("Fail to get id from signal_names in database");
+	}
+	else
+	{
+		while (res == SQLITE_OK || res == SQLITE_ROW)
+		{
+			//on récupère une ligne dans la table
+			res = sqlite3_step(stmt);
+			if (res == SQLITE_OK || res == SQLITE_ROW)
+			{
+				/*
+					signal_sources.rowid	int
+					signal_sources.source	string
+				*/
+				auto source_file_id = sqlite3_column_int(stmt, 0);
+
+				//can be null
+				auto source_file_path_name_cstr = (const char*)sqlite3_column_text(stmt, 1);
+				std::string source_file_path_name_string = (source_file_path_name_cstr != nullptr) ? source_file_path_name_cstr : "";
+
+				//call callback with datas passed in args
+				vCallback(source_file_id, source_file_path_name_string);
+			}
+		}
+	}
+
+	sqlite3_finalize(stmt);
+}
+
+void DBEngine::GetDatas(std::function<void(const SourceFileID&, const SignalEpochTime&, const SignalCategory&, const SignalName&, const SignalValue&, const SignalString&)> vCallback)
 {
 	// no interest to call that without a claaback for retrieve datas
 	assert(vCallback);
@@ -263,13 +311,23 @@ order by
 				*/
 				auto source_file_id = sqlite3_column_int(stmt, 0);
 				auto epoch_time = sqlite3_column_double(stmt, 1);
-				auto category = (const char*)sqlite3_column_text(stmt, 2);
-				auto name = (const char*)sqlite3_column_text(stmt, 3);
+
+				// can be null
+				auto category_cstr = (const char*)sqlite3_column_text(stmt, 2);
+				std::string category_string = (category_cstr != nullptr) ? category_cstr : "";
+
+				// can be null
+				auto name_cstr = (const char*)sqlite3_column_text(stmt, 3);
+				std::string name_string = (name_cstr != nullptr) ? name_cstr : "";
+
 				auto signal_value = sqlite3_column_double(stmt, 4);
-				auto signal_string = (const char*)sqlite3_column_text(stmt, 5);
+
+				// can be null
+				auto signal_string_cstr = (const char*)sqlite3_column_text(stmt, 5);
+				std::string signal_string = (signal_string_cstr != nullptr) ? signal_string_cstr : "";
 
 				//call callback with datas passed in args
-				vCallback(source_file_id, epoch_time, category, name, signal_value, signal_string);
+				vCallback(source_file_id, epoch_time, category_string, name_string, signal_value, signal_string);
 			}
 		}
 	}

@@ -80,7 +80,14 @@ SourceFileWeak LogEngine::SetSourceFile(const SourceFileName& vSourceFileName)
 
 	if (!vSourceFileName.empty())
 	{
-		res = m_SourceFiles[vSourceFileName] = SourceFile::Create(vSourceFileName);
+		if (m_SourceFiles.find(vSourceFileName) == m_SourceFiles.end()) // not found
+		{
+			res = m_SourceFiles[vSourceFileName] = SourceFile::Create(vSourceFileName);
+		}
+		else
+		{
+			res = m_SourceFiles.at(vSourceFileName);
+		}
 	}
 
 	return res;

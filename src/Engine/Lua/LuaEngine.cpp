@@ -240,9 +240,8 @@ static int Lua_void_AddSignalValue_category_name_date_value(lua_State* L)
     else
     {
 #ifdef USE_SQLITE_DB
-        DBEngine::Instance()->AddSignalTick(source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_value);
+        DBEngine::Instance()->AddSignalTick((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_value);
 #endif
-        LuaEngine::Instance()->AddSignalValue(arg_0_category, arg_1_name, arg_2_date, arg_3_value);
     }
 
     return 0; // return 0 item
@@ -264,9 +263,8 @@ static int Lua_void_AddSignalValue_category_name_date_string(lua_State* L)
     else
     {
 #ifdef USE_SQLITE_DB
-        DBEngine::Instance()->AddSignalTick(source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string);
+        DBEngine::Instance()->AddSignalTick((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string);
 #endif
-        LuaEngine::Instance()->AddSignalString(arg_0_category, arg_1_name, arg_2_date, arg_3_string);
     }
 
     return 0; // return 0 item
@@ -404,8 +402,6 @@ void LuaEngine::sLuAnalyse(
                         {
                             try
                             {
-                                source_file_parent = LogEngine::Instance()->SetSourceFile(source_file.second);
-
 #ifdef USE_SQLITE_DB
                                 source_file_id = DBEngine::Instance()->AddSourceFile(source_file.second);
                                 DBEngine::Instance()->BeginTransaction();
@@ -492,10 +488,40 @@ void LuaEngine::sLuAnalyse(
                     }
                 }
 
-                DBEngine::Instance()->CloseDBFile();
+                // get sources
+                std::map<SourceFileID, SourceFileWeak> _SourceFiles;
+                DBEngine::Instance()->GetSourceFiles([&_SourceFiles](
+                    const SourceFileID& vSourceFileID,
+                    const SourceFilePathName& vSourceFilePathName)
+                    {
+                        _SourceFiles[vSourceFileID] = LogEngine::Instance()->SetSourceFile(vSourceFilePathName);
+                    });
+                
+                // get datas
+                DBEngine::Instance()->GetDatas([&_SourceFiles](
+                    const SourceFileID& vSourceFileID,
+                    const SignalEpochTime& vSignalEpochTime,
+                    const SignalCategory& vSignalCategory,
+                    const SignalName& vSignalName,
+                    const SignalValue& vSignalValue,
+                    const SignalString& vSignalString)
+                    {
+                        auto source_file_parent_weak = _SourceFiles.at(vSourceFileID);
+
+                        if (vSignalString.empty())
+                        {
+                            LogEngine::Instance()->AddSignalTick(source_file_parent_weak, vSignalCategory, vSignalName, vSignalEpochTime, vSignalValue);
+                        }
+                        else
+                        {
+                            LogEngine::Instance()->AddSignalTick(source_file_parent_weak, vSignalCategory, vSignalName, vSignalEpochTime, vSignalString);
+                        }
+                    });
 
                 // retrieve datas from database
                 LogEngine::Instance()->Finalize();
+
+                DBEngine::Instance()->CloseDBFile();
             }
         }
 
