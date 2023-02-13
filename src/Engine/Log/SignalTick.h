@@ -41,6 +41,7 @@ public:
 	SignalName name;
 	SignalValue value = 0.0;
 	SignalString string;
+	SignalStatus status;
 	SignalSerieWeak parent;
 
 public:

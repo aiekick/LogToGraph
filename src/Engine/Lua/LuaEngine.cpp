@@ -37,8 +37,6 @@ limitations under the License.
 #include <Panes/ToolPane.h>
 #include <Panes/LogPane.h>
 
-#define USE_SQLITE_DB
-
 ///////////////////////////////////////////////////
 /// STATIC ////////////////////////////////////////
 ///////////////////////////////////////////////////
@@ -239,16 +237,14 @@ static int Lua_void_AddSignalValue_category_name_date_value(lua_State* L)
     }
     else
     {
-#ifdef USE_SQLITE_DB
         DBEngine::Instance()->AddSignalTick((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_value);
-#endif
     }
 
     return 0; // return 0 item
 }
 
-// AddSignalValue(signal_category, signal_name, signal_epoch_time, signal_string)
-static int Lua_void_AddSignalValue_category_name_date_string(lua_State* L)
+// AddSignalStartZone(signal_category, signal_name, signal_epoch_time, signal_string)
+static int Lua_void_AddSignalStartZone_category_name_date_string(lua_State* L)
 {
     // params from stack
     const auto arg_0_category = get_lua_secure_string(L, 1);
@@ -262,9 +258,28 @@ static int Lua_void_AddSignalValue_category_name_date_string(lua_State* L)
     }
     else
     {
-#ifdef USE_SQLITE_DB
-        DBEngine::Instance()->AddSignalTick((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string);
-#endif
+        DBEngine::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, LuaEngine::sc_START_ZONE);
+    }
+
+    return 0; // return 0 item
+}
+
+// AddSignalEndZone(signal_category, signal_name, signal_epoch_time, signal_string)
+static int Lua_void_AddSignalEndZone_category_name_date_string(lua_State* L)
+{
+    // params from stack
+    const auto arg_0_category = get_lua_secure_string(L, 1);
+    const auto arg_1_name = get_lua_secure_string(L, 2);
+    const auto arg_2_date = lua_tonumber(L, 3);
+    const auto arg_3_string = get_lua_secure_string(L, 4);
+
+    if (arg_0_category.empty() || arg_1_name.empty())
+    {
+        LogVarLightError("%s", "Lua code error : the string passed to LogValue is empty");
+    }
+    else
+    {
+        DBEngine::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, LuaEngine::sc_END_ZONE);
     }
 
     return 0; // return 0 item
@@ -325,7 +340,8 @@ static lua_State* CreateLuaState()
         lua_register(lua_state_ptr, "GetRowIndex", Lua_int_GetRowIndex_void);
         lua_register(lua_state_ptr, "GetRowCount", Lua_int_GetRowCount_void);
         lua_register(lua_state_ptr, "AddSignalValue", Lua_void_AddSignalValue_category_name_date_value);
-        lua_register(lua_state_ptr, "AddSignalString", Lua_void_AddSignalValue_category_name_date_string);
+        lua_register(lua_state_ptr, "AddSignalStartZone", Lua_void_AddSignalStartZone_category_name_date_string);
+        lua_register(lua_state_ptr, "AddSignalEndZone", Lua_void_AddSignalEndZone_category_name_date_string);
         lua_register(lua_state_ptr, "GetEpochTime", Lua_number_GetEpochTimeFrom_date_time_string_offset_int);
     }
 
@@ -385,12 +401,10 @@ void LuaEngine::sLuAnalyse(
                 LogEngine::Instance()->Clear();
                 GraphView::Instance()->Clear();
 
-#ifdef USE_SQLITE_DB
                 auto ps = FileHelper::Instance()->ParsePathFileName(ProjectFile::Instance()->m_ProjectFilePathName);
                 auto dbFile = ps.GetFPNE_WithExt("db");
                 DBEngine::Instance()->OpenDBFile(dbFile);
                 DBEngine::Instance()->ClearDataTables();
-#endif
 
                 for (const auto& source_file : source_files_ref)
                 {
@@ -402,10 +416,8 @@ void LuaEngine::sLuAnalyse(
                         {
                             try
                             {
-#ifdef USE_SQLITE_DB
                                 source_file_id = DBEngine::Instance()->AddSourceFile(source_file.second);
                                 DBEngine::Instance()->BeginTransaction();
-#endif
 
                                 // interpret lua script
                                 if (luaL_dofile(_luaState, luaFilePathName.c_str()) != LUA_OK)
@@ -474,15 +486,15 @@ void LuaEngine::sLuAnalyse(
                                             lua_pcall(_luaState, 0, 0, 0);
                                         }
                                     }
-
-#ifdef USE_SQLITE_DB
-                                    DBEngine::Instance()->EndTransaction();
-#endif
                                 }
+
+                                DBEngine::Instance()->CommitTransaction();
                             }
                             catch (std::exception& e)
                             {
                                 LogVarLightError("%s", e.what());
+
+                                DBEngine::Instance()->RollbackTransaction();
                             }
                         }
                     }
@@ -504,17 +516,29 @@ void LuaEngine::sLuAnalyse(
                     const SignalCategory& vSignalCategory,
                     const SignalName& vSignalName,
                     const SignalValue& vSignalValue,
-                    const SignalString& vSignalString)
+                    const SignalString& vSignalString,
+                    const SignalStatus& vSignalStatus)
                     {
                         auto source_file_parent_weak = _SourceFiles.at(vSourceFileID);
 
                         if (vSignalString.empty())
                         {
-                            LogEngine::Instance()->AddSignalTick(source_file_parent_weak, vSignalCategory, vSignalName, vSignalEpochTime, vSignalValue);
+                            LogEngine::Instance()->AddSignalTick(
+                                source_file_parent_weak, 
+                                vSignalCategory, 
+                                vSignalName, 
+                                vSignalEpochTime, 
+                                vSignalValue);
                         }
                         else
                         {
-                            LogEngine::Instance()->AddSignalTick(source_file_parent_weak, vSignalCategory, vSignalName, vSignalEpochTime, vSignalString);
+                            LogEngine::Instance()->AddSignalStatus(
+                                source_file_parent_weak, 
+                                vSignalCategory, 
+                                vSignalName, 
+                                vSignalEpochTime, 
+                                vSignalString, 
+                                vSignalStatus);
                         }
                     });
 
@@ -658,14 +682,23 @@ std::vector<std::pair<SourceFileName, SourceFilePathName>>& LuaEngine::GetSource
     return m_SourceFilePathNames;
 }
 
-void LuaEngine::AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue)
+void LuaEngine::AddSignalValue(
+    const SignalCategory& vCategory, 
+    const SignalName& vName, 
+    const SignalEpochTime& vDate, 
+    const SignalValue& vValue)
 {
     LogEngine::Instance()->AddSignalTick(source_file_parent, vCategory, vName, vDate, vValue);
 }
 
-void LuaEngine::AddSignalString(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalString& vString)
+void LuaEngine::AddSignalStatus(
+    const SignalCategory& vCategory, 
+    const SignalName& vName, 
+    const SignalEpochTime& vDate, 
+    const SignalString& vString,
+    const SignalStatus& vStatus)
 {
-    LogEngine::Instance()->AddSignalTick(source_file_parent, vCategory, vName, vDate, vString);
+    LogEngine::Instance()->AddSignalStatus(source_file_parent, vCategory, vName, vDate, vString, vStatus);
 }
 
 ///////////////////////////////////////////////////////

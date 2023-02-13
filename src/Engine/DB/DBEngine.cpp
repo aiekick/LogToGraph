@@ -1,3 +1,22 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+
+/*
+Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 #include "DBEngine.h"
 
 #include <vector>
@@ -57,11 +76,22 @@ bool DBEngine::BeginTransaction()
 	return false;
 }
 
-void DBEngine::EndTransaction()
+void DBEngine::CommitTransaction()
 {
 	if (sqlite3_exec(m_SqliteDB, "COMMIT;", nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
 	{
 		LogVarError("Fail to commit : %s", m_LastErrorMsg);
+	}
+
+	// we will close the db so force it to reset
+	m_TransactionStarted = false;
+}
+
+void DBEngine::RollbackTransaction()
+{
+	if (sqlite3_exec(m_SqliteDB, "ROLLBACK;", nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
+	{
+		LogVarError("Fail to ROLLBACK : %s", m_LastErrorMsg);
 	}
 
 	// we will close the db so force it to reset
@@ -107,7 +137,12 @@ void DBEngine::AddSignalName(const SignalName& vSignalName)
 	}
 }
 
-void DBEngine::AddSignalTick(const SourceFileID& vSourceFileID, const SignalCategory& vSignalCategory, const SignalName& vSignalName, const SignalEpochTime& vDate, const SignalValue& vValue)
+void DBEngine::AddSignalTick(
+	const SourceFileID& vSourceFileID, 
+	const SignalCategory& vSignalCategory, 
+	const SignalName& vSignalName,
+	const SignalEpochTime& vDate, 
+	const SignalValue& vValue)
 {
 	AddSignalCategory(vSignalCategory);
 	AddSignalName(vSignalName);
@@ -124,17 +159,23 @@ void DBEngine::AddSignalTick(const SourceFileID& vSourceFileID, const SignalCate
 	}
 }
 
-void DBEngine::AddSignalTick(const SourceFileID& vSourceFileID, const SignalCategory& vSignalCategory, const SignalName& vSignalName, const SignalEpochTime& vDate, const SignalString& vString)
+void DBEngine::AddSignalStatus(
+	const SourceFileID& vSourceFileID, 
+	const SignalCategory& vSignalCategory, 
+	const SignalName& vSignalName, 
+	const SignalEpochTime& vDate, 
+	const SignalString& vString,
+	const SignalStatus& vStatus)
 {
 	AddSignalCategory(vSignalCategory);
 	AddSignalName(vSignalName);
 
 	auto insert_query = ct::toStr(u8R"(insert or ignore into signal_ticks 
-(id_signal_source, id_signal_category, id_signal_name, epoch_time, signal_string) values(%i,
+(id_signal_source, id_signal_category, id_signal_name, epoch_time, signal_string, signal_status) values(%i,
 (select rowid from signal_categories where signal_categories.category = "%s"),
 (select rowid from signal_names where signal_names.name = "%s"),
-%f,"%s");)",
-(int32_t)vSourceFileID, vSignalCategory.c_str(), vSignalName.c_str(), vDate, vString.c_str());
+%f,"%s", "%s");)",
+(int32_t)vSourceFileID, vSignalCategory.c_str(), vSignalName.c_str(), vDate, vString.c_str(), vStatus.c_str());
 	if (sqlite3_exec(m_SqliteDB, insert_query.c_str(), nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
 	{
 		LogVarError("Fail to insert a tick in database : %s", m_LastErrorMsg);
@@ -265,7 +306,15 @@ ORDER BY
 	sqlite3_finalize(stmt);
 }
 
-void DBEngine::GetDatas(std::function<void(const SourceFileID&, const SignalEpochTime&, const SignalCategory&, const SignalName&, const SignalValue&, const SignalString&)> vCallback)
+void DBEngine::GetDatas(
+	std::function<void(
+		const SourceFileID&, 
+		const SignalEpochTime&, 
+		const SignalCategory&, 
+		const SignalName&, 
+		const SignalValue&, 
+		const SignalString&, 
+		const SignalStatus&)> vCallback)
 {
 	// no interest to call that without a claaback for retrieve datas
 	assert(vCallback);
@@ -277,7 +326,8 @@ SELECT
   signal_categories.category as category,
   signal_names.name as name, 
   signal_ticks.signal_value as value,
-  signal_ticks.signal_string as string
+  signal_ticks.signal_string as string,
+  signal_ticks.signal_status as string
 FROM 
  signal_ticks
  LEFT JOIN signal_sources ON signal_ticks.id_signal_source = signal_sources.rowid
@@ -309,6 +359,7 @@ order by
 				  signal_ticks.signal_value		double
 				  signal_ticks.signal_string	string
 				*/
+
 				auto source_file_id = sqlite3_column_int(stmt, 0);
 				auto epoch_time = sqlite3_column_double(stmt, 1);
 
@@ -326,8 +377,12 @@ order by
 				auto signal_string_cstr = (const char*)sqlite3_column_text(stmt, 5);
 				std::string signal_string = (signal_string_cstr != nullptr) ? signal_string_cstr : "";
 
+				// can be null
+				auto signal_status_cstr = (const char*)sqlite3_column_text(stmt, 6);
+				std::string signal_status = (signal_status_cstr != nullptr) ? signal_status_cstr : "";
+
 				//call callback with datas passed in args
-				vCallback(source_file_id, epoch_time, category_string, name_string, signal_value, signal_string);
+				vCallback(source_file_id, epoch_time, category_string, name_string, signal_value, signal_string, signal_status);
 			}
 		}
 	}
@@ -379,7 +434,8 @@ create table signal_ticks (
 	id_signal_name INTEGER,
 	epoch_time integer, 
 	signal_value double, 
-	signal_string varchar(255)
+	signal_string varchar(255), 
+	signal_status varchar(255)
 );
 )";
 

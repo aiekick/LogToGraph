@@ -41,6 +41,7 @@ public:
 	std::vector<SignalTickWeak> datas_values;
 	SignalCategory category;
 	SignalName name;
+	bool is_zone = false;
 
 	uint32_t color_u32 = ImGui::GetColorU32(ImVec4(0, 0, 0, 1));
 	ImVec4 color_v4 = ImVec4(0,0,0,1);

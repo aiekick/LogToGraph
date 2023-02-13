@@ -93,19 +93,24 @@ SourceFileWeak LogEngine::SetSourceFile(const SourceFileName& vSourceFileName)
 	return res;
 }
 
-void LogEngine::AddSignalTick(const SourceFileWeak& vSourceFile, const std::string& vCategory, const std::string& vName, const double& vTime, const double& vValue)
+void LogEngine::AddSignalTick(
+	const SourceFileWeak& vSourceFile,
+	const SignalCategory& vCategory,
+	const SignalName& vName,
+	const SignalEpochTime& vDate,
+	const SignalValue& vValue)
 {
 	if (!vName.empty())
 	{
 		auto tick_Ptr = SignalTick::Create();
 		tick_Ptr->category = vCategory;
 		tick_Ptr->name = vName;
-		tick_Ptr->time_epoch = vTime;
-        tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(vTime);
+		tick_Ptr->time_epoch = vDate;
+        tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(vDate);
 		tick_Ptr->value = vValue;
 
-		m_Range_ticks_time.x = ct::mini(m_Range_ticks_time.x, vTime);
-		m_Range_ticks_time.y = ct::maxi(m_Range_ticks_time.y, vTime);
+		m_Range_ticks_time.x = ct::mini(m_Range_ticks_time.x, vDate);
+		m_Range_ticks_time.y = ct::maxi(m_Range_ticks_time.y, vDate);
 
 		m_SignalTicks.push_back(tick_Ptr);
 		
@@ -141,19 +146,26 @@ void LogEngine::AddSignalTick(const SourceFileWeak& vSourceFile, const std::stri
 	}
 }
 
-void LogEngine::AddSignalTick(const SourceFileWeak& vSourceFile, const std::string& vCategory, const std::string& vName, const double& vTime, const SignalString& vString)
+void LogEngine::AddSignalStatus(
+	const SourceFileWeak& vSourceFile,
+	const SignalCategory& vCategory,
+	const SignalName& vName,
+	const SignalEpochTime& vDate,
+	const SignalString& vString,
+	const SignalStatus& vStatus)
 {
 	if (!vName.empty())
 	{
 		auto tick_Ptr = SignalTick::Create();
 		tick_Ptr->category = vCategory;
 		tick_Ptr->name = vName;
-		tick_Ptr->time_epoch = vTime;
-		tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(vTime);
+		tick_Ptr->time_epoch = vDate;
+		tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(vDate);
 		tick_Ptr->string = vString;
+		tick_Ptr->status = vStatus;
 
-		m_Range_ticks_time.x = ct::mini(m_Range_ticks_time.x, vTime);
-		m_Range_ticks_time.y = ct::maxi(m_Range_ticks_time.y, vTime);
+		m_Range_ticks_time.x = ct::mini(m_Range_ticks_time.x, vDate);
+		m_Range_ticks_time.y = ct::maxi(m_Range_ticks_time.y, vDate);
 
 		m_SignalTicks.push_back(tick_Ptr);
 
@@ -173,6 +185,7 @@ void LogEngine::AddSignalTick(const SourceFileWeak& vSourceFile, const std::stri
 				_datas_name_ptr->low_case_name_for_search = ct::toLower(vName); // save low case signal name for search
 				_datas_name_ptr->show = false;
 				_datas_name_ptr->m_SourceFileParent = vSourceFile;
+				_datas_name_ptr->is_zone = true;
 			}
 		}
 		else // deja existant
@@ -221,7 +234,9 @@ void LogEngine::Finalize()
 							tick_Ptr->name = item_name.first;
 							tick_Ptr->time_epoch = global_first_time_tick;
                             tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(global_first_time_tick);
-							tick_Ptr->value = local_first_tick_ptr->value;// 0.0; // is a default value can be 0.0 ???
+							tick_Ptr->value = (ProjectFile::Instance()->m_UsePredefinedZeroValue ? 
+								ProjectFile::Instance()->m_PredefinedZeroValue : 
+								local_first_tick_ptr->value);
 
 							m_VirtualTicks.push_back(tick_Ptr);// for retain the shared_pointer
 							item_name.second->InsertTick(tick_Ptr, 0U, false);

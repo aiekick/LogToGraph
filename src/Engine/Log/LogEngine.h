@@ -76,8 +76,19 @@ private:
 public:
 	void Clear();
 	SourceFileWeak SetSourceFile(const SourceFileName& vSourceFileName);
-	void AddSignalTick(const SourceFileWeak& vSourceFile, const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue);
-	void AddSignalTick(const SourceFileWeak& vSourceFile, const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalString& vString);
+	void AddSignalTick(
+		const SourceFileWeak& vSourceFile, 
+		const SignalCategory& vCategory, 
+		const SignalName& vName, 
+		const SignalEpochTime& vDate, 
+		const SignalValue& vValue);
+	void AddSignalStatus(
+		const SourceFileWeak& vSourceFile, 
+		const SignalCategory& vCategory, 
+		const SignalName& vName, 
+		const SignalEpochTime& vDate, 
+		const SignalString& vString,
+		const SignalStatus& vStatus);
 	void Finalize();
 
 	// iter SignalDatasContainer

@@ -219,7 +219,25 @@ void SignalsHoveredDiff::DrawTable()
 							}
 							if (ImGui::TableNextColumn()) // first value
 							{
-								ImGui::Text("%f", diff_first_mark_ptr->value);
+								if (diff_first_mark_ptr->string.empty())
+								{
+									ImGui::Text("%f", diff_first_mark_ptr->value);
+								}
+								else
+								{
+									if (diff_first_mark_ptr->status == LuaEngine::sc_START_ZONE)
+									{
+										ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", diff_first_mark_ptr->string.c_str());
+									}
+									else if (diff_first_mark_ptr->status == LuaEngine::sc_END_ZONE)
+									{
+										ImGui::Text("%s " ICON_NDP_ARROW_LEFT, diff_first_mark_ptr->string.c_str());
+									}
+									else
+									{
+										ImGui::Text("%s", diff_first_mark_ptr->string.c_str());
+									}
+								}
 								CheckItem(diff_first_mark_ptr);
 							}
 							if (ImGui::TableNextColumn()) // second value
@@ -230,7 +248,18 @@ void SignalsHoveredDiff::DrawTable()
 								}
 								else
 								{
-									ImGui::Text("%s", diff_second_mark_ptr->string.c_str());
+									if (diff_second_mark_ptr->status == LuaEngine::sc_START_ZONE)
+									{
+										ImGui::Text(ICON_NDP_ARROW_RIGHT, " %s", diff_second_mark_ptr->string.c_str());
+									}
+									else if (diff_second_mark_ptr->status == LuaEngine::sc_END_ZONE)
+									{
+										ImGui::Text(ICON_NDP_CARET_LEFT, " %s", diff_second_mark_ptr->string.c_str());
+									}
+									else
+									{
+										ImGui::Text("%s", diff_second_mark_ptr->string.c_str());
+									}
 								}
 								CheckItem(diff_second_mark_ptr);
 							}

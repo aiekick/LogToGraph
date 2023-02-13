@@ -201,7 +201,19 @@ void SignalsHoveredList::DrawTable()
 								}
 								else
 								{
-									ImGui::Text("%s", infos_ptr->string.c_str());
+									if (infos_ptr->status == LuaEngine::sc_START_ZONE)
+									{
+										ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", infos_ptr->string.c_str());
+									}
+									else if (infos_ptr->status == LuaEngine::sc_END_ZONE)
+									{
+										ImGui::Text("%s " ICON_NDP_ARROW_LEFT, infos_ptr->string.c_str());
+									}
+									else
+									{
+										ImGui::Text("%s", infos_ptr->string.c_str());
+									}
+
 								}
 							}
 

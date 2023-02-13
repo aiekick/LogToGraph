@@ -49,7 +49,40 @@ static inline double ImpDot(ImPlotPoint a, ImPlotPoint b) { return a.x * b.x + a
 static inline double ImpLength(ImPlotPoint a) { return sqrt(ImpDot(a,a)); }
 static inline double ImpDistance(ImPlotPoint A, ImPlotPoint B) { double dx = A.x - B.x;	double dy = A.y - B.y; return sqrt(dx * dx + dy * dy); }
 
-bool GraphAnnotation::IsMouseHoverLine2P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vStart, const ImVec2& vEnd, ImVec2& vOutLinePoint, double& vOutDistToLine)
+bool GraphAnnotation::sIsMouseHoverLine(const ct::dvec2& vMousePos, const double& vRadius, const ct::dvec2& vStart, const ct::dvec2& vEnd, ct::dvec2& vOutLinePoint)
+{
+	const auto mp = ImPlot::PixelsToPlot(ct::toImVec2(vMousePos));
+	const auto st = ImPlot::PixelsToPlot(ct::toImVec2(vStart));
+	const auto en = ImPlot::PixelsToPlot(ct::toImVec2(vEnd));
+
+	const auto a = mp - st;
+	const auto b = en - st;
+	const auto dot_b = s_dot(b, b);
+	if (IS_DOUBLE_EQUAL(dot_b, 0.0))
+		return false;
+
+	//projected point on infinite line
+	auto proj_pt = st + s_dot(a, b) * b / dot_b;
+
+	// limitation of projected point to the extremities of the segments
+	if (s_dot(proj_pt - st, en - st) <= 0.0)
+	{
+		vOutLinePoint = vStart;
+	}
+	else if (s_dot(proj_pt - en, st - en) <= 0.0)
+	{
+		vOutLinePoint = vEnd;
+	}
+	else
+	{
+		vOutLinePoint = s_toDVec2(ImPlot::PlotToPixels(proj_pt));
+	}
+
+	auto dist_to_line = (vMousePos - vOutLinePoint).length();
+	return (dist_to_line <= vRadius);
+}
+
+bool GraphAnnotation::sIsMouseHoverLine2P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vStart, const ImVec2& vEnd, ImVec2& vOutLinePoint, double& vOutDistToLine)
 {
 	const auto P = ImPlot::PixelsToPlot(vMousePos);
 	const auto A = ImPlot::PixelsToPlot(vStart);
@@ -78,12 +111,12 @@ bool GraphAnnotation::IsMouseHoverLine2P(const ImVec2& vMousePos, const double& 
 	return (vOutDistToLine <= vRadius);
 }
 
-bool GraphAnnotation::IsMouseHoverLine3P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vStart, const ImVec2& vMiddle, const ImVec2& vEnd, ImVec2& vOutLinePoint)
+bool GraphAnnotation::sIsMouseHoverLine3P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vStart, const ImVec2& vMiddle, const ImVec2& vEnd, ImVec2& vOutLinePoint)
 {
 	ImVec2 p0, p1;
 	double d0, d1;
-	IsMouseHoverLine2P(vMousePos, vRadius, vStart, vMiddle, p0, d0);
-	IsMouseHoverLine2P(vMousePos, vRadius, vMiddle, vEnd, p1, d1);
+	sIsMouseHoverLine2P(vMousePos, vRadius, vStart, vMiddle, p0, d0);
+	sIsMouseHoverLine2P(vMousePos, vRadius, vMiddle, vEnd, p1, d1);
 
 	if (d0 < d1)
 	{
@@ -96,7 +129,7 @@ bool GraphAnnotation::IsMouseHoverLine3P(const ImVec2& vMousePos, const double& 
 	return (d1 <= vRadius);
 }
 
-bool GraphAnnotation::IsMouseHoverLine4P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vp0, const ImVec2& vp1, const ImVec2& vp2, const ImVec2& vp3, ImVec2& vOutLinePoint)
+bool GraphAnnotation::sIsMouseHoverLine4P(const ImVec2& vMousePos, const double& vRadius, const ImVec2& vp0, const ImVec2& vp1, const ImVec2& vp2, const ImVec2& vp3, ImVec2& vOutLinePoint)
 {
 	const auto M = ImPlot::PixelsToPlot(vMousePos);
 	const auto A = ImPlot::PixelsToPlot(vp0);
@@ -155,14 +188,62 @@ bool GraphAnnotation::IsMouseHoverLine4P(const ImVec2& vMousePos, const double& 
 
 	vOutLinePoint = ImPlot::PlotToPixels(P);
 
-	ImDrawList* draw_list = ImPlot::GetPlotDrawList();
+	/*ImDrawList* draw_list = ImPlot::GetPlotDrawList();
 	draw_list->AddLine(vMousePos, vOutLinePoint, ImGui::GetColorU32(ImVec4(1, 0, 1, 1)), 2.0);
 	draw_list->AddCircleFilled(vp0, 10.0f, ImGui::GetColorU32(ImVec4(1, 0, 1, 1)));
 	draw_list->AddCircleFilled(vp1, 10.0f, ImGui::GetColorU32(ImVec4(1, 0, 1, 1)));
 	draw_list->AddCircleFilled(vp2, 10.0f, ImGui::GetColorU32(ImVec4(1, 0, 1, 1)));
-	draw_list->AddCircleFilled(vp3, 10.0f, ImGui::GetColorU32(ImVec4(1, 0, 1, 1)));
+	draw_list->AddCircleFilled(vp3, 10.0f, ImGui::GetColorU32(ImVec4(1, 0, 1, 1)));*/
 
 	return (dist <= vRadius);
+}
+
+std::string GraphAnnotation::sGetHumanReadableElapsedTime(const double& vElapsedTime)
+{
+	// always positiv delta
+	int64_t nano_seconds = static_cast<int64_t>(ct::abs((vElapsedTime) * 1e9));
+	int64_t micro_seconds = nano_seconds / 1000;
+	int64_t milli_seconds = micro_seconds / 1000;
+	int64_t seconds = milli_seconds / 1000;
+	int64_t minutes = seconds / 60;
+	int64_t hours = minutes / 60;
+	int64_t days = hours / 24;
+
+	nano_seconds = nano_seconds % 1000;
+	micro_seconds = micro_seconds % 1000;
+	milli_seconds = milli_seconds % 1000;
+	seconds = seconds % 60;
+	minutes = minutes % 60;
+	hours = hours % 24;
+
+	std::string res;
+
+	// elapsed time dont need year or month, the biggest supported unity is day count
+
+	// todo : can be optimized in time i guess ...
+	if (days) {
+		res += ct::toStr("%iD:", days);
+	}
+	if (hours) {
+		res += ct::toStr("%iH:", hours);
+	}
+	if (minutes) {
+		res += ct::toStr("%im:", minutes);
+	}
+	if (seconds) {
+		res += ct::toStr("%is:", seconds);
+	}
+	if (milli_seconds) {
+		res += ct::toStr("%ims:", milli_seconds);
+	}
+	if (micro_seconds) {
+		res += ct::toStr("%ius:", micro_seconds);
+	}
+	if (nano_seconds) {
+		res += ct::toStr("%ins:", nano_seconds);
+	}
+
+	return res;
 }
 
 //////////////////////////////////////////////////////
@@ -275,49 +356,8 @@ void GraphAnnotation::Draw()
 
 void GraphAnnotation::ComputeElapsedTime()
 {
-	// always positiv delta
-	int64_t nano_seconds = static_cast<int64_t>(ct::abs((m_EndPos.x - m_StartPos.x) * 1e9));
-	int64_t micro_seconds = nano_seconds / 1000;
-	int64_t milli_seconds = micro_seconds / 1000;
-	int64_t seconds = milli_seconds / 1000;
-	int64_t minutes = seconds / 60;
-	int64_t hours = minutes / 60;
-	int64_t days = hours / 24;
-
-	nano_seconds = nano_seconds % 1000;
-	micro_seconds = micro_seconds % 1000;
-	milli_seconds = milli_seconds % 1000;
-	seconds = seconds % 60;
-	minutes = minutes % 60;
-	hours = hours % 24;
-
-	m_ElapsedTimeStr.clear();
-
-	// elapsed time dont need year or month, the biggest supported unity is day count
-
-	// todo : can be optimized in time i guess ...
-	if (days) {
-		m_ElapsedTimeStr += ct::toStr("%iD:", days);
-	}
-	if (hours) {
-		m_ElapsedTimeStr += ct::toStr("%iH:", hours);
-	}
-	if (minutes) {
-		m_ElapsedTimeStr += ct::toStr("%im:", minutes);
-	}
-	if (seconds) {
-		m_ElapsedTimeStr += ct::toStr("%is:", seconds);
-	}
-	if (milli_seconds) {
-		m_ElapsedTimeStr += ct::toStr("%ims:", milli_seconds);
-	}
-	if (micro_seconds) {
-		m_ElapsedTimeStr += ct::toStr("%ius:", micro_seconds);
-	}
-	if (nano_seconds) {
-		m_ElapsedTimeStr += ct::toStr("%ins:", nano_seconds);
-	}
-
+	m_ElapsedTimeStr = GraphAnnotation::sGetHumanReadableElapsedTime(m_EndPos.x - m_StartPos.x);
+	
 	// for ImPlot
 	m_ImGuiLabel = m_ElapsedTimeStr.c_str();
 }

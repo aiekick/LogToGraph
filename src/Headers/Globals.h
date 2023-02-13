@@ -16,6 +16,7 @@ typedef const char* ImGuiLabel;
 
 typedef double SignalValue;
 typedef std::string SignalString;
+typedef std::string SignalStatus;
 
 typedef ct::dvec2 SignalValueRange;
 typedef const ct::dvec2& SignalValueRangeConstRef;

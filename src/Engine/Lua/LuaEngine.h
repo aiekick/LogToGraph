@@ -33,6 +33,8 @@ public:
 	static std::atomic<bool> s_Working;
 	static std::atomic<double> s_Progress;
 	static std::atomic<double> s_GenerationTime;
+	static constexpr const char* sc_START_ZONE = "START_ZONE";
+	static constexpr const char* sc_END_ZONE = "END_ZONE";
 
 public:
 	static void sSetLuaBufferVarContent(lua_State* vLuaState, const std::string& vVarName, const std::string& vContent);
@@ -87,8 +89,17 @@ public:
 	void AddSourceFilePathName(const SourceFilePathName& vFilePathName);
 	std::vector<std::pair<SourceFileName, SourceFilePathName>>& GetSourceFilePathNamesRef();
 
-	void AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue);
-	void AddSignalString(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalString& vString);
+	void AddSignalValue(
+		const SignalCategory& vCategory, 
+		const SignalName& vName, 
+		const SignalEpochTime& vDate, 
+		const SignalValue& vValue);
+	void AddSignalStatus(
+		const SignalCategory& vCategory, 
+		const SignalName& vName, 
+		const SignalEpochTime& vDate, 
+		const SignalString& vString, 
+		const SignalStatus& vStatus);
 
 	void StartWorkerThread(const bool& vFirstLoad);
 	bool StopWorkerThread();
