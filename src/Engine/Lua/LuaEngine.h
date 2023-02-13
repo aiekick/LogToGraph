@@ -33,6 +33,8 @@ public:
 	static std::atomic<bool> s_Working;
 	static std::atomic<double> s_Progress;
 	static std::atomic<double> s_GenerationTime;
+	static constexpr const char* sc_START_ZONE = "START_ZONE";
+	static constexpr const char* sc_END_ZONE = "END_ZONE";
 
 public:
 	static void sSetLuaBufferVarContent(lua_State* vLuaState, const std::string& vVarName, const std::string& vContent);
@@ -55,7 +57,7 @@ private: // thread
 
 private: // to save
 	std::string m_LuaFilePathName;
-	std::string m_LogFilePathName;
+	std::vector<std::pair<SourceFileName,SourceFilePathName>> m_SourceFilePathNames;
 
 public:
 	bool Init();
@@ -84,10 +86,20 @@ public:
 	void SetLuaFilePathName(const std::string& vFilePathName);
 	std::string GetLuaFilePathName();
 
-	void SetLogFilePathName(const std::string& vFilePathName);
-	std::string GetLogFilePathName();
+	void AddSourceFilePathName(const SourceFilePathName& vFilePathName);
+	std::vector<std::pair<SourceFileName, SourceFilePathName>>& GetSourceFilePathNamesRef();
 
-	static void AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue);
+	void AddSignalValue(
+		const SignalCategory& vCategory, 
+		const SignalName& vName, 
+		const SignalEpochTime& vDate, 
+		const SignalValue& vValue);
+	void AddSignalStatus(
+		const SignalCategory& vCategory, 
+		const SignalName& vName, 
+		const SignalEpochTime& vDate, 
+		const SignalString& vString, 
+		const SignalStatus& vStatus);
 
 	void StartWorkerThread(const bool& vFirstLoad);
 	bool StopWorkerThread();

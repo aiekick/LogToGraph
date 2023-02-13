@@ -12,9 +12,11 @@
 #include <memory>
 #include <ctools/cTools.h>
 
-typedef const char* UInt8ConstPtr;
+typedef const char* ImGuiLabel;
 
 typedef double SignalValue;
+typedef std::string SignalString;
+typedef std::string SignalStatus;
 
 typedef ct::dvec2 SignalValueRange;
 typedef const ct::dvec2& SignalValueRangeConstRef;
@@ -24,18 +26,33 @@ typedef uint32_t SignalColor;
 typedef double SignalEpochTime;
 
 typedef std::string SignalName;
+typedef int32_t SignalNameID;
+
+typedef std::string DBFile;
 
 typedef std::string SignalCategory;
+typedef int32_t SignalCategoryID;
+
+typedef int32_t DBRowID;
 
 typedef std::string SignalDateTime;
+
+typedef double EpochOffset;
+
+typedef std::string SourceFilePathName;
+typedef std::string SourceFileName;
+typedef int32_t SourceFileID;
+
+class SourceFile;
+typedef std::shared_ptr<SourceFile> SourceFilePtr;
+typedef std::weak_ptr<SourceFile> SourceFileWeak;
+
+typedef std::map<SourceFileName, SourceFilePtr> SourceFilesContainer;
+typedef std::map<SourceFileName, SourceFilePtr>& SourceFilesContainerRef;
 
 class SignalTick;
 typedef std::shared_ptr<SignalTick> SignalTickPtr;
 typedef std::weak_ptr<SignalTick> SignalTickWeak;
-
-class SignalSerie;
-typedef std::shared_ptr<SignalSerie> SignalSeriePtr;
-typedef std::weak_ptr<SignalSerie> SignalSerieWeak;
 
 typedef std::vector<SignalTickPtr> SignalTicksContainer;
 typedef std::vector<SignalTickPtr>& SignalTicksContainerRef;
@@ -46,6 +63,10 @@ typedef std::vector<SignalTickWeak>& SignalTicksWeakContainerRef;
 typedef std::vector<std::pair<SignalTickWeak, SignalTickWeak>> SignalDiffWeakContainer;
 typedef std::vector<std::pair<SignalTickWeak, SignalTickWeak>>& SignalDiffWeakContainerRef;
 
+class SignalSerie;
+typedef std::shared_ptr<SignalSerie> SignalSeriePtr;
+typedef std::weak_ptr<SignalSerie> SignalSerieWeak;
+
 typedef std::map<SignalCategory, std::map<SignalName, SignalSeriePtr>> SignalSeriesContainer;
 typedef std::map<SignalCategory, std::map<SignalName, SignalSeriePtr>>& SignalSeriesContainerRef;
 
@@ -55,6 +76,7 @@ typedef std::map<SignalCategory, std::map<SignalName, SignalSerieWeak>>& SignalS
 class GraphGroup;
 typedef std::shared_ptr<GraphGroup> GraphGroupPtr;
 typedef std::weak_ptr<GraphGroup> GraphGroupWeak;
+
 typedef std::list<GraphGroupPtr> GraphGroups;
 typedef std::list<GraphGroupPtr>& GraphGroupsRef;
 

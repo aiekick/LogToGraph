@@ -86,7 +86,7 @@ void GraphGroup::SetName(const std::string& vName)
 	m_Name = vName;
 }
 
-UInt8ConstPtr GraphGroup::GetName()
+ImGuiLabel GraphGroup::GetImGuiLabel()
 {
 	return m_Name.c_str();
 }
@@ -95,6 +95,7 @@ void GraphGroup::ComputeRange()
 {
 	m_Range_Value = SignalValueRange(0.5, -0.5) * DBL_MAX;
 
+	double _offsetZoneY = 0.0;
 	for (auto& it_cat : m_SignalSeries)
 	{
 		for (auto& it_name : it_cat.second)
@@ -102,8 +103,17 @@ void GraphGroup::ComputeRange()
 			auto ptr = it_name.second.lock();
 			if (ptr)
 			{
-				m_Range_Value.x = ct::mini(m_Range_Value.x, ptr->range_value.x);
-				m_Range_Value.y = ct::maxi(m_Range_Value.y, ptr->range_value.y);
+				if (ptr->is_zone)
+				{
+					m_Range_Value.x = ct::mini(m_Range_Value.x, ptr->range_value.x + _offsetZoneY);
+					m_Range_Value.y = ct::maxi(m_Range_Value.y, ptr->range_value.y + _offsetZoneY + 1.0);
+					_offsetZoneY += 1.0;
+				}
+				else
+				{
+					m_Range_Value.x = ct::mini(m_Range_Value.x, ptr->range_value.x);
+					m_Range_Value.y = ct::maxi(m_Range_Value.y, ptr->range_value.y);
+				}
 			}
 		}
 	}

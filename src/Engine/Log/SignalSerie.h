@@ -33,6 +33,7 @@ public:
 
 public:
 	SignalSerieWeak m_This;
+	SourceFileWeak m_SourceFileParent;
 	size_t count_base_records = 0U; // nombre d'enregistrements. on peut pas utiliser datas_values
 	std::string low_case_name_for_search;
 	SignalValueRange range_value = SignalValueRange(0.5, -0.5) * DBL_MAX;
@@ -40,6 +41,7 @@ public:
 	std::vector<SignalTickWeak> datas_values;
 	SignalCategory category;
 	SignalName name;
+	bool is_zone = false;
 
 	uint32_t color_u32 = ImGui::GetColorU32(ImVec4(0, 0, 0, 1));
 	ImVec4 color_v4 = ImVec4(0,0,0,1);

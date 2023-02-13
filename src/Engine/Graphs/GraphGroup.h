@@ -44,7 +44,7 @@ public:
 	SignalSeriesWeakContainerRef GetSignalSeries();
 	SignalValueRangeConstRef GetSignalSeriesRange() const;
 	void SetName(const std::string& vName);
-	UInt8ConstPtr GetName();
+	ImGuiLabel GetImGuiLabel();
 
 private:
 	void ComputeRange();

@@ -43,6 +43,9 @@ public:
     static std::string sConvertEpochToDateTimeString(const double& vTime);
 
 private:
+	// source file container
+	SourceFilesContainer m_SourceFiles;
+
 	// containers of ptr's
 	SignalSeriesContainer m_SignalSeries;
 	SignalTicksContainer m_SignalTicks;
@@ -72,7 +75,20 @@ private:
 
 public:
 	void Clear();
-	void AddSignalTick(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue);
+	SourceFileWeak SetSourceFile(const SourceFileName& vSourceFileName);
+	void AddSignalTick(
+		const SourceFileWeak& vSourceFile, 
+		const SignalCategory& vCategory, 
+		const SignalName& vName, 
+		const SignalEpochTime& vDate, 
+		const SignalValue& vValue);
+	void AddSignalStatus(
+		const SourceFileWeak& vSourceFile, 
+		const SignalCategory& vCategory, 
+		const SignalName& vName, 
+		const SignalEpochTime& vDate, 
+		const SignalString& vString,
+		const SignalStatus& vStatus);
 	void Finalize();
 
 	// iter SignalDatasContainer
@@ -80,10 +96,8 @@ public:
 	void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool& vFlag);
 	bool isSignalShown(const SignalCategory& vCategory, const SignalName& vName, SignalColor* vOutColorPtr = nullptr);
 
-	// get tick times
+	SourceFilesContainerRef GetSourceFiles();
 	SignalValueRangeConstRef GetTicksTimeSerieRange() const;
-
-	// get SignalTicksContainer
 	SignalTicksContainerRef GetSignalTicks();
 	SignalSeriesContainerRef GetSignalSeries();
 

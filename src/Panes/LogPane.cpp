@@ -92,20 +92,7 @@ int LogPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, 
 
 void LogPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
 {
-	/*ImVec2 min = MainFrame::Instance()->puDisplaySize * 0.5f;
-	ImVec2 max = MainFrame::Instance()->puDisplaySize;
 
-	if (ImGuiFileDialog::Instance()->Display("GenerateFileDlg", ImGuiWindowFlags_NoDocking, min, max))
-	{
-		if (ImGuiFileDialog::Instance()->IsOk())
-		{
-			std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-			std::string fileName = ImGuiFileDialog::Instance()->GetCurrentFileName();
-			Generator::Instance()->Generate(filePath, fileName, vProjectFile);
-		}
-
-		ImGuiFileDialog::Instance()->CloseDialog("GenerateFileDlg");
-	}*/
 }
 
 int LogPane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
@@ -313,7 +300,26 @@ void LogPane::DrawTable()
 					}
 					if (ImGui::TableNextColumn()) // value
 					{
-						ImGui::Text("%f", infos_ptr->value);
+						if (infos_ptr->string.empty())
+						{
+							ImGui::Text("%f", infos_ptr->value);
+						}
+						else
+						{
+							if (infos_ptr->status == LuaEngine::sc_START_ZONE)
+							{
+								ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", infos_ptr->string.c_str());
+							}
+							else if (infos_ptr->status == LuaEngine::sc_END_ZONE)
+							{
+								ImGui::Text("%s " ICON_NDP_ARROW_LEFT, infos_ptr->string.c_str());
+							}
+							else
+							{
+								ImGui::Text("%s", infos_ptr->string.c_str());
+							}
+
+						}
 						CheckItem(infos_ptr);
 					}
 

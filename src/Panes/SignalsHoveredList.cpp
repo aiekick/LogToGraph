@@ -86,38 +86,7 @@ int SignalsHoveredList::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& 
 
 void SignalsHoveredList::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
 {
-	if (ProjectFile::Instance()->IsLoaded())
-	{
-		ImVec2 maxSize = MainFrame::Instance()->m_DisplaySize;
-		ImVec2 minSize = maxSize * 0.5f;
 
-		if (ImGuiFileDialog::Instance()->Display("OPEN_LUA_SCRIPT_FILE",
-			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking,
-			minSize, maxSize))
-		{
-			if (ImGuiFileDialog::Instance()->IsOk())
-			{
-				LuaEngine::Instance()->SetLuaFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
-				CodePane::Instance()->SetCodeFile(ImGuiFileDialog::Instance()->GetFilePathName());
-				ProjectFile::Instance()->SetProjectChange();
-			}
-
-			ImGuiFileDialog::Instance()->Close();
-		}
-		
-		if (ImGuiFileDialog::Instance()->Display("OPEN_LOG_FILE",
-			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking,
-			minSize, maxSize))
-		{
-			if (ImGuiFileDialog::Instance()->IsOk())
-			{
-				LuaEngine::Instance()->SetLogFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
-				ProjectFile::Instance()->SetProjectChange();
-			}
-
-			ImGuiFileDialog::Instance()->Close();
-		}
-	}
 }
 
 int SignalsHoveredList::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
@@ -226,7 +195,26 @@ void SignalsHoveredList::DrawTable()
 							}
 							if (ImGui::TableNextColumn()) // value
 							{
-								ImGui::Text("%f", infos_ptr->value);
+								if (infos_ptr->string.empty())
+								{
+									ImGui::Text("%f", infos_ptr->value);
+								}
+								else
+								{
+									if (infos_ptr->status == LuaEngine::sc_START_ZONE)
+									{
+										ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", infos_ptr->string.c_str());
+									}
+									else if (infos_ptr->status == LuaEngine::sc_END_ZONE)
+									{
+										ImGui::Text("%s " ICON_NDP_ARROW_LEFT, infos_ptr->string.c_str());
+									}
+									else
+									{
+										ImGui::Text("%s", infos_ptr->string.c_str());
+									}
+
+								}
 							}
 
 							if (color)

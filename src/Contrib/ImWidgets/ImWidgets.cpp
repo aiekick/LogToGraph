@@ -157,6 +157,17 @@ bool ImGui::PushStyleColorWithContrast(const ImGuiCol& backGroundColor, const Im
 	return false;
 }
 
+bool ImGui::PushStyleColorWithContrast(const ImU32& backGroundColor, const ImGuiCol& foreGroundColor, const ImU32& invertedColor, const float& maxContrastRatio)
+{
+	const float contrastRatio = CalcContrastRatio(ImGui::GetColorU32(backGroundColor), ImGui::GetColorU32(foreGroundColor));
+	if (contrastRatio < maxContrastRatio)
+	{
+		ImGui::PushStyleColor(foreGroundColor, invertedColor);
+		return true;
+	}
+	return false;
+}
+
 bool ImGui::PushStyleColorWithContrast(const ImGuiCol& backGroundColor, const ImGuiCol& foreGroundColor, const ImVec4& invertedColor, const float& maxContrastRatio)
 {
 	const float contrastRatio = CalcContrastRatio(ImGui::GetColorU32(backGroundColor), ImGui::GetColorU32(foreGroundColor));
