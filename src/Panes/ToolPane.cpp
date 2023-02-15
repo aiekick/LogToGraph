@@ -127,6 +127,28 @@ void ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std
 
 			ImGuiFileDialog::Instance()->Close();
 		}
+
+		if (ImGuiFileDialog::Instance()->Display("EDIT_LOG_FILE",
+			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking,
+			minSize, maxSize))
+		{
+			if (ImGuiFileDialog::Instance()->IsOk())
+			{
+				auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
+				if (m_CurrentLogEdited > -1 && m_CurrentLogEdited < container_ref.size())
+				{
+					auto fpn = ImGuiFileDialog::Instance()->GetFilePathName();
+					auto ps = FileHelper::Instance()->ParsePathFileName(fpn);
+					if (ps.isOk)
+					{
+						container_ref[m_CurrentLogEdited] = std::make_pair(ps.GetFPNE_WithPath(""), fpn);
+						ProjectFile::Instance()->SetProjectChange();
+					}
+				}
+			}
+
+			ImGuiFileDialog::Instance()->Close();
+		}
 	}
 }
 
@@ -143,7 +165,7 @@ void ToolPane::UpdateTree()
 void ToolPane::DrawTable()
 {
 	ImGui::Header("Lua Script File");
-	if (ImGui::ContrastedButton("Choose a Lua Script File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
+	if (ImGui::ContrastedButton("Select the Lua Script File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
 	{
 		ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Lua Script File", ".lua,.*",
 			LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
@@ -152,7 +174,7 @@ void ToolPane::DrawTable()
 
 	ImGui::Header("Log Files");
 
-	if (ImGui::ContrastedButton("Open a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
+	if (ImGui::ContrastedButton("Add a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
 	{
 		ImGuiFileDialog::Instance()->OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*",
 			LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
@@ -163,13 +185,16 @@ void ToolPane::DrawTable()
 	if (!container_ref.empty())
 	{
 		static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders;
-		if (ImGui::BeginTable("##sourcefilestable", 2, flags, ImVec2(-1.0f, container_ref.size() * ImGui::GetTextLineHeightWithSpacing())))
+		if (ImGui::BeginTable("##sourcefilestable", 3, flags, ImVec2(-1.0f, container_ref.size() * ImGui::GetTextLineHeightWithSpacing())))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1); // Make header always visible
 			ImGui::TableSetupColumn("Log Files", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("##Edit", ImGuiTableColumnFlags_WidthFixed);
 			ImGui::TableSetupColumn("##Close", ImGuiTableColumnFlags_WidthFixed);
 			ImGui::TableHeadersRow();
 
+			int32_t idx = 0;
+			auto it_to_edit = container_ref.end();
 			auto it_to_erase = container_ref.end();
 			for (auto it_source_file = container_ref.begin(); it_source_file != container_ref.end(); ++it_source_file)
 			{
@@ -178,15 +203,41 @@ void ToolPane::DrawTable()
 				if (ImGui::TableSetColumnIndex(0)) // first column
 				{
 					ImGui::Selectable(it_source_file->first.c_str());
+					if (ImGui::IsItemHovered())
+					{
+						ImGui::SetTooltip(it_source_file->second.c_str());
+					}
 				}
 
 				if (ImGui::TableSetColumnIndex(1)) // second column
 				{
-					if (ImGui::ContrastedButton(ICON_NDP_CANCEL, nullptr, nullptr, 0.0f, ImVec2(0.0f, 0.0f)))
+					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
+					if (ImGui::ContrastedButton(ICON_NDP_PENCIL_SQUARE "##SourceFileEdit", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f)))
+					{
+						it_to_edit = it_source_file;
+						m_CurrentLogEdited = idx;
+					}
+					ImGui::PopStyleVar();
+				}
+
+				if (ImGui::TableSetColumnIndex(2)) // second column
+				{
+					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
+					if (ImGui::ContrastedButton(ICON_NDP_CANCEL "##SourceFileDelete", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f)))
 					{
 						it_to_erase = it_source_file;
 					}
+					ImGui::PopStyleVar();
 				}
+
+				++idx;
+			}
+
+			// edit
+			if (it_to_edit != container_ref.end())
+			{
+				ImGuiFileDialog::Instance()->OpenDialog("EDIT_LOG_FILE", "Edit a Log File", ".*",
+					LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
 			}
 
 			// erase

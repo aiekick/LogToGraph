@@ -49,9 +49,10 @@ public:
 	// for measuring / annotation
 	bool hovered_by_mouse = false;
 	std::vector<GraphAnnotationWeak> m_GraphAnnotations;
+	bool show_hide_temporary = true; // jsut hidden temporarily but always shown
 
 public: // to save
-	bool show = false;
+	bool show = false; // signal must be shown on graph screen
 
 public:
 	SignalSerie();

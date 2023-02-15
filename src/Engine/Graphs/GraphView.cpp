@@ -220,9 +220,10 @@ void GraphView::DrawGraphGroupTable()
 
 	const auto _column_count = (int32_t)m_GraphGroups.size();
 	auto listViewID = ImGui::GetID("##GraphView_DrawGraphGroupTable");
-	if (ImGui::BeginTableEx("##GraphView_DrawGraphGroupTable", listViewID, 2U + _column_count, flags)) //-V112
+	if (ImGui::BeginTableEx("##GraphView_DrawGraphGroupTable", listViewID, 3U + _column_count, flags)) //-V112
 	{
 		ImGui::TableSetupScrollFreeze(0, 1); // Make header always visible
+		ImGui::TableSetupColumn("Vis", ImGuiTableColumnFlags_WidthFixed, -1);
 		ImGui::TableSetupColumn("Col", ImGuiTableColumnFlags_WidthFixed, -1);
 		ImGui::TableSetupColumn("Signal", ImGuiTableColumnFlags_WidthStretch, -1);
 		ImGui::TableSetupColumn("GDef", ImGuiTableColumnFlags_WidthFixed, -1);
@@ -260,6 +261,9 @@ void GraphView::DrawGraphGroupTable()
 							ImGui::TableNextRow();
 
 							ImGui::TableSetColumnIndex(0);
+							ImGui::CheckBoxBoolDefault("##vis", &datas_ptr->show_hide_temporary, true);
+
+							ImGui::TableSetColumnIndex(1);
 							if (ImGui::ColorEdit3("##colors", &datas_ptr->color_v4.x, ImGuiColorEditFlags_NoInputs))
 							{
 								datas_ptr->color_u32 = ImGui::GetColorU32(datas_ptr->color_v4);
@@ -267,7 +271,7 @@ void GraphView::DrawGraphGroupTable()
 								ProjectFile::Instance()->SetProjectChange();
 							}
 
-							ImGui::TableSetColumnIndex(1);
+							ImGui::TableSetColumnIndex(2);
 							if (ImGui::Selectable(datas_ptr->name.c_str(), false,
 								ImGuiSelectableFlags_SpanAllColumns |
 								ImGuiSelectableFlags_AllowItemOverlap))
@@ -288,7 +292,7 @@ void GraphView::DrawGraphGroupTable()
 							int32_t _col_idx = 0;
 							for (auto& group_ptr : m_GraphGroups)
 							{
-								ImGui::TableSetColumnIndex(2 + _col_idx);
+								ImGui::TableSetColumnIndex(3 + _col_idx);
 								ImGui::PushID(ImGui::IncPUSHID());
 								{
 									if (ImGui::RadioButtonLabeled(ImGui::GetFrameHeight(), "x", datas_ptr->graph_groupd_ptr == group_ptr, false))
@@ -558,7 +562,7 @@ void GraphView::prEndPlot()
 void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool& vFirstGraph)
 {
 	auto datas_ptr = vSignalSerie.lock();
-	if (datas_ptr)
+	if (datas_ptr && datas_ptr->show_hide_temporary)
 	{
 		ImDrawList* draw_list = ImPlot::GetPlotDrawList();
 		if (!draw_list)
@@ -846,7 +850,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 					for (auto& name : cat.second)
 					{
 						auto datas_ptr = name.second.lock();
-						if (datas_ptr)
+						if (datas_ptr && datas_ptr->show_hide_temporary)
 						{
 							const auto& name_str = datas_ptr->category + " / " + datas_ptr->name;
 							if (ImPlot::BeginItem(name_str.c_str()))

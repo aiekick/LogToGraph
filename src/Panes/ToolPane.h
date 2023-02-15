@@ -31,6 +31,7 @@ private:
 	ImGuiListClipper m_FileListClipper;
 	std::map<SignalName, SignalSerieWeak> m_SignalSeries;
 	char m_search_buffer[1024 + 1] = "";
+	int32_t m_CurrentLogEdited = -1;
 
 public:
 	void Clear();
@@ -56,7 +57,7 @@ public:
     virtual ~ToolPane() = default; // Prevent unwanted destruction};
 
 private:
-	static void DrawTable();
+	void DrawTable();
 	static void DisplayItem(const SignalSerieWeak& vDatasSerie);
 	void DrawTree();
 	void PrepareLogAfterSearch(const std::string& vSearchString);
