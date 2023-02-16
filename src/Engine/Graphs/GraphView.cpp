@@ -261,7 +261,10 @@ void GraphView::DrawGraphGroupTable()
 							ImGui::TableNextRow();
 
 							ImGui::TableSetColumnIndex(0);
-							ImGui::CheckBoxBoolDefault("##vis", &datas_ptr->show_hide_temporary, true);
+							if (ImGui::CheckBoxBoolDefault("##vis", &datas_ptr->show_hide_temporary, true))
+							{
+								GraphView::Instance()->ComputeGraphsCount();
+							}
 
 							ImGui::TableSetColumnIndex(1);
 							if (ImGui::ColorEdit3("##colors", &datas_ptr->color_v4.x, ImGuiColorEditFlags_NoInputs))
@@ -909,6 +912,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 														_is_h_hovered = (ImPlot::IsPlotHovered() && mouse_pos.y <= last_pos.y && mouse_pos.y >= cur_pos.y);
 														_color = _is_v_hovered && _is_h_hovered ? _GraphMouseHoveredTimeColor : datas_ptr->color_u32;
 														draw_list->AddRectFilled(last_pos, cur_pos, _color);
+														draw_list->AddRect(last_pos, cur_pos, ImGui::GetColorU32(ImVec4(0, 0, 0, 1)));
 														if (_is_v_hovered && _is_h_hovered)
 														{
 															draw_list->AddRect(last_pos, cur_pos, ImGui::GetColorU32(ImVec4(0, 0, 0, 1)), 0.0f, 0, (float)_SelectedCurveDisplayThickNess);
@@ -1094,7 +1098,7 @@ void GraphView::ComputeGraphsCount()
 					for (auto& item_name : item_cat.second)
 					{
 						auto datas_ptr = item_name.second.lock();
-						if (datas_ptr)
+						if (datas_ptr && datas_ptr->show_hide_temporary)
 						{
 							++m_GraphsCount;
 						}

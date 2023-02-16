@@ -35,28 +35,28 @@ struct GraphColor
 class ProjectFile : public conf::ConfigAbstract
 {
 public: // to save
+	GraphColor m_GraphColors;
+	bool m_CollapseLogSelection = false;
+	bool m_HideSomeValues = false;
+	bool m_AutoColorize = true;
+	bool m_SyncGraphs = true;
 	std::string m_ProjectFilePathName;
 	std::string m_ProjectFilePath;
-    GraphColor m_GraphColors;
-	bool m_CollapseLogSelection = false;
 	std::string m_SearchString;
 	std::string m_AllGraphSignalsSearchString;
-	bool m_HideSomeValues = false;
 	std::string m_ValuesToHide;
-	bool m_AutoColorize = true; 
+	std::string m_CodeFilePathName;
+	std::string m_LastLogFilePath;
 	uint32_t m_SignalPreview_CountX = 20U;
 	float m_SignalPreview_SizeX = 20.0f;
 	SignalEpochTime m_DiffFirstMark = 0.0; // first mark
 	SignalEpochTime m_DiffSecondMark = 0.0; // second mark
-	bool m_SyncGraphs = true;
 	ImPlotRect m_SyncGraphsLimits = ImPlotRect(0, 1, 0, 1);
-	std::string m_CodeFilePathName;
 	double m_CurveRadiusDetection = 5.0; // for select curve for annotation
 	double m_SelectedCurveDisplayThickNess = 4.0; // for display a thick curve
 	double m_DefaultCurveDisplayThickNess = 2.0; // for display a default curve
 	bool m_UsePredefinedZeroValue = false; // use predefined zero value
 	double m_PredefinedZeroValue = 0.0; // the predefined zero value for signals
-	std::string m_LastLogFilePath;
 
 private: // dont save
 	bool m_IsLoaded = false;
