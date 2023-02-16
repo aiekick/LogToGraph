@@ -25,6 +25,31 @@ limitations under the License.
 #include <ctools/cTools.h>
 #include <ctools/Logger.h>
 #include <sqlite/sqlite3.h>
+#include <fstream>
+
+// will check database header magic number
+// https://www.sqlite.org/fileformat.html : section 1.3
+// Offset	Size	Description
+// 0	    16	    The header string : "SQLite format 3\000"
+bool DBEngine::IsFileASqlite3DB(const DBFile& vDBFilePathName)
+{
+	bool res = false;
+
+	std::ifstream file_stream(vDBFilePathName, std::ios_base::binary);
+	if (file_stream.is_open())
+	{
+		char magic_header[16 + 1];
+		file_stream.read(magic_header, 16U);
+		if (strcmp(magic_header, "SQLite format 3\000") == 0)
+		{
+			res = true;
+		}
+
+		file_stream.close();
+	}
+
+	return res;
+}
 
 bool DBEngine::CreateDBFile(const DBFile& vDBFilePathName)
 {
@@ -106,6 +131,63 @@ void DBEngine::EnableForeignKey()
 std::string DBEngine::GetLastErrorMesg()
 {
 	return std::string(m_LastErrorMsg);
+}
+
+bool DBEngine::SetSettingsXMLDatas(const std::string& vXMLDatas)
+{
+	if (!vXMLDatas.empty())
+	{
+		std::string insert_query;
+
+		// insert or replace at line 0
+		auto xml_datas = GetSettingsXMLDatas();
+		if (xml_datas.empty())
+		{
+			insert_query = ct::toStr(u8R"(insert into app_settings (xml_datas) values("%s");)", vXMLDatas.c_str());
+		}
+		else
+		{
+			insert_query = ct::toStr(u8R"(update app_settings set xml_datas = "%s" where rowid = 1;)", vXMLDatas.c_str());
+		}
+
+		if (sqlite3_exec(m_SqliteDB, insert_query.c_str(), nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
+		{
+			LogVarError("Fail to insert or replace xml_datas in table app_settings of database : %s", m_LastErrorMsg);
+			return false;
+		}
+		return true;
+	}
+
+	return false;
+}
+
+std::string DBEngine::GetSettingsXMLDatas()
+{
+	std::string res;
+
+	// select at line 0
+	auto select_query = u8R"(select * from app_settings where rowid = 1;)";
+	sqlite3_stmt* stmt = nullptr;
+	if (sqlite3_prepare_v2(m_SqliteDB, select_query, (int)strlen(select_query), &stmt, nullptr) != SQLITE_OK)
+	{
+		LogVarError("Fail to get xml_datas from app_settings table of database");
+	}
+	else
+	{
+		if (sqlite3_step(stmt) == SQLITE_ROW)
+		{
+			auto len = sqlite3_column_bytes(stmt, 0);
+			auto txt = (const char*)sqlite3_column_text(stmt, 0);
+			if (txt && len)
+			{
+				res = std::string(txt, len);
+			}
+		}
+	}
+
+	sqlite3_finalize(stmt);
+
+	return res;
 }
 
 DBRowID DBEngine::AddSourceFile(const SourceFileName& vSourceFile)
@@ -194,7 +276,10 @@ DBRowID DBEngine::GetSourceFile(const SourceFileName& vSourceFile)
 	}
 	else
 	{
-		res = (DBRowID)sqlite3_column_int(stmt, 0);
+		if (sqlite3_step(stmt) == SQLITE_ROW)
+		{
+			res = (DBRowID)sqlite3_column_int(stmt, 0);
+		}
 	}
 
 	sqlite3_finalize(stmt);
@@ -214,7 +299,10 @@ DBRowID DBEngine::GetSignalCategory(const SignalCategory& vSignalCategory)
 	}
 	else
 	{
-		res = (DBRowID)sqlite3_column_int(stmt, 0);
+		if (sqlite3_step(stmt) == SQLITE_ROW)
+		{
+			res = (DBRowID)sqlite3_column_int(stmt, 0);
+		}
 	}
 
 	sqlite3_finalize(stmt);
@@ -234,7 +322,10 @@ DBRowID DBEngine::GetSignalName(const SignalName& vSignalName)
 	}
 	else
 	{
-		res = (DBRowID)sqlite3_column_int(stmt, 0);
+		if (sqlite3_step(stmt) == SQLITE_ROW)
+		{
+			res = (DBRowID)sqlite3_column_int(stmt, 0);
+		}
 	}
 
 	sqlite3_finalize(stmt);
@@ -436,6 +527,10 @@ create table signal_ticks (
 	signal_value double, 
 	signal_string varchar(255), 
 	signal_status varchar(255)
+);
+
+create table app_settings (
+	xml_datas TEXT
 );
 )";
 

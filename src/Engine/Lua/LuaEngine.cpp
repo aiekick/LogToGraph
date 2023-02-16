@@ -401,9 +401,7 @@ void LuaEngine::sLuAnalyse(
                 LogEngine::Instance()->Clear();
                 GraphView::Instance()->Clear();
 
-                auto ps = FileHelper::Instance()->ParsePathFileName(ProjectFile::Instance()->m_ProjectFilePathName);
-                auto dbFile = ps.GetFPNE_WithExt("db");
-                DBEngine::Instance()->OpenDBFile(dbFile);
+                DBEngine::Instance()->OpenDBFile(ProjectFile::Instance()->m_ProjectFilePathName);
                 DBEngine::Instance()->ClearDataTables();
 
                 for (const auto& source_file : source_files_ref)
@@ -499,54 +497,6 @@ void LuaEngine::sLuAnalyse(
                         }
                     }
                 }
-
-                // get sources
-                std::map<SourceFileID, SourceFileWeak> _SourceFiles;
-                DBEngine::Instance()->GetSourceFiles([&_SourceFiles](
-                    const SourceFileID& vSourceFileID,
-                    const SourceFilePathName& vSourceFilePathName)
-                    {
-                        if (_SourceFiles.find(vSourceFileID) == _SourceFiles.end()) // not found
-                        {
-                            _SourceFiles[vSourceFileID] = LogEngine::Instance()->SetSourceFile(vSourceFilePathName);
-                        }
-                    });
-                
-                // get datas
-                DBEngine::Instance()->GetDatas([&_SourceFiles](
-                    const SourceFileID& vSourceFileID,
-                    const SignalEpochTime& vSignalEpochTime,
-                    const SignalCategory& vSignalCategory,
-                    const SignalName& vSignalName,
-                    const SignalValue& vSignalValue,
-                    const SignalString& vSignalString,
-                    const SignalStatus& vSignalStatus)
-                    {
-                        if (_SourceFiles.find(vSourceFileID) != _SourceFiles.end()) // found
-                        {
-                            auto source_file_parent_weak = _SourceFiles.at(vSourceFileID);
-
-                            if (vSignalString.empty())
-                            {
-                                LogEngine::Instance()->AddSignalTick(
-                                    source_file_parent_weak,
-                                    vSignalCategory,
-                                    vSignalName,
-                                    vSignalEpochTime,
-                                    vSignalValue);
-                            }
-                            else
-                            {
-                                LogEngine::Instance()->AddSignalStatus(
-                                    source_file_parent_weak,
-                                    vSignalCategory,
-                                    vSignalName,
-                                    vSignalEpochTime,
-                                    vSignalString,
-                                    vSignalStatus);
-                            }
-                        }
-                    });
 
                 // retrieve datas from database
                 LogEngine::Instance()->Finalize();

@@ -32,6 +32,13 @@ private:
 
 public:
 	/// <summary>
+	/// check if the file is a valid Sqlite3 DB
+	/// </summary>
+	/// <param name="vDBFilePathName"></param>
+	/// <returns></returns>
+	bool IsFileASqlite3DB(const DBFile& vDBFilePathName);
+
+	/// <summary>
 	/// will crate a db file (and the tables)
 	/// </summary>
 	/// <param name="vDBFilePathName"></param>
@@ -170,6 +177,19 @@ public:
 	/// </summary>
 	/// <returns></returns>
 	std::string GetLastErrorMesg();
+
+	/// <summary>
+	/// will put the xml save in db
+	/// </summary>
+	/// <param name="vXMLDatas"></param>
+	/// <returns>true, is successfully saved</returns>
+	bool SetSettingsXMLDatas(const std::string& vXMLDatas);
+
+	/// <summary>
+	/// will get from db a settings xml
+	/// </summary>
+	/// <returns>settings xml datas</returns>
+	std::string GetSettingsXMLDatas();
 
 private:
 	bool OpenDB();

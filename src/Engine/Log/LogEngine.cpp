@@ -204,6 +204,54 @@ void LogEngine::AddSignalStatus(
 
 void LogEngine::Finalize()
 {
+	// get sources
+	std::map<SourceFileID, SourceFileWeak> _SourceFiles;
+	DBEngine::Instance()->GetSourceFiles([this, &_SourceFiles](
+		const SourceFileID& vSourceFileID,
+		const SourceFilePathName& vSourceFilePathName)
+		{
+			if (_SourceFiles.find(vSourceFileID) == _SourceFiles.end()) // not found
+			{
+				_SourceFiles[vSourceFileID] =SetSourceFile(vSourceFilePathName);
+			}
+		});
+
+	// get datas
+	DBEngine::Instance()->GetDatas([this, &_SourceFiles](
+		const SourceFileID& vSourceFileID,
+		const SignalEpochTime& vSignalEpochTime,
+		const SignalCategory& vSignalCategory,
+		const SignalName& vSignalName,
+		const SignalValue& vSignalValue,
+		const SignalString& vSignalString,
+		const SignalStatus& vSignalStatus)
+		{
+			if (_SourceFiles.find(vSourceFileID) != _SourceFiles.end()) // found
+			{
+				auto source_file_parent_weak = _SourceFiles.at(vSourceFileID);
+
+				if (vSignalString.empty())
+				{
+					AddSignalTick(
+						source_file_parent_weak,
+						vSignalCategory,
+						vSignalName,
+						vSignalEpochTime,
+						vSignalValue);
+				}
+				else
+				{
+					AddSignalStatus(
+						source_file_parent_weak,
+						vSignalCategory,
+						vSignalName,
+						vSignalEpochTime,
+						vSignalString,
+						vSignalStatus);
+				}
+			}
+		});
+
 	if (!m_SignalTicks.empty() &&
 		m_SignalTicks.front() && 
 		m_SignalTicks.back())
