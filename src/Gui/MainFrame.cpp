@@ -577,6 +577,7 @@ void MainFrame::OpenUnSavedDialog()
 
 	m_SaveDialogIfRequired = true;
 }
+
 void MainFrame::CloseUnSavedDialog()
 {
 	m_SaveDialogIfRequired = false;
@@ -655,11 +656,17 @@ new project :
 	-	add action : new project
 */
 	m_ActionSystem.Clear();
-	Action_OpenUnSavedDialog_IfNeeded();
-	m_ActionSystem.Add([]()
+	m_ActionSystem.Add([this]()
 		{
 			ProjectFile::Instance()->New();
-			return true; // one time action
+			CloseUnSavedDialog();
+			ImGuiFileDialog::Instance()->OpenDialog(
+				"SaveProjectDlg", "Save Project File", "Project File{." APP_PROJECT_FILE_EXT "}", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
+			return true;
+		});
+	m_ActionSystem.Add([this]()
+		{
+			return Display_SaveProjectDialog();
 		});
 }
 

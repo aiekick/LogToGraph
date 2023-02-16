@@ -24,6 +24,12 @@
 #include <Engine/Lua/LuaEngine.h>
 #include <Engine/Log/LogEngine.h>
 #include <Panes/CodePane.h>
+#include <Engine/DB/DBEngine.h>
+#include <Engine/Graphs/GraphView.h>
+#include <Panes/LogPane.h>
+#include <Panes/ToolPane.h>
+#include <Panes/LogPaneSecondView.h>
+#include <Panes/GraphListPane.h>
 
 /*ProjectFile::ProjectFile(const std::string & vFilePathName)
 {
@@ -78,19 +84,45 @@ bool ProjectFile::LoadAs(const std::string& vFilePathName)
 {
 	Clear();
 	std::string filePathName = FileHelper::Instance()->SimplifyFilePath(vFilePathName);
-	if (LoadConfigFile(filePathName, "") == tinyxml2::XMLError::XML_SUCCESS)
+	if (DBEngine::Instance()->IsFileASqlite3DB(filePathName))
 	{
-		m_ProjectFilePathName = filePathName;
-		auto ps = FileHelper::Instance()->ParsePathFileName(m_ProjectFilePathName);
-		if (ps.isOk)
+		if (DBEngine::Instance()->OpenDBFile(filePathName))
 		{
-			m_ProjectFilePath = ps.path;
-			CodePane::Instance()->SetCodeFile(m_CodeFilePathName);
-			LuaEngine::Instance()->StartWorkerThread(true);
+			LogEngine::Instance()->Clear();
+			GraphView::Instance()->Clear();
+			ToolPane::Instance()->Clear();
+			LogPane::Instance()->Clear();
+
+			auto xml_settings = DBEngine::Instance()->GetSettingsXMLDatas();
+			if (LoadConfigString(unEscapeXmlCode(xml_settings)) == tinyxml2::XMLError::XML_SUCCESS)
+			{
+				m_ProjectFilePathName = filePathName;
+				auto ps = FileHelper::Instance()->ParsePathFileName(m_ProjectFilePathName);
+				if (ps.isOk)
+				{
+					m_ProjectFilePath = ps.path;
+					CodePane::Instance()->SetCodeFile(m_CodeFilePathName);
+					LogEngine::Instance()->Finalize();
+					//LuaEngine::Instance()->StartWorkerThread(true);
+				}
+				m_IsLoaded = true;
+				m_NeverSaved = false;
+				SetProjectChange(false);
+			}
+			else
+			{
+				Clear();
+			}
+
+			LogEngine::Instance()->Finalize();
+			LogPane::Instance()->Clear();
+			LogPaneSecondView::Instance()->Clear();
+			GraphListPane::Instance()->UpdateDB();
+			ToolPane::Instance()->UpdateTree();
+			LogEngine::Instance()->PrepareAfterLoad();
+
+			DBEngine::Instance()->CloseDBFile();
 		}
-		m_IsLoaded = true;
-		m_NeverSaved = false;
-		SetProjectChange(false);
 	}
 	else
 	{
@@ -107,11 +139,20 @@ bool ProjectFile::Save()
 
 	LogEngine::Instance()->PrepareForSave();
 
-	if (SaveConfigFile(m_ProjectFilePathName, ""))
+	if (DBEngine::Instance()->OpenDBFile(m_ProjectFilePathName))
 	{
-		SetProjectChange(false);
-		return true;
-	}
+		auto xml_settings = escapeXmlCode(SaveConfigString());
+		if (DBEngine::Instance()->SetSettingsXMLDatas(xml_settings))
+		{
+			SetProjectChange(false);
+
+			DBEngine::Instance()->CloseDBFile();
+
+			return true;
+		}
+
+		DBEngine::Instance()->CloseDBFile();
+	}	
 
 	return false;
 }

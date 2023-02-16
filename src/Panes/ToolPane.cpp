@@ -82,8 +82,6 @@ int ToolPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId,
 			{
 				DrawTable();
 
-				ImGui::Separator();
-
 				DrawTree();
 			}
 		}
@@ -165,116 +163,123 @@ void ToolPane::UpdateTree()
 
 void ToolPane::DrawTable()
 {
-	ImGui::Header("Lua Script File");
-	if (ImGui::ContrastedButton("Select the Lua Script File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
+	if (ImGui::CollapsingHeader("Lua Script File"))
 	{
-		ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Lua Script File", ".lua,.*",
-			LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
-	}
-	ImGui::TextWrapped("%s", LuaEngine::Instance()->GetLuaFilePathName().c_str());
-
-	ImGui::Header("Log Files");
-
-	if (ImGui::ContrastedButton("Add a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
-	{
-		ImGuiFileDialog::Instance()->OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*",
-			ProjectFile::Instance()->m_LastLogFilePath, 1, nullptr, ImGuiFileDialogFlags_Modal);
-	}
-	
-	auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
-
-	if (!container_ref.empty())
-	{
-		static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders;
-		if (ImGui::BeginTable("##sourcefilestable", 3, flags, ImVec2(-1.0f, container_ref.size() * ImGui::GetTextLineHeightWithSpacing())))
+		if (ImGui::ContrastedButton("Select the Lua Script File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
 		{
-			ImGui::TableSetupScrollFreeze(0, 1); // Make header always visible
-			ImGui::TableSetupColumn("Log Files", ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("##Edit", ImGuiTableColumnFlags_WidthFixed);
-			ImGui::TableSetupColumn("##Close", ImGuiTableColumnFlags_WidthFixed);
-			ImGui::TableHeadersRow();
-
-			int32_t idx = 0;
-			auto it_to_edit = container_ref.end();
-			auto it_to_erase = container_ref.end();
-			for (auto it_source_file = container_ref.begin(); it_source_file != container_ref.end(); ++it_source_file)
-			{
-				ImGui::TableNextRow();
-
-				if (ImGui::TableSetColumnIndex(0)) // first column
-				{
-					ImGui::Selectable(it_source_file->first.c_str());
-					if (ImGui::IsItemHovered())
-					{
-						ImGui::SetTooltip(it_source_file->second.c_str());
-					}
-				}
-
-				if (ImGui::TableSetColumnIndex(1)) // second column
-				{
-					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
-					if (ImGui::ContrastedButton(ICON_NDP_PENCIL_SQUARE "##SourceFileEdit", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f)))
-					{
-						it_to_edit = it_source_file;
-						m_CurrentLogEdited = idx;
-					}
-					ImGui::PopStyleVar();
-				}
-
-				if (ImGui::TableSetColumnIndex(2)) // second column
-				{
-					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
-					if (ImGui::ContrastedButton(ICON_NDP_CANCEL "##SourceFileDelete", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f)))
-					{
-						it_to_erase = it_source_file;
-					}
-					ImGui::PopStyleVar();
-				}
-
-				++idx;
-			}
-
-			// edit
-			if (it_to_edit != container_ref.end())
-			{
-				ImGuiFileDialog::Instance()->OpenDialog("EDIT_LOG_FILE", "Edit a Log File", ".*",
-					it_to_edit->second, 1, nullptr, ImGuiFileDialogFlags_Modal);
-			}
-
-			// erase
-			if (it_to_erase != container_ref.end())
-			{
-				container_ref.erase(it_to_erase);
-			}
-
-			ImGui::EndTable();
+			ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Lua Script File", ".lua,.*",
+				LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
 		}
-	}	
-
-	ImGui::Header("Predefined Zero value");
-	ImGui::CheckBoxBoolDefault("Use Predefined Zero Value ?", &ProjectFile::Instance()->m_UsePredefinedZeroValue, false);
-	if (ProjectFile::Instance()->m_UsePredefinedZeroValue) 
-	{
-		ImGui::InputDouble("##Predefinedzerovalue", &ProjectFile::Instance()->m_PredefinedZeroValue);
+		ImGui::TextWrapped("%s", LuaEngine::Instance()->GetLuaFilePathName().c_str());
 	}
 
-	ImGui::Header("Analyse");
-	if (!LuaEngine::Instance()->IsJoinable())
+	if (ImGui::CollapsingHeader("Log Files"))
 	{
-		if (ImGui::ContrastedButton("Start LuAnalyse of log file", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
+		if (ImGui::ContrastedButton("Add a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
 		{
-			LuaEngine::Instance()->StartWorkerThread(false);
-		}
-	}
-	else
-	{
-		if (ImGui::ContrastedButton("Stop LuaAnalyse", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
-		{
-			LuaEngine::Instance()->StopWorkerThread();
+			ImGuiFileDialog::Instance()->OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*",
+				ProjectFile::Instance()->m_LastLogFilePath, 1, nullptr, ImGuiFileDialogFlags_Modal);
 		}
 
-		auto progress = (float)LuaEngine::s_Progress;
-		ImGui::ProgressBar(progress);
+		auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
+
+		if (!container_ref.empty())
+		{
+			static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders;
+			if (ImGui::BeginTable("##sourcefilestable", 3, flags, ImVec2(-1.0f, container_ref.size() * ImGui::GetTextLineHeightWithSpacing())))
+			{
+				ImGui::TableSetupScrollFreeze(0, 1); // Make header always visible
+				ImGui::TableSetupColumn("Log Files", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableSetupColumn("##Edit", ImGuiTableColumnFlags_WidthFixed);
+				ImGui::TableSetupColumn("##Close", ImGuiTableColumnFlags_WidthFixed);
+				ImGui::TableHeadersRow();
+
+				int32_t idx = 0;
+				auto it_to_edit = container_ref.end();
+				auto it_to_erase = container_ref.end();
+				for (auto it_source_file = container_ref.begin(); it_source_file != container_ref.end(); ++it_source_file)
+				{
+					ImGui::TableNextRow();
+
+					if (ImGui::TableSetColumnIndex(0)) // first column
+					{
+						ImGui::Selectable(it_source_file->first.c_str());
+						if (ImGui::IsItemHovered())
+						{
+							ImGui::SetTooltip(it_source_file->second.c_str());
+						}
+					}
+
+					if (ImGui::TableSetColumnIndex(1)) // second column
+					{
+						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
+						if (ImGui::ContrastedButton(ICON_NDP_PENCIL_SQUARE "##SourceFileEdit", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f)))
+						{
+							it_to_edit = it_source_file;
+							m_CurrentLogEdited = idx;
+						}
+						ImGui::PopStyleVar();
+					}
+
+					if (ImGui::TableSetColumnIndex(2)) // second column
+					{
+						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
+						if (ImGui::ContrastedButton(ICON_NDP_CANCEL "##SourceFileDelete", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f)))
+						{
+							it_to_erase = it_source_file;
+						}
+						ImGui::PopStyleVar();
+					}
+
+					++idx;
+				}
+
+				// edit
+				if (it_to_edit != container_ref.end())
+				{
+					ImGuiFileDialog::Instance()->OpenDialog("EDIT_LOG_FILE", "Edit a Log File", ".*",
+						it_to_edit->second, 1, nullptr, ImGuiFileDialogFlags_Modal);
+				}
+
+				// erase
+				if (it_to_erase != container_ref.end())
+				{
+					container_ref.erase(it_to_erase);
+				}
+
+				ImGui::EndTable();
+			}
+		}
+	}
+
+	if (ImGui::CollapsingHeader("Predefined Zero value"))
+	{
+		ImGui::CheckBoxBoolDefault("Use Predefined Zero Value ?", &ProjectFile::Instance()->m_UsePredefinedZeroValue, false);
+		if (ProjectFile::Instance()->m_UsePredefinedZeroValue)
+		{
+			ImGui::InputDouble("##Predefinedzerovalue", &ProjectFile::Instance()->m_PredefinedZeroValue);
+		}
+	}
+
+	if (ImGui::CollapsingHeader("Analyse"))
+	{
+		if (!LuaEngine::Instance()->IsJoinable())
+		{
+			if (ImGui::ContrastedButton("Start LuAnalyse of log file", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
+			{
+				LuaEngine::Instance()->StartWorkerThread(false);
+			}
+		}
+		else
+		{
+			if (ImGui::ContrastedButton("Stop LuaAnalyse", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
+			{
+				LuaEngine::Instance()->StopWorkerThread();
+			}
+
+			auto progress = (float)LuaEngine::s_Progress;
+			ImGui::ProgressBar(progress);
+		}
 	}
 }
 
