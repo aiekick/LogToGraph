@@ -56,6 +56,7 @@ public: // to save
 	double m_DefaultCurveDisplayThickNess = 2.0; // for display a default curve
 	bool m_UsePredefinedZeroValue = false; // use predefined zero value
 	double m_PredefinedZeroValue = 0.0; // the predefined zero value for signals
+	std::string m_LastLogFilePath;
 
 private: // dont save
 	bool m_IsLoaded = false;

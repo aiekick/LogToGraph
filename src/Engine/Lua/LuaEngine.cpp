@@ -506,7 +506,10 @@ void LuaEngine::sLuAnalyse(
                     const SourceFileID& vSourceFileID,
                     const SourceFilePathName& vSourceFilePathName)
                     {
-                        _SourceFiles[vSourceFileID] = LogEngine::Instance()->SetSourceFile(vSourceFilePathName);
+                        if (_SourceFiles.find(vSourceFileID) == _SourceFiles.end()) // not found
+                        {
+                            _SourceFiles[vSourceFileID] = LogEngine::Instance()->SetSourceFile(vSourceFilePathName);
+                        }
                     });
                 
                 // get datas
@@ -519,26 +522,29 @@ void LuaEngine::sLuAnalyse(
                     const SignalString& vSignalString,
                     const SignalStatus& vSignalStatus)
                     {
-                        auto source_file_parent_weak = _SourceFiles.at(vSourceFileID);
+                        if (_SourceFiles.find(vSourceFileID) != _SourceFiles.end()) // found
+                        {
+                            auto source_file_parent_weak = _SourceFiles.at(vSourceFileID);
 
-                        if (vSignalString.empty())
-                        {
-                            LogEngine::Instance()->AddSignalTick(
-                                source_file_parent_weak, 
-                                vSignalCategory, 
-                                vSignalName, 
-                                vSignalEpochTime, 
-                                vSignalValue);
-                        }
-                        else
-                        {
-                            LogEngine::Instance()->AddSignalStatus(
-                                source_file_parent_weak, 
-                                vSignalCategory, 
-                                vSignalName, 
-                                vSignalEpochTime, 
-                                vSignalString, 
-                                vSignalStatus);
+                            if (vSignalString.empty())
+                            {
+                                LogEngine::Instance()->AddSignalTick(
+                                    source_file_parent_weak,
+                                    vSignalCategory,
+                                    vSignalName,
+                                    vSignalEpochTime,
+                                    vSignalValue);
+                            }
+                            else
+                            {
+                                LogEngine::Instance()->AddSignalStatus(
+                                    source_file_parent_weak,
+                                    vSignalCategory,
+                                    vSignalName,
+                                    vSignalEpochTime,
+                                    vSignalString,
+                                    vSignalStatus);
+                            }
                         }
                     });
 
