@@ -24,6 +24,7 @@ limitations under the License.
 #include <string.h>  
 #include <ctools/cTools.h>
 #include <ctools/Logger.h>
+#include <ctools/FileHelper.h>
 #include <sqlite/sqlite3.h>
 #include <fstream>
 
@@ -143,15 +144,19 @@ bool DBEngine::SetSettingsXMLDatas(const std::string& vXMLDatas)
 		auto xml_datas = GetSettingsXMLDatas();
 		if (xml_datas.empty())
 		{
-			insert_query = ct::toStr(u8R"(insert into app_settings (xml_datas) values("%s");)", vXMLDatas.c_str());
+			insert_query = "insert into app_settings(xml_datas) values(\"" + vXMLDatas + "\");";
 		}
 		else
 		{
-			insert_query = ct::toStr(u8R"(update app_settings set xml_datas = "%s" where rowid = 1;)", vXMLDatas.c_str());
+			insert_query = "update app_settings set xml_datas = \"" + vXMLDatas + "\" where rowid = 1;";
 		}
 
 		if (sqlite3_exec(m_SqliteDB, insert_query.c_str(), nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
 		{
+#ifdef _DEBUG
+			FileHelper::Instance()->SaveStringToFile(insert_query, "insert_query.txt");
+			FileHelper::Instance()->SaveStringToFile(m_LastErrorMsg, "last_error_msg.txt");
+#endif
 			LogVarError("Fail to insert or replace xml_datas in table app_settings of database : %s", m_LastErrorMsg);
 			return false;
 		}
