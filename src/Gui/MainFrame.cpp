@@ -474,12 +474,8 @@ void MainFrame::SetAppTitle(const std::string& vFilePathName)
 	}
 	else
 	{
-		auto ps = FileHelper::Instance()->ParsePathFileName(vFilePathName);
-		if (ps.isOk)
-		{
-			snprintf(bufTitle, 1023, "%s %s - Project : %s." APP_PROJECT_FILE_EXT, APP_TITLE, LogToGraph_BuildId, ps.name.c_str());
-			glfwSetWindowTitle(m_Window, bufTitle);
-		}
+		snprintf(bufTitle, 1023, "%s %s - Project : %s." APP_PROJECT_FILE_EXT, APP_TITLE, LogToGraph_BuildId, vFilePathName.c_str());
+		glfwSetWindowTitle(m_Window, bufTitle);
 	}
 }
 
@@ -658,15 +654,14 @@ new project :
 	m_ActionSystem.Clear();
 	m_ActionSystem.Add([this]()
 		{
-			ProjectFile::Instance()->New();
 			CloseUnSavedDialog();
 			ImGuiFileDialog::Instance()->OpenDialog(
-				"SaveProjectDlg", "Save Project File", "Project File{." APP_PROJECT_FILE_EXT "}", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
+				"NewProjectDlg", "New Project File", "Project File{." APP_PROJECT_FILE_EXT "}", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
 			return true;
 		});
 	m_ActionSystem.Add([this]()
 		{
-			return Display_SaveProjectDialog();
+			return Display_NewProjectDialog();
 		});
 }
 
@@ -871,6 +866,35 @@ void MainFrame::Action_UnSavedDialog_Cancel()
 ///////////////////////////////////////////////////////
 //// DIALOG FUNCS /////////////////////////////////////
 ///////////////////////////////////////////////////////
+
+bool MainFrame::Display_NewProjectDialog()
+{
+	// need to return false to continue to be displayed next frame
+
+	ImVec2 min = MainFrame::Instance()->m_DisplaySize * 0.5f;
+	ImVec2 max = MainFrame::Instance()->m_DisplaySize;
+
+	if (ImGuiFileDialog::Instance()->Display("NewProjectDlg",
+		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, min, max))
+	{
+		if (ImGuiFileDialog::Instance()->IsOk())
+		{
+			CloseUnSavedDialog();
+			ProjectFile::Instance()->New(ImGuiFileDialog::Instance()->GetFilePathName());
+			SaveAsProject(ImGuiFileDialog::Instance()->GetFilePathName());
+		}
+		else // cancel
+		{
+			Action_Cancel(); // we interrupts all actions
+		}
+
+		ImGuiFileDialog::Instance()->Close();
+
+		return true;
+	}
+
+	return false;
+}
 
 bool MainFrame::Display_OpenProjectDialog()
 {

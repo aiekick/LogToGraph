@@ -32,6 +32,7 @@ private:
 	ImGuiListClipper m_VirtualClipper;
 
 public:
+	void Clear();
 	bool Init() override;
 	void Unit() override;
 	int DrawPanes(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas, PaneFlag& vInOutPaneShown) override;

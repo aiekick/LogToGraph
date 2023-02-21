@@ -194,7 +194,8 @@ public:
 private:
 	bool OpenDB();
 	void CloseDB();
-	void CreateDB();
+	bool CreateDB();
+	void CreateDBTables();
 
 	/// <summary>
 	/// enable foreign key (must be done at each connections)
