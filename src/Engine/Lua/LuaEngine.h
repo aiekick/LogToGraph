@@ -60,6 +60,8 @@ private: // to save
 	std::vector<std::pair<SourceFileName,SourceFilePathName>> m_SourceFilePathNames;
 
 public:
+	void Clear();
+
 	bool Init();
 	void Unit();
 

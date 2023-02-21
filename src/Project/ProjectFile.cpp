@@ -30,6 +30,10 @@
 #include <Panes/ToolPane.h>
 #include <Panes/LogPaneSecondView.h>
 #include <Panes/GraphListPane.h>
+#include <Panes/GraphGroupPane.h>
+#include <Panes/SignalsHoveredDiff.h>
+#include <Panes/SignalsHoveredList.h>
+#include <Panes/SignalsHoveredMap.h>
 
 /*ProjectFile::ProjectFile(const std::string & vFilePathName)
 {
@@ -50,16 +54,34 @@ void ProjectFile::Clear()
 	m_IsThereAnyNotSavedChanged = false;
 }
 
+void ProjectFile::ClearDatas()
+{
+	LuaEngine::Instance()->Clear();
+	LogEngine::Instance()->Clear();
+	GraphView::Instance()->Clear();
+	ToolPane::Instance()->Clear();
+	LogPane::Instance()->Clear();
+	LogPaneSecondView::Instance()->Clear();
+	GraphListPane::Instance()->Clear();
+	GraphGroupPane::Instance()->Clear();
+	SignalsHoveredDiff::Instance()->Clear();
+	SignalsHoveredList::Instance()->Clear();
+	SignalsHoveredMap::Instance()->Clear();
+}
+
 void ProjectFile::New()
 {
 	Clear();
+	ClearDatas();
 	m_IsLoaded = true;
 }
 
 void ProjectFile::New(const std::string& vFilePathName)
 {
 	Clear();
+	ClearDatas();
 	m_ProjectFilePathName = FileHelper::Instance()->SimplifyFilePath(vFilePathName);
+	DBEngine::Instance()->CreateDBFile(m_ProjectFilePathName);
 	auto ps = FileHelper::Instance()->ParsePathFileName(m_ProjectFilePathName);
 	if (ps.isOk)
 	{
@@ -88,10 +110,7 @@ bool ProjectFile::LoadAs(const std::string& vFilePathName)
 	{
 		if (DBEngine::Instance()->OpenDBFile(filePathName))
 		{
-			LogEngine::Instance()->Clear();
-			GraphView::Instance()->Clear();
-			ToolPane::Instance()->Clear();
-			LogPane::Instance()->Clear();
+			ClearDatas();
 
 			auto xml_settings = DBEngine::Instance()->GetSettingsXMLDatas();
 			if (LoadConfigString(unEscapeXmlCode(xml_settings)) == tinyxml2::XMLError::XML_SUCCESS)
@@ -115,8 +134,6 @@ bool ProjectFile::LoadAs(const std::string& vFilePathName)
 			}
 
 			LogEngine::Instance()->Finalize();
-			LogPane::Instance()->Clear();
-			LogPaneSecondView::Instance()->Clear();
 			GraphListPane::Instance()->UpdateDB();
 			ToolPane::Instance()->UpdateTree();
 			LogEngine::Instance()->PrepareAfterLoad();

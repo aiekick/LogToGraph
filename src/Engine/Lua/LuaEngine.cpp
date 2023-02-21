@@ -529,6 +529,12 @@ void LuaEngine::sSetLuaBufferVarContent(lua_State* vLuaState, const std::string&
 /// INIT/UNIT /////////////////////////////////////
 ///////////////////////////////////////////////////
 
+void LuaEngine::Clear()
+{
+    m_LuaFilePathName.clear();
+    m_SourceFilePathNames.clear();
+}
+
 bool LuaEngine::Init()
 {
     m_LuaStatePtr = CreateLuaState();

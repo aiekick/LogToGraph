@@ -65,6 +65,8 @@ private: // dont save
 
 public:
 	void Clear();
+	void ClearDatas();
+
 	void New();
 	void New(const std::string& vFilePathName);
 	bool Load();

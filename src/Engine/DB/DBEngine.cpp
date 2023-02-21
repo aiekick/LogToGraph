@@ -58,7 +58,7 @@ bool DBEngine::CreateDBFile(const DBFile& vDBFilePathName)
 	{
 		m_DataBaseFilePathName = vDBFilePathName;
 
-		return OpenDB();
+		return CreateDB();
 	}
 
 	return false;
@@ -496,14 +496,32 @@ bool DBEngine::OpenDB()
 	{
 		if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE, nullptr) != SQLITE_OK) // db possibily not exist
 		{
-			CreateDB();
+			CreateDBTables();
 		}
 	}
 
 	return (m_SqliteDB != nullptr);
 }
 
-void DBEngine::CreateDB()
+bool DBEngine::CreateDB()
+{
+	CloseDB();
+
+	if (!m_SqliteDB)
+	{
+		FileHelper::Instance()->DestroyFile(m_DataBaseFilePathName);
+
+		if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) // db possibily not exist
+		{
+			CreateDBTables();
+			CloseDB();
+		}
+	}
+
+	return (m_SqliteDB != nullptr);
+}
+
+void DBEngine::CreateDBTables()
 {
 	m_SqliteDB = nullptr;
 

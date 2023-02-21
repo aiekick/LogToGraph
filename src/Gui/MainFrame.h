@@ -181,7 +181,8 @@ private: // actions
 	void Action_OpenUnSavedDialog_IfNeeded();
 	void Action_Cancel();
 
-	// dialog funcs to be in actions
+	// dialog funcs to be in actionsbool 
+	bool Display_NewProjectDialog();
 	bool Display_OpenProjectDialog();
 	bool Display_SaveProjectDialog();
 
