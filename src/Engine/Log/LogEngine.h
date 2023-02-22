@@ -49,6 +49,7 @@ private:
 	// containers of ptr's
 	SignalSeriesContainer m_SignalSeries;
 	SignalTicksContainer m_SignalTicks;
+	SignalTagsContainer m_SignalTags;
 
 	// ticks container who are not datas, because created virtually
 	// like first and last ticks of some sinalg for being the same as global time
@@ -89,6 +90,11 @@ public:
 		const SignalEpochTime& vDate, 
 		const SignalString& vString,
 		const SignalStatus& vStatus);
+	void AddSignalTag(
+		const SignalEpochTime& vSignalEpochTime,
+		const SignalTagColor& vSignalTagColor,
+		const SignalTagName& vSignalTagName,
+		const SignalTagHelp& vSignalTagHelp);
 	void Finalize();
 
 	// iter SignalDatasContainer
@@ -99,6 +105,7 @@ public:
 	SourceFilesContainerRef GetSourceFiles();
 	SignalValueRangeConstRef GetTicksTimeSerieRange() const;
 	SignalTicksContainerRef GetSignalTicks();
+	SignalTagsContainerRef GetSignalTags();
 	SignalSeriesContainerRef GetSignalSeries();
 
 	void SetHoveredTime(const SignalEpochTime& vSignalEpochTime);

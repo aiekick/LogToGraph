@@ -126,6 +126,19 @@ public:
 		const SignalStatus& vStatus);
 	
 	/// <summary>
+	/// add a signal tag in database
+	/// </summary>
+	/// <param name="vDate"></param>
+	/// <param name="vColor"></param>
+	/// <param name="vName"></param>
+	/// <param name="vHelp"></param>
+	void AddSignalTag(
+		const SignalEpochTime& vDate,
+		const SignalTagColor& vColor,
+		const SignalTagName& vName,
+		const SignalTagHelp& vHelp);
+
+	/// <summary>
 	/// Get the id of a source file from database
 	/// </summary>
 	/// <param name="vSourceFile"></param>
@@ -171,6 +184,16 @@ public:
 			const SignalString&, 
 			const SignalStatus&)> vCallback);
 
+	/// <summary>
+	/// will return tags in callbakk
+	/// <param name="vCallback">callback func called for each database line retrieved</param>
+	/// </summary>
+	void GetTags(
+		std::function<void(
+			const SignalEpochTime&,
+			const SignalTagColor&,
+			const SignalTagName&,
+			const SignalTagHelp&)> vCallback);
 
 	/// <summary>
 	/// return last error message

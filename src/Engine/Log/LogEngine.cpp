@@ -24,6 +24,7 @@ limitations under the License.
 
 #include <Engine/Log/SignalSerie.h>
 #include <Engine/Log/SignalTick.h>
+#include <Engine/Log/SignalTag.h>
 #include <Engine/Log/SourceFile.h>
 #include <Engine/Graphs/GraphView.h>
 #include <Engine/DB/DBEngine.h>
@@ -64,6 +65,7 @@ void LogEngine::Clear()
 	m_Range_ticks_time = SignalValueRange(0.5, -0.5) * DBL_MAX;
 	m_SignalSeries.clear();
 	m_SignalTicks.clear();
+	m_SignalTags.clear();
 	m_VirtualTicks.clear();
 	m_PreviewTicks.clear();
 	m_DiffFirstTicks.clear();
@@ -202,6 +204,25 @@ void LogEngine::AddSignalStatus(
 	}
 }
 
+void LogEngine::AddSignalTag(
+	const SignalEpochTime& vSignalEpochTime,
+	const SignalTagColor& vSignalTagColor,
+	const SignalTagName& vSignalTagName,
+	const SignalTagHelp& vSignalTagHelp)
+{
+	if (!vSignalTagName.empty())
+	{
+		auto tag_Ptr = SignalTag::Create();
+		tag_Ptr->time_epoch = vSignalEpochTime;
+		tag_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(vSignalEpochTime);
+		tag_Ptr->color = vSignalTagColor;
+		tag_Ptr->name = vSignalTagName;
+		tag_Ptr->help = vSignalTagHelp;
+
+		m_SignalTags.push_back(tag_Ptr);
+	}
+}
+
 void LogEngine::Finalize()
 {
 	// get sources
@@ -250,6 +271,20 @@ void LogEngine::Finalize()
 						vSignalStatus);
 				}
 			}
+		});
+
+	// get tags
+	DBEngine::Instance()->GetTags([this](
+		const SignalEpochTime& vSignalEpochTime,
+		const SignalTagColor& vSignalTagColor,
+		const SignalTagName& vSignalTagName,
+		const SignalTagHelp& vSignalTagHelp)
+		{
+			AddSignalTag(
+				vSignalEpochTime,
+				vSignalTagColor,
+				vSignalTagName,
+				vSignalTagHelp);
 		});
 
 	if (!m_SignalTicks.empty() &&
@@ -414,6 +449,11 @@ SignalValueRangeConstRef LogEngine::GetTicksTimeSerieRange() const
 SignalTicksContainerRef LogEngine::GetSignalTicks()
 {
 	return m_SignalTicks; 
+}
+
+SignalTagsContainerRef LogEngine::GetSignalTags()
+{
+	return m_SignalTags;
 }
 
 SignalSeriesContainerRef LogEngine::GetSignalSeries()

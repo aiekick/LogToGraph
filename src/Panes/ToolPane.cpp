@@ -119,7 +119,7 @@ void ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std
 		{
 			if (ImGuiFileDialog::Instance()->IsOk())
 			{
-				ProjectFile::Instance()->m_LastLogFilePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+				ProjectFile::Instance()->m_LastLogFilePath = ImGuiFileDialog::Instance()->GetFilePathName();
 				LuaEngine::Instance()->AddSourceFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
 				ProjectFile::Instance()->SetProjectChange();
 			}
