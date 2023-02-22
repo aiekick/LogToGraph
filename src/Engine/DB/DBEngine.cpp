@@ -580,7 +580,7 @@ bool DBEngine::OpenDB()
 {
 	if (!m_SqliteDB)
 	{
-		if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) // db possibily not exist
+		if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE, nullptr) != SQLITE_OK) // db possibily not exist
 		{
 			CreateDBTables();
 		}
@@ -597,7 +597,7 @@ bool DBEngine::CreateDB()
 	{
 		FileHelper::Instance()->DestroyFile(m_DataBaseFilePathName);
 
-		if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) // db possibily not exist
+		if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK) // db possibily not exist
 		{
 			CreateDBTables();
 			CloseDB();
@@ -609,13 +609,9 @@ bool DBEngine::CreateDB()
 
 void DBEngine::CreateDBTables()
 {
-	m_SqliteDB = nullptr;
-
-	if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK)
+	if (m_SqliteDB) // in the doubt
 	{
-		if (m_SqliteDB) // in the doubt
-		{
-			const char* create_tables = u8R"(
+		const char* create_tables = u8R"(
 create table signal_sources (
 	source VARCHAR(1024) UNIQUE
 );
@@ -650,19 +646,13 @@ create table app_settings (
 );
 )";
 
-// signal_tags.tag_color is like this format 128;250,100;255
+		// signal_tags.tag_color is like this format 128;250,100;255
 
-			if (sqlite3_exec(m_SqliteDB, create_tables, nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
-			{
-				LogVarError("Fail to create database : %s", m_LastErrorMsg);
-				m_SqliteDB = nullptr;
-			}
+		if (sqlite3_exec(m_SqliteDB, create_tables, nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
+		{
+			LogVarError("Fail to create database : %s", m_LastErrorMsg);
+			m_SqliteDB = nullptr;
 		}
-	}
-	else
-	{
-		LogVarError("Fail to open or create database\n");
-		m_SqliteDB = nullptr;
 	}
 }
 

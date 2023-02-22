@@ -10,6 +10,7 @@
 --Init() 									 -- is the entry point of the script. this function is needed
 --GetEpochTime("2023-01-16 15:24:26,464", 0) -- get epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
 --AddSignalTag(date, r, g, b, a, name, help) -- add a signal tag with date, color a name. the help will be displayed when mouse over the tag
+--AddSignalStatus(signal_category, signal_name, signal_epoch_time, signal_status)
 
 --will add a signal numerical value 
 --AddSignalValue(signal_category, signal_name, signal_epoch_time, signal_value)

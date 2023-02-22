@@ -170,7 +170,16 @@ void ToolPane::DrawTable()
 			ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Lua Script File", ".lua,.*",
 				LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
 		}
-		ImGui::TextWrapped("%s", LuaEngine::Instance()->GetLuaFilePathName().c_str());
+		if (ImGui::ContrastedButton(ICON_NDP_PENCIL_SQUARE "##LuaScriptEdit"))
+		{
+			FileHelper::Instance()->OpenFile(LuaEngine::Instance()->GetLuaFilePathName());
+		}
+		ImGui::SameLine();
+		ImGui::TextWrapped("%s", LuaEngine::Instance()->GetLuaFileName().c_str());
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("%s", LuaEngine::Instance()->GetLuaFilePathName().c_str());
+		}
 	}
 
 	if (ImGui::CollapsingHeader("Log Files"))
@@ -189,8 +198,8 @@ void ToolPane::DrawTable()
 			if (ImGui::BeginTable("##sourcefilestable", 3, flags, ImVec2(-1.0f, container_ref.size() * ImGui::GetTextLineHeightWithSpacing())))
 			{
 				ImGui::TableSetupScrollFreeze(0, 1); // Make header always visible
-				ImGui::TableSetupColumn("Log Files", ImGuiTableColumnFlags_WidthStretch);
 				ImGui::TableSetupColumn("##Edit", ImGuiTableColumnFlags_WidthFixed);
+				ImGui::TableSetupColumn("Log Files", ImGuiTableColumnFlags_WidthStretch);
 				ImGui::TableSetupColumn("##Close", ImGuiTableColumnFlags_WidthFixed);
 				ImGui::TableHeadersRow();
 
@@ -201,16 +210,7 @@ void ToolPane::DrawTable()
 				{
 					ImGui::TableNextRow();
 
-					if (ImGui::TableSetColumnIndex(0)) // first column
-					{
-						ImGui::Selectable(it_source_file->first.c_str());
-						if (ImGui::IsItemHovered())
-						{
-							ImGui::SetTooltip(it_source_file->second.c_str());
-						}
-					}
-
-					if (ImGui::TableSetColumnIndex(1)) // second column
+					if (ImGui::TableSetColumnIndex(0)) // second column
 					{
 						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
 						if (ImGui::ContrastedButton(ICON_NDP_PENCIL_SQUARE "##SourceFileEdit", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f)))
@@ -219,6 +219,15 @@ void ToolPane::DrawTable()
 							m_CurrentLogEdited = idx;
 						}
 						ImGui::PopStyleVar();
+					}
+
+					if (ImGui::TableSetColumnIndex(1)) // first column
+					{
+						ImGui::Selectable(it_source_file->first.c_str());
+						if (ImGui::IsItemHovered())
+						{
+							ImGui::SetTooltip("%s", it_source_file->second.c_str());
+						}
 					}
 
 					if (ImGui::TableSetColumnIndex(2)) // second column

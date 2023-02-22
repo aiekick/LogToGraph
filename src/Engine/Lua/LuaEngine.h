@@ -57,6 +57,7 @@ private: // thread
 
 private: // to save
 	std::string m_LuaFilePathName;
+	std::string m_LuaFileName;
 	std::vector<std::pair<SourceFileName,SourceFilePathName>> m_SourceFilePathNames;
 
 public:
@@ -87,6 +88,7 @@ public:
 
 	void SetLuaFilePathName(const std::string& vFilePathName);
 	std::string GetLuaFilePathName();
+	std::string GetLuaFileName();
 
 	void AddSourceFilePathName(const SourceFilePathName& vFilePathName);
 	std::vector<std::pair<SourceFileName, SourceFilePathName>>& GetSourceFilePathNamesRef();
