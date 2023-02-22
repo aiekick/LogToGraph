@@ -26,6 +26,7 @@
 #include <Panes/CodePane.h>
 #include <Engine/DB/DBEngine.h>
 #include <Engine/Graphs/GraphView.h>
+#include <Engine/Graphs/GraphGroup.h>
 #include <Panes/LogPane.h>
 #include <Panes/ToolPane.h>
 #include <Panes/LogPaneSecondView.h>
@@ -59,6 +60,7 @@ void ProjectFile::ClearDatas()
 	LuaEngine::Instance()->Clear();
 	LogEngine::Instance()->Clear();
 	GraphView::Instance()->Clear();
+	GraphGroup::Instance()->Clear();
 	ToolPane::Instance()->Clear();
 	LogPane::Instance()->Clear();
 	LogPaneSecondView::Instance()->Clear();

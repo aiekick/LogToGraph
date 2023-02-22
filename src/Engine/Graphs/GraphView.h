@@ -70,7 +70,7 @@ private:
 	void prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool& vFirstGraph);
 
 	bool prBeginPlot(const std::string& vLabel, ct::dvec2 vRangeValue, const ImVec2& vSize, const bool& vFirstGraph) const;
-	static void prEndPlot();
+	static void prEndPlot(const bool& vFirstGraph);
 
 public: // singleton
 	static std::shared_ptr<GraphView> Instance()

@@ -28,6 +28,7 @@ limitations under the License.
 #include <Engine/Log/LogEngine.h>
 #include <Engine/Log/SignalSerie.h>
 #include <Engine/Log/SignalTick.h>
+#include <Engine/Log/SignalTag.h>
 #include <Engine/Lua/LuaEngine.h>
 
 #include <Project/ProjectFile.h>
@@ -471,7 +472,7 @@ bool GraphView::prBeginPlot(const std::string& vLabel, ct::dvec2 vRangeValue, co
 
 		if (vFirstGraph)
 		{
-			ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_Opposite, ImPlotAxisFlags_Lock);
+			ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_Opposite, ImPlotAxisFlags_Lock); 
 		}
 		else
 		{
@@ -528,7 +529,52 @@ bool GraphView::prBeginPlot(const std::string& vLabel, ct::dvec2 vRangeValue, co
 	return false;
 }
 
-void GraphView::prEndPlot()
+// from DragLineX
+static bool ImPLotHoveredLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPlotDragToolFlags flags) {
+	// ImGui::PushID("#IMPLOT_DRAG_LINE_X");
+	ImPlotContext& gp = *GImPlot;
+	IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "DragLineX() needs to be called between BeginPlot() and EndPlot()!");
+	ImPlot::SetupLock();
+
+	if (!ImHasFlag(flags, ImPlotDragToolFlags_NoFit) && ImPlot::FitThisFrame()) {
+		ImPlot::FitPointX(*value);
+	}
+
+	const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
+	const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
+	const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
+	static const float DRAG_GRAB_HALF_SIZE = 4.0f;
+	const float grab_half_size = ImMax(DRAG_GRAB_HALF_SIZE, thickness / 2);
+	float yt = gp.CurrentPlot->PlotRect.Min.y;
+	float yb = gp.CurrentPlot->PlotRect.Max.y;
+	float x = IM_ROUND(ImPlot::PlotToPixels(*value, 0, IMPLOT_AUTO, IMPLOT_AUTO).x);
+	const ImGuiID id = ImGui::GetCurrentWindow()->GetID(n_id);
+	ImRect rect(x - grab_half_size, yt, x + grab_half_size, yb);
+	bool hovered = false, held = false;
+
+	ImGui::KeepAliveID(id);
+	if (input)
+		ImGui::ButtonBehavior(rect, id, &hovered, &held);
+
+	if ((hovered || held) && show_curs)
+		ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+	float len = gp.Style.MajorTickLen.x;
+	ImVec4 color = ImPlot::IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
+	ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
+
+	ImPlot::PushPlotClipRect();
+	ImDrawList& DrawList = *ImPlot::GetPlotDrawList();
+	DrawList.AddLine(ImVec2(x, yt), ImVec2(x, yb), col32, thickness);
+	DrawList.AddLine(ImVec2(x, yt), ImVec2(x, yt + len), col32, 3 * thickness);
+	DrawList.AddLine(ImVec2(x, yb), ImVec2(x, yb - len), col32, 3 * thickness);
+	ImPlot::PopPlotClipRect();
+
+	// ImGui::PopID();
+	return hovered;
+}
+
+void GraphView::prEndPlot(const bool& vFirstGraph)
 {
 	// draw diff first marks
 	auto first_mark = ProjectFile::Instance()->m_DiffFirstMark;
@@ -558,6 +604,23 @@ void GraphView::prEndPlot()
 	ImPlot::DragLineX(
 		DRAG_LINE_LOG_HOVERED_TIME, &hovered_time, ProjectFile::Instance()->m_GraphColors.graphMouseHoveredTimeColor,
 		1.5f, ImPlotDragToolFlags_NoInputs | ImPlotDragToolFlags_NoCursors);
+
+	for (const auto& tag_ptr : LogEngine::Instance()->GetSignalTags())
+	{
+		if (tag_ptr)
+		{
+			auto _time_epoch = tag_ptr->time_epoch;
+			if (ImPLotHoveredLineX((int)(uintptr_t)tag_ptr.get(), &_time_epoch, tag_ptr->color, 1.5f, 0))
+			{
+				ImGui::SetTooltip("%s :\n%s", tag_ptr->name.c_str(), tag_ptr->help.c_str());
+			}
+
+			if (vFirstGraph)
+			{
+				ImPlot::TagX(tag_ptr->time_epoch, tag_ptr->color, "%s", tag_ptr->name.c_str());
+			}
+		}
+	}
 
 	ImPlot::EndPlot();
 }
@@ -784,7 +847,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 				ImGui::EndTooltip();
 			}
 
-			prEndPlot();
+			prEndPlot(vFirstGraph);
 		}
 
 		ImGui::PopID();
@@ -1073,7 +1136,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 					ImGui::EndTooltip();
 				}
 
-				prEndPlot();
+				prEndPlot(vFirstGraph);
 			}
 
 			ImGui::PopID();

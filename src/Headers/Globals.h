@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <imgui/imgui.h>
 #include <ctools/cTools.h>
 
 typedef const char* ImGuiLabel;
@@ -24,6 +25,10 @@ typedef const ct::dvec2& SignalValueRangeConstRef;
 typedef uint32_t SignalColor;
 
 typedef double SignalEpochTime;
+
+typedef ImVec4 SignalTagColor;
+typedef std::string SignalTagName;
+typedef std::string SignalTagHelp;
 
 typedef std::string SignalName;
 typedef int32_t SignalNameID;
@@ -62,6 +67,16 @@ typedef std::vector<SignalTickWeak>& SignalTicksWeakContainerRef;
 
 typedef std::vector<std::pair<SignalTickWeak, SignalTickWeak>> SignalDiffWeakContainer;
 typedef std::vector<std::pair<SignalTickWeak, SignalTickWeak>>& SignalDiffWeakContainerRef;
+
+class SignalTag;
+typedef std::shared_ptr<SignalTag> SignalTagPtr;
+typedef std::weak_ptr<SignalTag> SignalTagWeak;
+
+typedef std::vector<SignalTagPtr> SignalTagsContainer;
+typedef std::vector<SignalTagPtr>& SignalTagsContainerRef;
+
+typedef std::vector<SignalTagWeak> SignalTagsWeakContainer;
+typedef std::vector<SignalTagWeak>& SignalTagsWeakContainerRef;
 
 class SignalSerie;
 typedef std::shared_ptr<SignalSerie> SignalSeriePtr;

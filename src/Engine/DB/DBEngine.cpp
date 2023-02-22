@@ -261,11 +261,27 @@ void DBEngine::AddSignalStatus(
 (id_signal_source, id_signal_category, id_signal_name, epoch_time, signal_string, signal_status) values(%i,
 (select rowid from signal_categories where signal_categories.category = "%s"),
 (select rowid from signal_names where signal_names.name = "%s"),
-%f,"%s", "%s");)",
-(int32_t)vSourceFileID, vSignalCategory.c_str(), vSignalName.c_str(), vDate, vString.c_str(), vStatus.c_str());
+%f,"%s", "%s");)", (int32_t)vSourceFileID, 
+		vSignalCategory.c_str(), vSignalName.c_str(), 
+		vDate, vString.c_str(), vStatus.c_str());
 	if (sqlite3_exec(m_SqliteDB, insert_query.c_str(), nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
 	{
 		LogVarError("Fail to insert a tick in database : %s", m_LastErrorMsg);
+	}
+}
+
+void DBEngine::AddSignalTag(
+	const SignalEpochTime& vDate,
+	const SignalTagColor& vColor,
+	const SignalTagName& vName,
+	const SignalTagHelp& vHelp)
+{
+	auto insert_query = ct::toStr(u8R"(insert or ignore into signal_tags 
+(epoch_time, tag_color, tag_name, tag_help) values (%f, "%u;%u;%u;%u", "%s", "%s");)",
+vDate, (uint32_t)vColor.x, (uint32_t)vColor.y, (uint32_t)vColor.z, (uint32_t)vColor.w, vName.c_str(), vHelp.c_str());
+	if (sqlite3_exec(m_SqliteDB, insert_query.c_str(), nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
+	{
+		LogVarError("Fail to insert a tag in database : %s", m_LastErrorMsg);
 	}
 }
 
@@ -346,6 +362,7 @@ delete from signal_sources;
 delete from signal_categories;
 delete from signal_names;
 delete from signal_ticks;
+delete from signal_tags;
 commit;
 )";
 	if (sqlite3_exec(m_SqliteDB, clear_query, nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
@@ -486,6 +503,75 @@ order by
 	sqlite3_finalize(stmt);
 }
 
+void DBEngine::GetTags(
+	std::function<void(
+		const SignalEpochTime&,
+		const SignalTagColor&,
+		const SignalTagName&,
+		const SignalTagHelp&)> vCallback)
+{
+	// no interest to call that without a claaback for retrieve datas
+	assert(vCallback);
+
+	std::string select_query = u8R"(
+SELECT
+  signal_tags.epoch_time as epoch_time,
+  signal_tags.tag_color as color,
+  signal_tags.tag_name as name,
+  signal_tags.tag_help as help
+FROM 
+ signal_tags
+;
+)";
+	sqlite3_stmt* stmt = nullptr;
+	int res = sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr);
+	if (res != SQLITE_OK)
+	{
+		LogVarError("Fail to get id from signal_tags in database");
+	}
+	else
+	{
+		while (res == SQLITE_OK || res == SQLITE_ROW)
+		{
+			//on récupère une ligne dans la table
+			res = sqlite3_step(stmt);
+			if (res == SQLITE_OK || res == SQLITE_ROW)
+			{
+				/*
+				  signal_tags.epoch_time        double
+				  signal_tags.tag_color         string
+				  signal_tags.tag_name          string
+			      signal_tags.tag_help          string
+				*/
+
+				auto epoch_time = sqlite3_column_double(stmt, 0);
+				
+				// can be null
+				SignalTagColor tag_color;
+				auto tag_color_cstr = (const char*)sqlite3_column_text(stmt, 1);
+				std::string tag_color_string = (tag_color_cstr != nullptr) ? tag_color_cstr : "";
+				if (!tag_color_string.empty())
+				{
+					tag_color = ct::toImVec4(ct::fvariant(tag_color_string).GetV4(';') / 255.0f);
+				}
+
+				// can be null
+				auto tag_name_cstr = (const char*)sqlite3_column_text(stmt, 2);
+				std::string tag_name_string = (tag_name_cstr != nullptr) ? tag_name_cstr : "";
+
+				// can be null
+				auto tag_help_cstr = (const char*)sqlite3_column_text(stmt, 3);
+				std::string tag_help_string = (tag_help_cstr != nullptr) ? tag_help_cstr : "";
+
+				//call callback with datas passed in args
+				vCallback(epoch_time, tag_color, tag_name_string, tag_help_string);
+			}
+		}
+	}
+
+	sqlite3_finalize(stmt);
+}
+
 ////////////////////////////////////////////////////////////
 ///// PRIVATE //////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
@@ -494,7 +580,7 @@ bool DBEngine::OpenDB()
 {
 	if (!m_SqliteDB)
 	{
-		if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE, nullptr) != SQLITE_OK) // db possibily not exist
+		if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) // db possibily not exist
 		{
 			CreateDBTables();
 		}
@@ -511,7 +597,7 @@ bool DBEngine::CreateDB()
 	{
 		FileHelper::Instance()->DestroyFile(m_DataBaseFilePathName);
 
-		if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) // db possibily not exist
+		if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) // db possibily not exist
 		{
 			CreateDBTables();
 			CloseDB();
@@ -552,10 +638,19 @@ create table signal_ticks (
 	signal_status varchar(255)
 );
 
+create table signal_tags (
+	epoch_time integer unique, 
+	tag_color varchar(20),
+	tag_name varchar(255),
+	tag_help varchar(1024)
+);
+
 create table app_settings (
 	xml_datas TEXT
 );
 )";
+
+// signal_tags.tag_color is like this format 128;250,100;255
 
 			if (sqlite3_exec(m_SqliteDB, create_tables, nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
 			{

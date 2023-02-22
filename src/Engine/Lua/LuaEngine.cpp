@@ -233,11 +233,38 @@ static int Lua_void_AddSignalValue_category_name_date_value(lua_State* L)
 
     if (arg_0_category.empty() || arg_1_name.empty())
     {
-        LogVarLightError("%s", "Lua code error : the string passed to LogValue is empty");
+        LogVarLightError("%s", "Lua code error : the category or/and name passed to AddSignalValue are empty");
     }
     else
     {
         DBEngine::Instance()->AddSignalTick((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_value);
+    }
+
+    return 0; // return 0 item
+}
+
+// AddSignalTag(date, r, g, b, a, name, help)
+static int Lua_void_AddSignalTag_date_color_name_help(lua_State* L)
+{
+    // params from stack
+    const auto arg_1_date = lua_tonumber(L, 1);
+    const auto arg_2_color_r = lua_tointeger(L, 2);
+    const auto arg_3_color_g = lua_tointeger(L, 3);
+    const auto arg_4_color_b = lua_tointeger(L, 4);
+    const auto arg_5_color_a = lua_tointeger(L, 5);
+    const auto arg_6_name = get_lua_secure_string(L, 6);
+    const auto arg_7_help = get_lua_secure_string(L, 7);
+
+    if (arg_6_name.empty())
+    {
+        LogVarLightError("%s", "Lua code error : the string passed to LogValue is empty");
+    }
+    else
+    {
+        auto color = ImVec4(
+            (float)arg_2_color_r, (float)arg_3_color_g,
+            (float)arg_4_color_b, (float)arg_5_color_a);
+        DBEngine::Instance()->AddSignalTag(arg_1_date, color, arg_6_name, arg_7_help);
     }
 
     return 0; // return 0 item
@@ -254,7 +281,7 @@ static int Lua_void_AddSignalStartZone_category_name_date_string(lua_State* L)
 
     if (arg_0_category.empty() || arg_1_name.empty())
     {
-        LogVarLightError("%s", "Lua code error : the string passed to LogValue is empty");
+        LogVarLightError("%s", "Lua code error : the category or/and name passed to AddSignalStartZone are empty");
     }
     else
     {
@@ -275,7 +302,7 @@ static int Lua_void_AddSignalEndZone_category_name_date_string(lua_State* L)
 
     if (arg_0_category.empty() || arg_1_name.empty())
     {
-        LogVarLightError("%s", "Lua code error : the string passed to LogValue is empty");
+        LogVarLightError("%s", "Lua code error : the category or/and name passed to AddSignalEndZone are empty");
     }
     else
     {
@@ -343,6 +370,8 @@ static lua_State* CreateLuaState()
         lua_register(lua_state_ptr, "AddSignalStartZone", Lua_void_AddSignalStartZone_category_name_date_string);
         lua_register(lua_state_ptr, "AddSignalEndZone", Lua_void_AddSignalEndZone_category_name_date_string);
         lua_register(lua_state_ptr, "GetEpochTime", Lua_number_GetEpochTimeFrom_date_time_string_offset_int);
+        lua_register(lua_state_ptr, "AddSignalTag", Lua_void_AddSignalTag_date_color_name_help);
+
     }
 
     return lua_state_ptr;
