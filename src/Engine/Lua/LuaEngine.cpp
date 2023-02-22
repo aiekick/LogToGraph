@@ -312,6 +312,27 @@ static int Lua_void_AddSignalEndZone_category_name_date_string(lua_State* L)
     return 0; // return 0 item
 }
 
+// AddSignalStatus(signal_category, signal_name, signal_epoch_time, signal_string)
+static int Lua_void_AddSignalStatus_category_name_date_string(lua_State* L)
+{
+    // params from stack
+    const auto arg_0_category = get_lua_secure_string(L, 1);
+    const auto arg_1_name = get_lua_secure_string(L, 2);
+    const auto arg_2_date = lua_tonumber(L, 3);
+    const auto arg_3_string = get_lua_secure_string(L, 4);
+
+    if (arg_0_category.empty() || arg_1_name.empty())
+    {
+        LogVarLightError("%s", "Lua code error : the category or/and name passed to AddSignalStatus are empty");
+    }
+    else
+    {
+        DBEngine::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, "");
+    }
+
+    return 0; // return 0 item
+}
+
 // number GetEpochTime(date_time, hour_offset)
 // date_time is in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS"
 static int Lua_number_GetEpochTimeFrom_date_time_string_offset_int(lua_State* L)
@@ -371,7 +392,7 @@ static lua_State* CreateLuaState()
         lua_register(lua_state_ptr, "AddSignalEndZone", Lua_void_AddSignalEndZone_category_name_date_string);
         lua_register(lua_state_ptr, "GetEpochTime", Lua_number_GetEpochTimeFrom_date_time_string_offset_int);
         lua_register(lua_state_ptr, "AddSignalTag", Lua_void_AddSignalTag_date_color_name_help);
-
+        lua_register(lua_state_ptr, "AddSignalStatus", Lua_void_AddSignalStatus_category_name_date_string);
     }
 
     return lua_state_ptr;
@@ -652,11 +673,21 @@ int32_t LuaEngine::GetRowCount() const
 void LuaEngine::SetLuaFilePathName(const std::string& vFilePathName)
 {
     m_LuaFilePathName = vFilePathName;
+    auto ps = FileHelper::Instance()->ParsePathFileName(m_LuaFilePathName);
+    if (ps.isOk)
+    {
+        m_LuaFileName = ps.name + "." + ps.ext;
+    }
 }
 
 std::string LuaEngine::GetLuaFilePathName()
 {
     return m_LuaFilePathName;
+}
+
+std::string LuaEngine::GetLuaFileName()
+{
+    return m_LuaFileName;
 }
 
 void LuaEngine::AddSourceFilePathName(const std::string& vFilePathName)
@@ -801,7 +832,9 @@ bool LuaEngine::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vP
         strParentName = vParent->Value();
 
     if (strName == "lua_file")
-        m_LuaFilePathName = strValue;
+    {
+        SetLuaFilePathName(strValue);
+    }
 
     if (strParentName == "log_files")
     {
