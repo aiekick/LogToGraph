@@ -120,7 +120,12 @@ void ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std
 			if (ImGuiFileDialog::Instance()->IsOk())
 			{
 				ProjectFile::Instance()->m_LastLogFilePath = ImGuiFileDialog::Instance()->GetFilePathName();
-				LuaEngine::Instance()->AddSourceFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
+				auto files = ImGuiFileDialog::Instance()->GetSelection();
+				for (const auto& item : files)
+				{
+					LuaEngine::Instance()->AddSourceFilePathName(item.second);
+				}
+				
 				ProjectFile::Instance()->SetProjectChange();
 			}
 
@@ -187,7 +192,7 @@ void ToolPane::DrawTable()
 		if (ImGui::ContrastedButton("Add a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
 		{
 			ImGuiFileDialog::Instance()->OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*",
-				ProjectFile::Instance()->m_LastLogFilePath, 1, nullptr, ImGuiFileDialogFlags_Modal);
+				ProjectFile::Instance()->m_LastLogFilePath, 0, nullptr, ImGuiFileDialogFlags_Modal);
 		}
 
 		auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();

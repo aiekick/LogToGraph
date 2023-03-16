@@ -650,7 +650,14 @@ create table app_settings (
 
 		if (sqlite3_exec(m_SqliteDB, create_tables, nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK)
 		{
-			LogVarError("Fail to create database : %s", m_LastErrorMsg);
+			if (m_LastErrorMsg)
+			{
+				LogVarError("Fail to create database : %s", m_LastErrorMsg);
+			}
+			else
+			{
+				LogVarError("Fail to create database");
+			}
 			m_SqliteDB = nullptr;
 		}
 	}

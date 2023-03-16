@@ -880,8 +880,13 @@ bool MainFrame::Display_NewProjectDialog()
 		if (ImGuiFileDialog::Instance()->IsOk())
 		{
 			CloseUnSavedDialog();
-			ProjectFile::Instance()->New(ImGuiFileDialog::Instance()->GetFilePathName());
-			SaveAsProject(ImGuiFileDialog::Instance()->GetFilePathName());
+			auto ps = FileHelper::Instance()->ParsePathFileName(ImGuiFileDialog::Instance()->GetFilePathName());
+			if (ps.isOk)
+			{
+				auto projectFilePathName = FileHelper::Instance()->ComposePath(ps.path, ps.name, APP_PROJECT_FILE_EXT);
+				ProjectFile::Instance()->New(projectFilePathName);
+				SaveAsProject(projectFilePathName);
+			}
 		}
 		else // cancel
 		{
