@@ -123,8 +123,6 @@ bool ProjectFile::LoadAs(const std::string& vFilePathName)
 				{
 					m_ProjectFilePath = ps.path;
 					CodePane::Instance()->SetCodeFile(m_CodeFilePathName);
-					LogEngine::Instance()->Finalize();
-					//LuaEngine::Instance()->StartWorkerThread(true);
 				}
 				m_IsLoaded = true;
 				m_NeverSaved = false;
