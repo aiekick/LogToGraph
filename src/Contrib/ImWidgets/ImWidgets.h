@@ -425,3 +425,244 @@ namespace ImWidgets
 		IMGUI_API std::string GetText(const std::string& vNumericType = "");
 	};
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///// SLIDER TEMPLATES /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Convert a parametric position on a slider into a value v in the output space (the logical opposite of ScaleRatioFromValueT)
+template<typename TYPE, typename SIGNEDTYPE, typename FLOATTYPE>
+inline TYPE inScaleValueFromRatioT(ImGuiDataType data_type, float t, TYPE v_min, TYPE v_max, bool is_logarithmic, float logarithmic_zero_epsilon, float zero_deadzone_halfsize)
+{
+	// We special-case the extents because otherwise our logarithmic fudging can lead to "mathematically correct"
+	// but non-intuitive behaviors like a fully-left slider not actually reaching the minimum value. Also generally simpler.
+	if (t <= 0.0f || v_min == v_max)
+		return v_min;
+	if (t >= 1.0f)
+		return v_max;
+
+	TYPE result = (TYPE)0;
+	if (is_logarithmic)
+	{
+		// Fudge min/max to avoid getting silly results close to zero
+		FLOATTYPE v_min_fudged = (ImAbs((FLOATTYPE)v_min) < logarithmic_zero_epsilon) ? ((v_min < 0.0f) ? -logarithmic_zero_epsilon : logarithmic_zero_epsilon) : (FLOATTYPE)v_min;
+		FLOATTYPE v_max_fudged = (ImAbs((FLOATTYPE)v_max) < logarithmic_zero_epsilon) ? ((v_max < 0.0f) ? -logarithmic_zero_epsilon : logarithmic_zero_epsilon) : (FLOATTYPE)v_max;
+
+		const bool flipped = v_max < v_min; // Check if range is "backwards"
+		if (flipped)
+			ImSwap(v_min_fudged, v_max_fudged);
+
+		// Awkward special case - we need ranges of the form (-100 .. 0) to convert to (-100 .. -epsilon), not (-100 .. epsilon)
+		if ((v_max == 0.0f) && (v_min < 0.0f))
+			v_max_fudged = -logarithmic_zero_epsilon;
+
+		float t_with_flip = flipped ? (1.0f - t) : t; // t, but flipped if necessary to account for us flipping the range
+
+		if ((v_min * v_max) < 0.0f) // Range crosses zero, so we have to do this in two parts
+		{
+			float zero_point_center = (-(float)ImMin(v_min, v_max)) / ImAbs((float)v_max - (float)v_min); // The zero point in parametric space
+			float zero_point_snap_L = zero_point_center - zero_deadzone_halfsize;
+			float zero_point_snap_R = zero_point_center + zero_deadzone_halfsize;
+			if (t_with_flip >= zero_point_snap_L && t_with_flip <= zero_point_snap_R)
+				result = (TYPE)0.0f; // Special case to make getting exactly zero possible (the epsilon prevents it otherwise)
+			else if (t_with_flip < zero_point_center)
+				result = (TYPE)-(logarithmic_zero_epsilon * ImPow(-v_min_fudged / logarithmic_zero_epsilon, (FLOATTYPE)(1.0f - (t_with_flip / zero_point_snap_L))));
+			else
+				result = (TYPE)(logarithmic_zero_epsilon * ImPow(v_max_fudged / logarithmic_zero_epsilon, (FLOATTYPE)((t_with_flip - zero_point_snap_R) / (1.0f - zero_point_snap_R))));
+		}
+		else if ((v_min < 0.0f) || (v_max < 0.0f)) // Entirely negative slider
+			result = (TYPE)-(-v_max_fudged * ImPow(-v_min_fudged / -v_max_fudged, (FLOATTYPE)(1.0f - t_with_flip)));
+		else
+			result = (TYPE)(v_min_fudged * ImPow(v_max_fudged / v_min_fudged, (FLOATTYPE)t_with_flip));
+	}
+	else
+	{
+		// Linear slider
+		const bool is_floating_point = (data_type == ImGuiDataType_Float) || (data_type == ImGuiDataType_Double);
+		if (is_floating_point)
+		{
+			result = ImLerp(v_min, v_max, t);
+		}
+		else if (t < 1.0)
+		{
+			// - For integer values we want the clicking position to match the grab box so we round above
+			//   This code is carefully tuned to work with large values (e.g. high ranges of U64) while preserving this property..
+			// - Not doing a *1.0 multiply at the end of a range as it tends to be lossy. While absolute aiming at a large s64/u64
+			//   range is going to be imprecise anyway, with this check we at least make the edge values matches expected limits.
+			FLOATTYPE v_new_off_f = (SIGNEDTYPE)(v_max - v_min) * t;
+			result = (TYPE)((SIGNEDTYPE)v_min + (SIGNEDTYPE)(v_new_off_f + (FLOATTYPE)(v_min > v_max ? -0.5 : 0.5)));
+		}
+	}
+
+	return result;
+}
+
+// FIXME: Move more of the code into SliderBehavior()
+template<typename TYPE, typename SIGNEDTYPE, typename FLOATTYPE>
+inline bool inSliderBehaviorStepperT(const ImRect& bb, ImGuiID id, ImGuiDataType data_type, TYPE* v, const TYPE v_min, const TYPE v_max, const TYPE v_step, const char* format, ImGuiSliderFlags flags, ImRect* out_grab_bb)
+{
+	using namespace ImGui;
+
+	ImGuiContext& g = *GImGui;
+	const ImGuiStyle& style = g.Style;
+
+	const ImGuiAxis axis = (flags & ImGuiSliderFlags_Vertical) ? ImGuiAxis_Y : ImGuiAxis_X;
+	const bool is_logarithmic = (flags & ImGuiSliderFlags_Logarithmic) != 0;
+	const bool is_floating_point = (data_type == ImGuiDataType_Float) || (data_type == ImGuiDataType_Double);
+
+	const float grab_padding = 2.0f;
+	const float slider_sz = (bb.Max[axis] - bb.Min[axis]) - grab_padding * 2.0f;
+	float grab_sz = style.GrabMinSize;
+	SIGNEDTYPE v_range = (v_min < v_max ? v_max - v_min : v_min - v_max);
+	if (!is_floating_point && v_range >= 0)                                             // v_range < 0 may happen on integer overflows
+		grab_sz = ImMax((float)(slider_sz / (v_range + 1)), style.GrabMinSize);  // For integer sliders: if possible have the grab size represent 1 unit
+	grab_sz = ImMin(grab_sz, slider_sz);
+	const float slider_usable_sz = slider_sz - grab_sz;
+	const float slider_usable_pos_min = bb.Min[axis] + grab_padding + grab_sz * 0.5f;
+	const float slider_usable_pos_max = bb.Max[axis] - grab_padding - grab_sz * 0.5f;
+
+	float logarithmic_zero_epsilon = 0.0f; // Only valid when is_logarithmic is true
+	float zero_deadzone_halfsize = 0.0f; // Only valid when is_logarithmic is true
+	if (is_logarithmic)
+	{
+		// When using logarithmic sliders, we need to clamp to avoid hitting zero, but our choice of clamp value greatly affects slider precision. We attempt to use the specified precision to estimate a good lower bound.
+		const int decimal_precision = is_floating_point ? ImParseFormatPrecision(format, 3) : 1;
+		logarithmic_zero_epsilon = ImPow(0.1f, (float)decimal_precision);
+		zero_deadzone_halfsize = (style.LogSliderDeadzone * 0.5f) / ImMax(slider_usable_sz, 1.0f);
+	}
+
+	// Process interacting with the slider
+	bool value_changed = false;
+	if (g.ActiveId == id)
+	{
+		bool set_new_value = false;
+		float clicked_t = 0.0f;
+		if (g.ActiveIdSource == ImGuiInputSource_Mouse)
+		{
+			if (!g.IO.MouseDown[0])
+			{
+				ClearActiveID();
+			}
+			else
+			{
+				const float mouse_abs_pos = g.IO.MousePos[axis];
+				clicked_t = (slider_usable_sz > 0.0f) ? ImClamp((mouse_abs_pos - slider_usable_pos_min) / slider_usable_sz, 0.0f, 1.0f) : 0.0f;
+				if (axis == ImGuiAxis_Y)
+					clicked_t = 1.0f - clicked_t;
+				set_new_value = true;
+			}
+		}
+		/*else if (g.ActiveIdSource == ImGuiInputSource_Nav)
+		{
+			if (g.ActiveIdIsJustActivated)
+			{
+				g.SliderCurrentAccum = 0.0f; // Reset any stored nav delta upon activation
+				g.SliderCurrentAccumDirty = false;
+			}
+
+			const ImVec2 input_delta2 = GetNavInputAmount2d(ImGuiNavDirSourceFlags_Keyboard | ImGuiNavDirSourceFlags_PadDPad, ImGuiInputReadMode_RepeatFast, 0.0f, 0.0f);
+			float input_delta = (axis == ImGuiAxis_X) ? input_delta2.x : -input_delta2.y;
+			if (input_delta != 0.0f)
+			{
+				const int decimal_precision = is_floating_point ? ImParseFormatPrecision(format, 3) : 0;
+				if (decimal_precision > 0)
+				{
+					input_delta /= 100.0f;    // Gamepad/keyboard tweak speeds in % of slider bounds
+					if (IsNavInputDown(ImGuiNavInput_TweakSlow))
+						input_delta /= 10.0f;
+				}
+				else
+				{
+					if ((v_range >= -100.0f && v_range <= 100.0f) || IsNavInputDown(ImGuiNavInput_TweakSlow))
+						input_delta = ((input_delta < 0.0f) ? -1.0f : +1.0f) / (float)v_range; // Gamepad/keyboard tweak speeds in integer steps
+					else
+						input_delta /= 100.0f;
+				}
+				if (IsNavInputDown(ImGuiNavInput_TweakFast))
+					input_delta *= 10.0f;
+
+				g.SliderCurrentAccum += input_delta;
+				g.SliderCurrentAccumDirty = true;
+			}
+
+			float delta = g.SliderCurrentAccum;
+			if (g.NavActivatePressedId == id && !g.ActiveIdIsJustActivated)
+			{
+				ClearActiveID();
+			}
+			else if (g.SliderCurrentAccumDirty)
+			{
+				clicked_t = ScaleRatioFromValueT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, *v, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
+
+				if ((clicked_t >= 1.0f && delta > 0.0f) || (clicked_t <= 0.0f && delta < 0.0f)) // This is to avoid applying the saturation when already past the limits
+				{
+					set_new_value = false;
+					g.SliderCurrentAccum = 0.0f; // If pushing up against the limits, don't continue to accumulate
+				}
+				else
+				{
+					set_new_value = true;
+					float old_clicked_t = clicked_t;
+					clicked_t = ImSaturate(clicked_t + delta);
+
+					// Calculate what our "new" clicked_t will be, and thus how far we actually moved the slider, and subtract this from the accumulator
+					TYPE v_new = ScaleValueFromRatioT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, clicked_t, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
+					if (!(flags & ImGuiSliderFlags_NoRoundToFormat))
+						v_new = RoundScalarWithFormatT<TYPE>(format, data_type, v_new);
+
+					float new_clicked_t = ScaleRatioFromValueT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, v_new, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
+
+					if (delta > 0)
+						g.SliderCurrentAccum -= ImMin(new_clicked_t - old_clicked_t, delta);
+					else
+						g.SliderCurrentAccum -= ImMax(new_clicked_t - old_clicked_t, delta);
+				}
+
+				g.SliderCurrentAccumDirty = false;
+			}
+		}*/
+
+		if (set_new_value)
+		{
+			TYPE v_new = inScaleValueFromRatioT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, clicked_t, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
+
+			if (v_step)
+			{
+				FLOATTYPE v_new_off_f = (FLOATTYPE)v_new;
+				TYPE v_new_off_floor = (TYPE)((int)(v_new_off_f / v_step) * v_step);
+				//TYPE v_new_off_round = v_new_off_floor + v_step;
+				v_new = v_new_off_floor;
+			}
+
+			// Round to user desired precision based on format string
+			if (!(flags & ImGuiSliderFlags_NoRoundToFormat) && (data_type == ImGuiDataType_Float || data_type == ImGuiDataType_Double))
+				v_new = RoundScalarWithFormatT<TYPE>(format, data_type, v_new);
+
+			// Apply result
+			if (*v != v_new)
+			{
+				*v = v_new;
+				value_changed = true;
+			}
+		}
+	}
+
+	if (slider_sz < 1.0f)
+	{
+		*out_grab_bb = ImRect(bb.Min, bb.Min);
+	}
+	else
+	{
+		// Output grab position so it can be displayed by the caller
+		float grab_t = (float)inScaleValueFromRatioT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, (float)*v, (TYPE)v_min, (TYPE)v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
+		if (axis == ImGuiAxis_Y)
+			grab_t = 1.0f - grab_t;
+		const float grab_pos = ImLerp(slider_usable_pos_min, slider_usable_pos_max, grab_t);
+		if (axis == ImGuiAxis_X)
+			*out_grab_bb = ImRect(grab_pos - grab_sz * 0.5f, bb.Min.y + grab_padding, grab_pos + grab_sz * 0.5f, bb.Max.y - grab_padding);
+		else
+			*out_grab_bb = ImRect(bb.Min.x + grab_padding, grab_pos - grab_sz * 0.5f, bb.Max.x - grab_padding, grab_pos + grab_sz * 0.5f);
+	}
+
+	return value_changed;
+}

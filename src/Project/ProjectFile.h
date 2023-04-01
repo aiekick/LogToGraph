@@ -100,6 +100,6 @@ protected:
 	ProjectFile() = default; // Prevent construction
 	ProjectFile(const ProjectFile&) {}; // Prevent construction by copying
 	ProjectFile& operator =(const ProjectFile&) { return *this; }; // Prevent assignment
-    virtual ~ProjectFile() = default;; // Prevent unwanted destruction};
+    virtual ~ProjectFile() = default; // Prevent unwanted destruction};
 };
 

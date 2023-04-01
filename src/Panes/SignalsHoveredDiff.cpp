@@ -255,11 +255,11 @@ void SignalsHoveredDiff::DrawTable()
 								{
 									if (diff_second_mark_ptr->status == LuaEngine::sc_START_ZONE)
 									{
-										ImGui::Text(ICON_NDP_ARROW_RIGHT, " %s", diff_second_mark_ptr->string.c_str());
+										ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", diff_second_mark_ptr->string.c_str());
 									}
 									else if (diff_second_mark_ptr->status == LuaEngine::sc_END_ZONE)
 									{
-										ImGui::Text(ICON_NDP_CARET_LEFT, " %s", diff_second_mark_ptr->string.c_str());
+										ImGui::Text(ICON_NDP_CARET_LEFT " %s", diff_second_mark_ptr->string.c_str());
 									}
 									else
 									{
