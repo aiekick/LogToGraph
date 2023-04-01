@@ -253,7 +253,7 @@ void SignalsPreview::DrawTable()
 		float aw = ImGui::GetContentRegionAvail().x;
 
 		//ImGui::SliderUIntDefaultCompact(aw, "Count buttons x", &ProjectFile::Instance()->m_SignalPreview_CountX, 1U, 1000U, 20U);
-		ImGui::SliderFloatDefaultCompact(aw, "Button Width", &ProjectFile::Instance()->m_SignalPreview_SizeX, 10.0f, 100.0f, 30.0f);
+		ImGui::SliderFloat("Button Width", &ProjectFile::Instance()->m_SignalPreview_SizeX, 10.0f, 100.0f);
 
 		ImGui::EndMenuBar();
 	}

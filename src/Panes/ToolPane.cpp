@@ -139,7 +139,7 @@ void ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std
 			if (ImGuiFileDialog::Instance()->IsOk())
 			{
 				auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
-				if (m_CurrentLogEdited > -1 && m_CurrentLogEdited < container_ref.size())
+				if (m_CurrentLogEdited > -1 && m_CurrentLogEdited < (int32_t)container_ref.size())
 				{
 					auto fpn = ImGuiFileDialog::Instance()->GetFilePathName();
 					auto ps = FileHelper::Instance()->ParsePathFileName(fpn);

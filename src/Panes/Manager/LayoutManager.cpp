@@ -93,7 +93,7 @@ void LayoutManager::Init(const std::string& vMenuLabel, const std::string& vDefa
 	if (!FileHelper::Instance()->IsFileExist("imgui.ini"))
 	{
 		m_FirstLayout = true; // need default layout
-		LogVarDebug("We will apply default layout :)");
+		LogVarDebug("%s", "We will apply default layout :)");
 	}
 }
 
