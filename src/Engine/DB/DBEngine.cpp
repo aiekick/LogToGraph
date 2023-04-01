@@ -74,7 +74,7 @@ bool DBEngine::OpenDBFile(const DBFile& vDBFilePathName)
 	}
 	else
 	{
-		LogVarInfo("Database already opened\n");
+		LogVarInfo("%s", "Database already opened\n");
 	}
 
 	return (m_SqliteDB != nullptr);
@@ -175,7 +175,7 @@ std::string DBEngine::GetSettingsXMLDatas()
 	sqlite3_stmt* stmt = nullptr;
 	if (sqlite3_prepare_v2(m_SqliteDB, select_query, (int)strlen(select_query), &stmt, nullptr) != SQLITE_OK)
 	{
-		LogVarError("Fail to get xml_datas from app_settings table of database");
+		LogVarError("%s", "Fail to get xml_datas from app_settings table of database");
 	}
 	else
 	{
@@ -293,7 +293,7 @@ DBRowID DBEngine::GetSourceFile(const SourceFileName& vSourceFile)
 	sqlite3_stmt* stmt = nullptr;
 	if (sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr) != SQLITE_OK)
 	{
-		LogVarError("Fail to get id from signal_sources in database");
+		LogVarError("%s", "Fail to get id from signal_sources in database");
 	}
 	else
 	{
@@ -316,7 +316,7 @@ DBRowID DBEngine::GetSignalCategory(const SignalCategory& vSignalCategory)
 	sqlite3_stmt* stmt = nullptr;
 	if (sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr) != SQLITE_OK)
 	{
-		LogVarError("Fail to get id from signal_categories in database");
+		LogVarError("%s", "Fail to get id from signal_categories in database");
 	}
 	else
 	{
@@ -339,7 +339,7 @@ DBRowID DBEngine::GetSignalName(const SignalName& vSignalName)
 	sqlite3_stmt* stmt = nullptr;
 	if (sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr) != SQLITE_OK)
 	{
-		LogVarError("Fail to get id from signal_names in database");
+		LogVarError("%s", "Fail to get id from signal_names in database");
 	}
 	else
 	{
@@ -390,13 +390,13 @@ ORDER BY
 	int res = sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr);
 	if (res != SQLITE_OK)
 	{
-		LogVarError("Fail to get id from signal_names in database");
+		LogVarError("%s", "Fail to get id from signal_names in database");
 	}
 	else
 	{
 		while (res == SQLITE_OK || res == SQLITE_ROW)
 		{
-			//on récupère une ligne dans la table
+			//on rï¿½cupï¿½re une ligne dans la table
 			res = sqlite3_step(stmt);
 			if (res == SQLITE_OK || res == SQLITE_ROW)
 			{
@@ -454,13 +454,13 @@ order by
 	int res = sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr);
 	if (res != SQLITE_OK)
 	{
-		LogVarError("Fail to get id from signal_names in database");
+		LogVarError("%s", "Fail to get id from signal_names in database");
 	}
 	else
 	{
 		while (res == SQLITE_OK || res == SQLITE_ROW)
 		{
-			//on récupère une ligne dans la table
+			//on rï¿½cupï¿½re une ligne dans la table
 			res = sqlite3_step(stmt);
 			if (res == SQLITE_OK || res == SQLITE_ROW)
 			{
@@ -527,13 +527,13 @@ FROM
 	int res = sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr);
 	if (res != SQLITE_OK)
 	{
-		LogVarError("Fail to get id from signal_tags in database");
+		LogVarError("%s", "Fail to get id from signal_tags in database");
 	}
 	else
 	{
 		while (res == SQLITE_OK || res == SQLITE_ROW)
 		{
-			//on récupère une ligne dans la table
+			//on rï¿½cupï¿½re une ligne dans la table
 			res = sqlite3_step(stmt);
 			if (res == SQLITE_OK || res == SQLITE_ROW)
 			{
@@ -656,7 +656,7 @@ create table app_settings (
 			}
 			else
 			{
-				LogVarError("Fail to create database");
+				LogVarError("%s", "Fail to create database");
 			}
 			m_SqliteDB = nullptr;
 		}

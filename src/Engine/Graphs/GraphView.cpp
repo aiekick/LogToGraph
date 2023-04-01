@@ -542,7 +542,7 @@ static bool ImPLotHoveredLineX(int n_id, double* value, const ImVec4& col, float
 
 	const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
 	const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
-	const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
+	//const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
 	static const float DRAG_GRAB_HALF_SIZE = 4.0f;
 	const float grab_half_size = ImMax(DRAG_GRAB_HALF_SIZE, thickness / 2);
 	float yt = gp.CurrentPlot->PlotRect.Min.y;

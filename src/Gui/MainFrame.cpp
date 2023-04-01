@@ -82,15 +82,16 @@ void MainFrame::Init()
 	LayoutManager::Instance()->AddPane(GraphPane::Instance(), ICON_NDP2_CHART_LINE " Graphs", "", PaneDisposal::CENTRAL, true, false);
 	LayoutManager::Instance()->AddPane(GraphListPane::Instance(), ICON_NDP2_CHART_LINE " All Graph Signals", "", PaneDisposal::CENTRAL, false, false);
 	LayoutManager::Instance()->AddPane(GraphGroupPane::Instance(), ICON_NDP2_BUFFER " Graph Groups", "", PaneDisposal::RIGHT, true, false);
-	LayoutManager::Instance()->AddPane(SignalsHoveredMap::Instance(), ICON_NDP2_CARDS " Signals Hovered Map", "", PaneDisposal::BOTTOM, false, false);
 	LayoutManager::Instance()->AddPane(SignalsHoveredList::Instance(), ICON_NDP2_RECENT_FILES " Signals Hovered List", "", PaneDisposal::RIGHT, false, false);
 	LayoutManager::Instance()->AddPane(SignalsHoveredDiff::Instance(), ICON_NDP2_VECTOR_DIFFERENCE " Signals Hovered Diff", "", PaneDisposal::RIGHT, false, false);
 	LayoutManager::Instance()->AddPane(ConsolePane::Instance(), ICON_NDP2_COMMENT_TEXT_MULTIPLE " Console", "", PaneDisposal::BOTTOM, false, false);
 	LayoutManager::Instance()->AddPane(CodePane::Instance(), ICON_NDP2_COMMENT_TEXT " Code", "", PaneDisposal::RIGHT, false, false);
 	LayoutManager::Instance()->AddPane(AnnotationPane::Instance(), ICON_NDP2_CARDS " Annotations", "", PaneDisposal::RIGHT, false, false);
 
+    // todo : not sure if interested so maybe to remove
+    // LayoutManager::Instance()->AddPane(SignalsHoveredMap::Instance(), ICON_NDP2_CARDS " Signals Hovered Map", "", PaneDisposal::BOTTOM, false, false);
 
-	// ConsolePane have a flag only after AddPane() call
+    // ConsolePane have a flag only after AddPane() call
 	Messaging::sMessagePaneId = ConsolePane::Instance()->GetPaneFlag();
 	Messaging::Instance();
 
@@ -161,6 +162,8 @@ void MainFrame::SetEmbeddedIconApp(const char* vEmbeddedIconID)
 #if WIN32
 	auto icon_h_inst = LoadIconA(GetModuleHandle(NULL), vEmbeddedIconID);
 	SetClassLongPtrA(glfwGetWin32Window(m_Window), GCLP_HICON, (LONG_PTR)icon_h_inst);
+#else
+    (void)vEmbeddedIconID;
 #endif
 }
 
@@ -228,6 +231,8 @@ GLuint MainFrame::ExtractEmbeddedIcon(const char* vEmbeddedIconID)
 			}
 		}
 	}
+#else
+    (void)vEmbeddedIconID;
 #endif
 
 	return 0;
@@ -285,6 +290,8 @@ GLuint MainFrame::ExtractEmbeddedImage(const char* vEmbeddedImageID)
 
 		return texID;
 	}
+#else
+    (void)vEmbeddedImageID;
 #endif
 
 	return 0;
