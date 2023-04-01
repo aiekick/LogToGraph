@@ -45,10 +45,11 @@ GraphAnnotationPtr& GraphAnnotationModel::at(const size_t& vIdx)
 
 void GraphAnnotationModel::erase(GraphAnnotationPtr vGraphAnnotationPtr)
 {
-	auto item_found = std::find(m_GraphAnnotationModel.begin(), m_GraphAnnotationModel.end(), vGraphAnnotationPtr);
-	if (item_found != m_GraphAnnotationModel.end())
-	{
-		m_GraphAnnotationModel.erase(item_found);
+	for (auto it = m_GraphAnnotationModel.begin(); it != m_GraphAnnotationModel.end(); ++it) {
+		if (*it == vGraphAnnotationPtr) {
+			m_GraphAnnotationModel.erase(it);
+			break;
+		}
 	}
 }
 

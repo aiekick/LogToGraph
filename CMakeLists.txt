@@ -78,10 +78,11 @@ add_definitions(-DUSE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS) ## for the resize im
 
 if(MSVC)
     # Ignore 4055 for glad
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /IGNORE:4055 /std:c++17")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /IGNORE:4055 /std:c++17")
     add_definitions(-D_USE_MATH_DEFINES)
     add_definitions(-DMSVC)
-	add_definitions(-DNOMINMAX) ## for avoid issue regarding std::max and std::min
+    add_definitions(-DMGLFW_EXPOSE_NATIVE_WIN32)
+    add_definitions(-DNOMINMAX) ## for avoid issue regarding std::max and std::min
 else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -std=c++17 -Wdeprecated-declarations -Wunused-parameter")
 endif ()
@@ -174,7 +175,7 @@ set_target_properties(${PROJECT} PROPERTIES	RUNTIME_OUTPUT_DIRECTORY "${FINAL_BI
 ########################################################
 
 ## only for Debug
-add_subdirectory(3rdparty/buildInc)
+add_subdirectory(3rdparty/BuildInc)
 set_target_properties(BuildInc PROPERTIES FOLDER 3rdparty/tools)
 
 add_custom_command(
