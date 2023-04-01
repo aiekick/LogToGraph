@@ -1,5 +1,9 @@
 # LogToGraph
 
+| Backend | Win | Linux | Osx |
+| ------- | --- | ----- | --- |
+| Opengl 3 | [<img src="https://github.com/aiekick/LogToGraph/workflows/Win/badge.svg" width="150"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3AWin) | [<img src="https://github.com/aiekick/LogToGraph/workflows/Linux/badge.svg" width="165"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3ALinux) | [<img src="https://github.com/aiekick/LogToGraph/workflows/Osx/badge.svg" width="150"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3AOsx) |
+
 ## Goal :
 
 LogToGraph have been designed to display numerical signals based logs as graph.
