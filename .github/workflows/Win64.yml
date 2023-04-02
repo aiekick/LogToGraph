@@ -1,4 +1,4 @@
-name: Win
+name: Win64
 
 on:
   workflow_dispatch:
@@ -20,6 +20,6 @@ jobs:
     - name: upload artifact
       uses: actions/upload-artifact@v1
       with:
-        name: LogToGraph_Msvc_x32
-        path: bin\LogToGraph_Msvc_x32.exe
+        name: LogToGraph_Msvc_x64
+        path: bin\LogToGraph_Msvc_x64.exe
 
