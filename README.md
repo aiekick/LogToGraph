@@ -1,8 +1,11 @@
 # LogToGraph
 
-| Backend | Win | Linux | Osx |
-| ------- | --- | ----- | --- |
-| Opengl 3 | [<img src="https://github.com/aiekick/LogToGraph/workflows/Win/badge.svg" width="150"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3AWin) | [<img src="https://github.com/aiekick/LogToGraph/workflows/Linux/badge.svg" width="165"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3ALinux) | [<img src="https://github.com/aiekick/LogToGraph/workflows/Osx/badge.svg" width="150"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3AOsx) |
+| Backend | Win64 | Linux |
+| ------- | --- | ----- |
+| Opengl 3 | [<img src="https://github.com/aiekick/LogToGraph/workflows/Win64/badge.svg" width="150"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3AWin64) | [<img src="https://github.com/aiekick/LogToGraph/workflows/Linux/badge.svg" width="165"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3ALinux) |
+
+MacOs is not officially maintained but i think he can compile on it.
+So i let the cmake infos about MacOs in bottom of this ReadMe.
 
 ## Goal :
 
@@ -25,10 +28,14 @@ with this tool you can :
  - display all signals in a minimal view
  - search for a signal name
  - show the values of all signals at the timeframe hovered by the mouse
+ - show zone of signals (start / end)
+ - show a special tag for point event (like erreors by ex)
  - show the changed signals values between two timeframe markers
  - display the whole singals tick in a log view
  - display the whole singals tick in a second log view (for compare with the first)
  - display a code pane for let you test/design your lua script
+ - the porject file is a sqlite database, so you can open it again without reparse or do treatment with other apps
+ - you can have parse many log file but with the same parsing lua file
  
 ## Howto : Lua Script file
 
@@ -154,9 +161,7 @@ you also have this dialog when you quit the app
 
 ## Limitations :
 
-1) You can't have many log file at the same time
-2) The signal values must bu numerical (cant be some string)
-3) The log file must be ascii file
+1) The log file must be ascii file
 2) You need opengl for using it, since the ui is a opengl based gui
 
 ## Howto Build :
