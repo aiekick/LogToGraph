@@ -1,8 +1,8 @@
 # LogToGraph
 
-| Backend | Win | Linux | Osx |
-| ------- | --- | ----- | --- |
-| Opengl 3 | [<img src="https://github.com/aiekick/LogToGraph/workflows/Win/badge.svg" width="150"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3AWin) | [<img src="https://github.com/aiekick/LogToGraph/workflows/Linux/badge.svg" width="165"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3ALinux) | [<img src="https://github.com/aiekick/LogToGraph/workflows/Osx/badge.svg" width="150"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3AOsx) |
+| Backend | Win64 | Linux |
+| ------- | --- | ----- |
+| Opengl 3 | [<img src="https://github.com/aiekick/LogToGraph/workflows/Win64/badge.svg" width="150"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3AWin64) | [<img src="https://github.com/aiekick/LogToGraph/workflows/Linux/badge.svg" width="165"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3ALinux) |
 
 ## Goal :
 
