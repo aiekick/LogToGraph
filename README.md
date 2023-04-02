@@ -188,7 +188,8 @@ LogError(error_string)
 GetRowIndex()								
 -- return the number of rows of the file
 GetRowCount()								 
- -- get epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
+ -- get epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or 
+ -- "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
 GetEpochTime("2023-01-16 15:24:26,464", 0)    
 
 -- Add Signal ticks
