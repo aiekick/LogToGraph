@@ -18,23 +18,17 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "AnnotationPane.h"
-#include <Gui/MainFrame.h>
-#include <ctools/cTools.h>
-#include <ctools/Logger.h>
-#include <Helper/Messaging.h>
-#include <Project/ProjectFile.h>
-#include <Panes/Manager/LayoutManager.h>
-#include <cinttypes> // printf zu
-#include <imgui/imgui_internal.h>
-#include <Engine/Graphs/GraphAnnotationModel.h>
-#include <Engine/Graphs/GraphAnnotation.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Contrib/FontIcons/CustomFont.h>
-#include <Engine/Log/LogEngine.h>
-#include <Panes/ToolPane.h>
-#include <Panes/GraphListPane.h>
+#include <EzLibs/EzLog.hpp>
 
-static int GeneratorPaneWidgetId = 0;
+#include <Project/ProjectFile.h>
+#include <cinttypes> // printf zu
+#include <models/graphs/GraphAnnotationModel.h>
+#include <models/graphs/GraphAnnotation.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/LogEngine.h>
+#include <panes/ToolPane.h>
+#include <panes/GraphListPane.h>
+#include <res/fontIcons.h>
 
 ///////////////////////////////////////////////////////////////////////////////////
 //// OVERRIDES ////////////////////////////////////////////////////////////////////
@@ -50,29 +44,20 @@ void AnnotationPane::Unit()
 
 }
 
-int AnnotationPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/, PaneFlag& vInOutPaneShown)
-{
-	GeneratorPaneWidgetId = vWidgetId;
-
-	if (vInOutPaneShown & m_PaneFlag)
-	{
-		static ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoBringToFrontOnFocus |
-			ImGuiWindowFlags_MenuBar;
-		if (ImGui::Begin<PaneFlag>(m_PaneName,
-			&vInOutPaneShown , m_PaneFlag, flags))
-		{
+bool AnnotationPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
+	ImGui::SetCurrentContext(vContextPtr);
+	bool change = false;
+	if (vOpened != nullptr && *vOpened) {
+		static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
+		if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
 			auto win = ImGui::GetCurrentWindowRead();
 			if (win->Viewport->Idx != 0)
-				flags |= ImGuiWindowFlags_NoResize;// | ImGuiWindowFlags_NoTitleBar;
+				flags |= ImGuiWindowFlags_NoResize;  // | ImGuiWindowFlags_NoTitleBar;
 			else
-				flags = ImGuiWindowFlags_NoCollapse |
-				ImGuiWindowFlags_NoBringToFrontOnFocus |
-				ImGuiWindowFlags_MenuBar;
+				flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-			if (ProjectFile::Instance()->IsLoaded()) 
+			if (ProjectFile::Instance()->IsLoaded())
 			{
 				if (ImGui::BeginMenuBar())
 				{
@@ -85,41 +70,7 @@ int AnnotationPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWid
 
 		ImGui::End();
 	}
-
-	return GeneratorPaneWidgetId;
-}
-
-void AnnotationPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
-{
-
-}
-
-int AnnotationPane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
-{
-	return vWidgetId;
-}
-
-std::string AnnotationPane::getXml(const std::string& /*vOffset*/, const std::string& /*vUserDatas*/)
-{
-	std::string str;
-
-	return str;
-}
-
-bool AnnotationPane::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
-{
-	// The value of this child identifies the name of this element
-	std::string strName;
-	std::string strValue;
-	std::string strParentName;
-
-	strName = vElem->Value();
-	if (vElem->GetText())
-		strValue = vElem->GetText();
-	if (vParent != nullptr)
-		strParentName = vParent->Value();
-
-	return true;
+	return change;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -188,9 +139,9 @@ void AnnotationPane::DrawContent()
 									ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
 									ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
 									count_color_push = 3U;
-									if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
-										ImGui::CustomStyle::Instance()->puContrastedTextColor,
-										ImGui::CustomStyle::Instance()->puContrastRatio))
+									if (ImGui::PushStyleColorWithContrast1(ImGuiCol_Header, ImGuiCol_Text,
+										ImGui::CustomStyle::puContrastedTextColor,
+										ImGui::CustomStyle::puContrastRatio))
 									{
 										count_color_push = 4U;
 									}
@@ -202,7 +153,7 @@ void AnnotationPane::DrawContent()
 
 							if (ImGui::TableNextColumn()) // delete
 							{
-								if (ImGui::ContrastedButton(ICON_NDP_CANCEL))
+								if (ImGui::ContrastedButton(ICON_FONT_CANCEL))
 								{
 									annotation_to_remove_ptr = anno_ptr;
 								}

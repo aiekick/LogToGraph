@@ -42,3 +42,15 @@
 	path = 3rdparty/ImGuiFileDialog
 	url = https://github.com/aiekick/ImGuiFileDialog.git
 	branch = Lib_Only
+[submodule "3rdparty/ezlibs"]
+	path = 3rdparty/ezlibs
+	url = https://github.com/aiekick/EzLibs.git
+	branch = master
+[submodule "3rdparty/ImGuiPack"]
+	path = 3rdparty/ImGuiPack
+	url = https://github.com/aiekick/ImGuiPack.git
+	branch = master
+[submodule "3rdparty/iagp"]
+	path = 3rdparty/iagp
+	url = https://github.com/aiekick/InAppGpuProfiler.git
+	branch = master

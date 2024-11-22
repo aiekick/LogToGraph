@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Contrib/FontIcons/CustomFont2.h>
+#include <res/fontIcons.h>
 
 #define APP_TITLE "LogToGraph"
 #define APP_PROJECT_FILE_EXT "ltg"
@@ -10,8 +10,8 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <imgui/imgui.h>
-#include <ctools/cTools.h>
+#include <ImGuiPack.h>
+#include <ezlibs/ezTools.hpp>
 
 typedef const char* ImGuiLabel;
 
@@ -19,8 +19,8 @@ typedef double SignalValue;
 typedef std::string SignalString;
 typedef std::string SignalStatus;
 
-typedef ct::dvec2 SignalValueRange;
-typedef const ct::dvec2& SignalValueRangeConstRef;
+typedef ez::dvec2 SignalValueRange;
+typedef const ez::dvec2& SignalValueRangeConstRef;
 
 typedef uint32_t SignalColor;
 

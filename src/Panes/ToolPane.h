@@ -16,13 +16,12 @@ limitations under the License.
 
 #pragma once
 
-#include <Panes/Abstract/AbstractPane.h>
-#include <Engine/Log/LogEngine.h>
-#include <imgui/imgui.h>
-#include <stdint.h>
-#include <string>
-#include <memory>
 #include <map>
+#include <memory>
+#include <string>
+#include <cstdint>
+#include <Headers/Globals.h>
+#include <models/log/LogEngine.h>
 
 class ProjectFile;
 class ToolPane : public AbstractPane
@@ -36,10 +35,9 @@ private:
 public:
 	void Clear();
 	bool Init() override;
-	void Unit() override;
-	int DrawPanes(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas, PaneFlag& vInOutPaneShown) override;
-	void DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const std::string& vUserDatas) override;
-	int DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas) override;
+    void Unit() override;
+    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
+    bool DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vRect*/, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) override;
 
 	void UpdateTree();
 

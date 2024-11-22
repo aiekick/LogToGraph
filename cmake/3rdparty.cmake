@@ -1,24 +1,10 @@
-if (CMAKE_SYSTEM_NAME STREQUAL Linux)
-  find_package(X11 REQUIRED)
-  if (NOT X11_Xi_FOUND)
-    message(FATAL_ERROR "X11 Xi library is required")
-  endif ()
-endif ()
+set(OpenGL_GL_PREFERENCE GLVND)
+find_package(OpenGL REQUIRED)
 
-## contrib
-include(cmake/stb.cmake)
-include(cmake/luajit.cmake)
-include(cmake/sqlite.cmake)
-include(cmake/glad.cmake)
-include(cmake/glfw.cmake)
-include(cmake/imgui.cmake)
-include(cmake/implot.cmake)
-include(cmake/tinyxml2.cmake)
-include(cmake/freetype.cmake)
-include(cmake/imguicolortextedit.cmake)
+# we will fetch the library
+# we are not maintening
+include(cmake/NotMaintained/notmaintained.cmake)
 
-## aiekick
-include(cmake/ctools.cmake)
-include(cmake/imguifiledialog.cmake)
-
-
+## libe we are maintening
+## order is important here
+include(cmake/Maintained/maintained.cmake)

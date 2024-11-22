@@ -18,24 +18,19 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "ToolPane.h"
-#include <Gui/MainFrame.h>
-#include <ctools/cTools.h>
-#include <ctools/FileHelper.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
 #include <Project/ProjectFile.h>
-#include <imgui/imgui_internal.h>
-#include <Panes/Manager/LayoutManager.h>
-#include <ImGuiFileDialog/ImGuiFileDialog.h>
 #include <cinttypes> // printf zu
-#include <Panes/LogPane.h>
-#include <Panes/CodePane.h>
+#include <panes/LogPane.h>
+#include <panes/CodePane.h>
 
-#include <Engine/Lua/LuaEngine.h>
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SourceFile.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
-#include <Engine/Graphs/GraphView.h>
+#include <models/lua/LuaEngine.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SourceFile.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
+#include <models/graphs/GraphView.h>
+
+#include <ezlibs/ezFile.hpp>
 
 static int SourcePane_WidgetId = 0;
 
@@ -58,18 +53,12 @@ void ToolPane::Unit()
 
 }
 
-int ToolPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/, PaneFlag& vInOutPaneShown)
-{
-	SourcePane_WidgetId = vWidgetId;
-
-	if (vInOutPaneShown & m_PaneFlag)
-	{
-		static ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoBringToFrontOnFocus;
-		if (ImGui::Begin<PaneFlag>(m_PaneName,
-			&vInOutPaneShown , m_PaneFlag, flags))
-		{
+bool ToolPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
+    ImGui::SetCurrentContext(vContextPtr);
+    bool change = false;
+    if (vOpened != nullptr && *vOpened) {
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
+        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
 			auto win = ImGui::GetCurrentWindowRead();
 			if (win->Viewport->Idx != 0)
@@ -92,11 +81,10 @@ int ToolPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId,
 	return SourcePane_WidgetId;
 }
 
-void ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
-{
+bool ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImRect& vRect, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) {
 	if (ProjectFile::Instance()->IsLoaded())
 	{
-		ImVec2 maxSize = MainFrame::Instance()->m_DisplaySize;
+        ImVec2 maxSize = vRect.GetSize();
 		ImVec2 minSize = maxSize * 0.5f;
 
 		if (ImGuiFileDialog::Instance()->Display("OPEN_LUA_SCRIPT_FILE",
@@ -106,7 +94,7 @@ void ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std
 			if (ImGuiFileDialog::Instance()->IsOk())
 			{
 				LuaEngine::Instance()->SetLuaFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
-				CodePane::Instance()->SetCodeFile(ImGuiFileDialog::Instance()->GetFilePathName());
+				CodePane::Instance()->OpenFile(ImGuiFileDialog::Instance()->GetFilePathName());
 				ProjectFile::Instance()->SetProjectChange();
 			}
 
@@ -142,7 +130,7 @@ void ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std
 				if (m_CurrentLogEdited > -1 && m_CurrentLogEdited < (int32_t)container_ref.size())
 				{
 					auto fpn = ImGuiFileDialog::Instance()->GetFilePathName();
-					auto ps = FileHelper::Instance()->ParsePathFileName(fpn);
+					auto ps = ez::file::parsePathFileName(fpn);
 					if (ps.isOk)
 					{
 						container_ref[m_CurrentLogEdited] = std::make_pair(ps.GetFPNE_WithPath(""), fpn);
@@ -154,11 +142,7 @@ void ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std
 			ImGuiFileDialog::Instance()->Close();
 		}
 	}
-}
-
-int ToolPane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
-{
-	return vWidgetId;
+    return false;
 }
 
 void ToolPane::UpdateTree()
@@ -172,12 +156,15 @@ void ToolPane::DrawTable()
 	{
 		if (ImGui::ContrastedButton("Select the Lua Script File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
 		{
-			ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Lua Script File", ".lua,.*",
-				LuaEngine::Instance()->GetLuaFilePathName(), 1, nullptr, ImGuiFileDialogFlags_Modal);
+            IGFD::FileDialogConfig config;
+            config.countSelectionMax = 1;
+            config.filePathName = LuaEngine::Instance()->GetLuaFilePathName();
+            config.flags = ImGuiFileDialogFlags_Modal;
+            ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Lua Script File", ".lua,.*", config);
 		}
-		if (ImGui::ContrastedButton(ICON_NDP_PENCIL_SQUARE "##LuaScriptEdit"))
+		if (ImGui::ContrastedButton( "##LuaScriptEdit"))
 		{
-			FileHelper::Instance()->OpenFile(LuaEngine::Instance()->GetLuaFilePathName());
+			ez::file::openFile(LuaEngine::Instance()->GetLuaFilePathName());
 		}
 		ImGui::SameLine();
 		ImGui::TextWrapped("%s", LuaEngine::Instance()->GetLuaFileName().c_str());
@@ -189,10 +176,12 @@ void ToolPane::DrawTable()
 
 	if (ImGui::CollapsingHeader("Log Files"))
 	{
-		if (ImGui::ContrastedButton("Add a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f)))
-		{
-			ImGuiFileDialog::Instance()->OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*",
-				ProjectFile::Instance()->m_LastLogFilePath, 0, nullptr, ImGuiFileDialogFlags_Modal);
+		if (ImGui::ContrastedButton("Add a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
+            IGFD::FileDialogConfig config;
+            config.countSelectionMax = 1;
+            config.filePathName = ProjectFile::Instance()->m_LastLogFilePath;
+            config.flags = ImGuiFileDialogFlags_Modal;
+            ImGuiFileDialog::Instance()->OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*", config);
 		}
 
 		auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
@@ -218,7 +207,7 @@ void ToolPane::DrawTable()
 					if (ImGui::TableSetColumnIndex(0)) // second column
 					{
 						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
-						if (ImGui::ContrastedButton(ICON_NDP_PENCIL_SQUARE "##SourceFileEdit", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f)))
+						if (ImGui::ContrastedButton( "##SourceFileEdit", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f)))
 						{
 							it_to_edit = it_source_file;
 							m_CurrentLogEdited = idx;
@@ -238,7 +227,7 @@ void ToolPane::DrawTable()
 					if (ImGui::TableSetColumnIndex(2)) // second column
 					{
 						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
-						if (ImGui::ContrastedButton(ICON_NDP_CANCEL "##SourceFileDelete", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f)))
+						if (ImGui::ContrastedButton(ICON_FONT_CANCEL "##SourceFileDelete", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f)))
 						{
 							it_to_erase = it_source_file;
 						}
@@ -249,10 +238,12 @@ void ToolPane::DrawTable()
 				}
 
 				// edit
-				if (it_to_edit != container_ref.end())
-				{
-					ImGuiFileDialog::Instance()->OpenDialog("EDIT_LOG_FILE", "Edit a Log File", ".*",
-						it_to_edit->second, 1, nullptr, ImGuiFileDialogFlags_Modal);
+				if (it_to_edit != container_ref.end()) {
+                    IGFD::FileDialogConfig config;
+                    config.countSelectionMax = 1;
+                    config.filePathName = it_to_edit->second;
+                    config.flags = ImGuiFileDialogFlags_Modal;
+                    ImGuiFileDialog::Instance()->OpenDialog("EDIT_LOG_FILE", "Edit a Log File", ".*", config);
 				}
 
 				// erase
@@ -304,7 +295,7 @@ void ToolPane::DisplayItem(const SignalSerieWeak& vDatasSerie)
 		auto ptr = vDatasSerie.lock();
 		if (ptr)
 		{
-			auto name_str = ct::toStr("%s (%u)", ptr->name.c_str(), (uint32_t)ptr->count_base_records);
+			auto name_str = ez::str::toStr("%s (%u)", ptr->name.c_str(), (uint32_t)ptr->count_base_records);
 			if (ImGui::Selectable(name_str.c_str(), ptr->show))
 			{
 				ptr->show = !ptr->show;
@@ -367,7 +358,7 @@ void ToolPane::DrawTree()
 	ImGui::SameLine();
 	if (ImGui::InputText("##ToolPane_DrawTree_Search", m_search_buffer, 1024))
 	{
-		search_string = ct::toLower(m_search_buffer);
+		search_string = ez::str::toLower(m_search_buffer);
 		PrepareLogAfterSearch(search_string);
 	}
 
@@ -406,7 +397,7 @@ void ToolPane::DrawTree()
 					ImGui::SetNextItemOpen(true);
 				}
 
-				auto cat_str = ct::toStr("%s (%u)", item_cat.first.c_str(), (uint32_t)item_cat.second.size());
+				auto cat_str = ez::str::toStr("%s (%u)", item_cat.first.c_str(), (uint32_t)item_cat.second.size());
 				if (ImGui::TreeNode(cat_str.c_str()))
 				{
 					ImGui::Indent();

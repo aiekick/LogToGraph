@@ -18,20 +18,14 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "SignalsHoveredDiff.h"
-#include <Gui/MainFrame.h>
-#include <ctools/FileHelper.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
 #include <Project/ProjectFile.h>
-#include <imgui/imgui_internal.h>
-#include <Panes/Manager/LayoutManager.h>
-#include <ImGuiFileDialog/ImGuiFileDialog.h>
 #include <cinttypes> // printf zu
-#include <Panes/CodePane.h>
+#include <panes/CodePane.h>
 
-#include <Engine/Lua/LuaEngine.h>
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
+#include <models/lua/LuaEngine.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
 
 static int SourcePane_WidgetId = 0;
 static GraphColor s_DefaultGraphColors;
@@ -55,19 +49,12 @@ void SignalsHoveredDiff::Unit()
 
 }
 
-int SignalsHoveredDiff::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/, PaneFlag& vInOutPaneShown)
-{
-	SourcePane_WidgetId = vWidgetId;
-
-	if (vInOutPaneShown & m_PaneFlag)
-	{
-		static ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoBringToFrontOnFocus |
-			ImGuiWindowFlags_MenuBar;
-		if (ImGui::Begin<PaneFlag>(m_PaneName,
-			&vInOutPaneShown , m_PaneFlag, flags))
-		{
+bool SignalsHoveredDiff::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
+    ImGui::SetCurrentContext(vContextPtr);
+    bool change = false;
+    if (vOpened != nullptr && *vOpened) {
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
+        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
 			auto win = ImGui::GetCurrentWindowRead();
 			if (win->Viewport->Idx != 0)
@@ -87,15 +74,6 @@ int SignalsHoveredDiff::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& 
 	}
 
 	return SourcePane_WidgetId;
-}
-
-void SignalsHoveredDiff::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
-{
-}
-
-int SignalsHoveredDiff::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
-{
-	return vWidgetId;
 }
 
 void SignalsHoveredDiff::CheckItem(const SignalTickPtr& vSignalTick)
@@ -200,9 +178,9 @@ void SignalsHoveredDiff::DrawTable()
 								ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
 								ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
 								count_color_push = 3;
-								if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
-									ImGui::CustomStyle::Instance()->puContrastedTextColor,
-									ImGui::CustomStyle::Instance()->puContrastRatio))
+								if (ImGui::PushStyleColorWithContrast1(ImGuiCol_Header, ImGuiCol_Text,
+									ImGui::CustomStyle::puContrastedTextColor,
+									ImGui::CustomStyle::puContrastRatio))
 								{
 									count_color_push = 4;
 								}
@@ -232,11 +210,11 @@ void SignalsHoveredDiff::DrawTable()
 								{
 									if (diff_first_mark_ptr->status == LuaEngine::sc_START_ZONE)
 									{
-										ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", diff_first_mark_ptr->string.c_str());
+										ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", diff_first_mark_ptr->string.c_str());
 									}
 									else if (diff_first_mark_ptr->status == LuaEngine::sc_END_ZONE)
 									{
-										ImGui::Text("%s " ICON_NDP_ARROW_LEFT, diff_first_mark_ptr->string.c_str());
+										ImGui::Text("%s " ICON_FONT_ARROW_LEFT, diff_first_mark_ptr->string.c_str());
 									}
 									else
 									{
@@ -255,11 +233,11 @@ void SignalsHoveredDiff::DrawTable()
 								{
 									if (diff_second_mark_ptr->status == LuaEngine::sc_START_ZONE)
 									{
-										ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", diff_second_mark_ptr->string.c_str());
+										ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", diff_second_mark_ptr->string.c_str());
 									}
 									else if (diff_second_mark_ptr->status == LuaEngine::sc_END_ZONE)
 									{
-										ImGui::Text(ICON_NDP_CARET_LEFT " %s", diff_second_mark_ptr->string.c_str());
+                                        ImGui::Text(ICON_FONT_ARROW_LEFT " %s", diff_second_mark_ptr->string.c_str());
 									}
 									else
 									{

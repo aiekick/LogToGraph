@@ -1,56 +1,37 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.20)
 
 set(PROJECT LogToGraph)
 
 enable_language(C CXX)
-
 project(${PROJECT} CXX)
 
-set(LLVM_USE_CRT_DEBUG MTd CACHE STRING "" FORCE)
-set(LLVM_USE_CRT_MINSIZEREL MT CACHE STRING "" FORCE)
-set(LLVM_USE_CRT_RELEASE MT CACHE STRING "" FORCE)
-set(LLVM_USE_CRT_RELWITHDEBINFO MT CACHE STRING "" FORCE)
-set(USE_MSVC_RUNTIME_LIBRARY_DLL ON CACHE BOOL "")
+option(USE_BUILDING_AS_SHARED "Enable shared building" ON)
+option(USE_BUILDING_OF_TESTS "Enable the build of tests" OFF)
 
-set(USE_CONFIG_SYSTEM ON CACHE BOOL "")
-set(USE_GLFW_CLIPBOARD ON CACHE BOOL "")
-set(USE_GL_VERSION_CHECKER ON CACHE BOOL "")
-
-## for group smake targets in the dir cmakeTargets
+## for group smake targets in the dir CmakeTargets
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "cmakeTargets")
+set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CmakeTargets")
 
-set(CMAKE_CXX_STANDARD 14)
+## show the dependency graph of cmake
+## set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_DEBUG_MODE 1)
+
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 ## some defines for debug mode (before 3rdparty.cmake)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
-add_definitions(-DCUSTOM_IMGUIFILEDIALOG_CONFIG="../../../src/Gui/CustomImGuiFileDialogConfig.h")
-add_definitions(-DIMGUI_USER_CONFIG="../../../src/Gui/CustomImConfig.h")
-add_definitions(-DIMGUI_DISABLE_OBSOLETE_FUNCTIONS)
-add_definitions(-DIMGUI_DEFINE_MATH_OPERATORS)
-add_definitions(${GLFW_DEFINITIONS})
-add_definitions(-DIMGUI_DISABLE_OBSOLETE_FUNCTIONS)
-add_definitions(-DIMGUI_DEFINE_MATH_OPERATORS)
-add_definitions(-DIMGUI_ENABLE_FREETYPE)
-add_definitions(-DUSE_IMGUI="${CMAKE_SOURCE_DIR}/3rdparty/imgui/imgui.h")
-add_definitions(-DPROJECT_NAME="${PROJECT}")
-add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+set(FINAL_BIN_DIR ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_PDB_OUTPUT_DIRECTORY_DEBUG "${FINAL_BIN_DIR}/debug")
+set(CMAKE_PDB_OUTPUT_DIRECTORY_RELEASE "${FINAL_BIN_DIR}/release")
+set(CMAKE_PDB_OUTPUT_DIRECTORY_MINSIZEREL "${FINAL_BIN_DIR}/minsizerel")
+set(CMAKE_PDB_OUTPUT_DIRECTORY_RELWITHDEBINFO "${FINAL_BIN_DIR}/reldeb")
 
-include(cmake/3rdparty.cmake)
+set(CMAKE_INSTALL_PREFIX .)
+set(CMAKE_INSTALL_BINDIR .)
 
-if(uninstall)
-	set_target_properties(uninstall PROPERTIES FOLDER "cmakeTargets")
-endif()
-
-## other define
-add_definitions(-DPROJECT_PATH="${CMAKE_SOURCE_DIR}")
-
-set(FINAL_BIN_DIR ${CMAKE_BINARY_DIR}/../bin)
-set(CMAKE_INSTALL_PREFIX "${FINAL_BIN_DIR}")
-message("${PROJECT} => ${FINAL_BIN_DIR}")
+set(USE_SHARED_LIBS ${USE_BUILDING_AS_SHARED} CACHE BOOL "" FORCE)
 
 if ("${CMAKE_EXE_LINKER_FLAGS}" STREQUAL "/machine:x64")
 	set(ARCH x64)
@@ -58,117 +39,185 @@ else()
 	set(ARCH x32)
 endif()
 
-if(UNIX)
-    if(APPLE)
-        add_definitions(-DAPPLE)
-    else()
-        add_definitions(-DLINUX)
-    endif()
-    add_definitions(-DUNIX)
-elseif(WIN32)
-    add_definitions(-DWIN32)
-	if(MINGW)
-		add_definitions(-DMINGW32)
-	endif()
-    set(DIRENT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/3rdparty/dirent/include)
-    include_directories(${DIRENT_INCLUDE_DIR})
+# some times for unknown reason, the lib file is not generated so no symbols are exported.
+# this option force all sahred lib to export theirs symbols
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ${USE_SHARED_LIBS} CACHE BOOL "" FORCE)
+
+if ("${CMAKE_EXE_LINKER_FLAGS}" STREQUAL "/machine:x64")
+	set(ARCH x64)
+else()
+	set(ARCH x32)
 endif()
-
-add_definitions(-DUSE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS) ## for the resize imgui issue when we have child glfw windows
-
-if(MSVC)
-    # Ignore 4055 for glad
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /IGNORE:4055 /std:c++17")
-    add_definitions(-D_USE_MATH_DEFINES)
-    add_definitions(-DMSVC)
-    add_definitions(-DGLFW_EXPOSE_NATIVE_WIN32)
-    add_definitions(-DNOMINMAX) ## for avoid issue regarding std::max and std::min
-else ()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -std=c++17 -Wdeprecated-declarations -Wunused-parameter")
-endif ()
 
 if(NOT CMAKE_DEBUG_POSTFIX)
   set(CMAKE_DEBUG_POSTFIX _debug)
 endif()
-
-file(GLOB PROJECT_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
-source_group(main FILES ${PROJECT_MAIN})
-
-file(GLOB_RECURSE SRC_CMAKE
-	${CMAKE_CURRENT_SOURCE_DIR}/cmake/*.cmake)
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/cmake PREFIX cmake FILES ${SRC_CMAKE})
-
-file(GLOB_RECURSE SRC_LUA
-	${CMAKE_CURRENT_SOURCE_DIR}/doc/*.lua)
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/doc PREFIX lua_samples FILES ${SRC_LUA})
-
-file(GLOB_RECURSE PROJECT_SRC_RECURSE 
-	${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
-	${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
-	${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp)
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX src FILES ${PROJECT_SRC_RECURSE})
-
-file(GLOB IMGUIIMPL_SOURCES 
-		${CMAKE_SOURCE_DIR}/3rdparty/imgui/backends/imgui_impl_glfw.cpp
-		${CMAKE_SOURCE_DIR}/3rdparty/imgui/backends/imgui_impl_glfw.h
-		${CMAKE_SOURCE_DIR}/3rdparty/imgui/backends/imgui_impl_opengl3.cpp
-		${CMAKE_SOURCE_DIR}/3rdparty/imgui/backends/imgui_impl_opengl3.h)
-source_group(src\\ImGui_Impl FILES ${IMGUIIMPL_SOURCES})
-
-file(GLOB IMGUI_FREETYPE_SOURCES
-		${CMAKE_SOURCE_DIR}/3rdparty/imgui/misc/freetype/imgui_freetype.cpp
-		${CMAKE_SOURCE_DIR}/3rdparty/imgui/misc/freetype/imgui_freetype.h)
-source_group(src\\ImGui_FreeType FILES ${IMGUI_FREETYPE_SOURCES})
-
-if (MSVC)
-	set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/res/appicon.rc")
+if(NOT CMAKE_RELEASE_POSTFIX)
+  set(CMAKE_RELEASE_POSTFIX) ## to config in file
+endif()
+if(NOT CMAKE_MINSIZEREL_POSTFIX)
+  set(CMAKE_MINSIZEREL_POSTFIX _minsizerel)
+endif()
+if(NOT CMAKE_RELWITHDEBINFO_POSTFIX)
+  set(CMAKE_RELWITHDEBINFO_POSTFIX _reldeb)
 endif()
 
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zo")
+    add_definitions(-D_USE_MATH_DEFINES)
+    add_definitions(-DMSVC)
+	add_definitions(-DNOMINMAX)
+else ()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wunused-parameter -Wno-unknown-pragmas")
+endif ()
+
+if(WIN32)
+	add_definitions(-DWIN32)
+endif()
+
+add_definitions(-DUSE_XML_CONFIG)
+add_definitions(-DUSE_STD_FILESYSTEM)
+add_definitions(-DIMGUI_ENABLE_FREETYPE)
+add_definitions(-DIMGUI_DEFINE_MATH_OPERATORS)
+add_definitions(-DUSE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS)
+add_definitions(-DILAYOUT_PANE_INCLUDE="${CMAKE_SOURCE_DIR}/apis/ILayoutPane.h")
+add_definitions(-DIMGUI_INCLUDE="${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/ImGuiPack.h")
+add_definitions(-DIMGUI_USER_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImGuiConfig.h")
+add_definitions(-DCUSTOM_IMWIDGETS_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImWidgetsConfig.h")
+add_definitions(-DCUSTOM_IN_APP_GPU_PROFILER_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomInAppGpuProfiler.h")
+add_definitions(-DCUSTOM_IMGUIFILEDIALOG_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImGuiFileDialogConfig.h")
+add_definitions(-DCUSTOM_STROCKER_BACKEND_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomStrockerBackendConfig.h")
+
+include(cmake/3rdparty.cmake)
+
+###########################################################
+##### PLUGINS PREFIX ######################################
+###########################################################
+
+### each plugins must start by this
+
+set(PLUGIN_NAME_PREFIX "Plugin")
+add_definitions(-DPLUGIN_NAME_PREFIX="${PLUGIN_NAME_PREFIX}")
+
+###########################################################
+##### SEARCH FOR PLUGINS ##################################
+###########################################################
+
+set(LOADED_STROCKER_PLUGINS) ### musty be fillerd by each pluigns in CMakeLists.txt with plugin name
+set(PLUGINS_DIRECTORY ${CMAKE_SOURCE_DIR}/plugins)
+file(GLOB SUBDIRS RELATIVE ${PLUGINS_DIRECTORY} ${PLUGINS_DIRECTORY}/*)
+FOREACH(SUBDIR ${SUBDIRS})
+	if(IS_DIRECTORY ${PLUGINS_DIRECTORY}/${SUBDIR})
+		if (EXISTS ${PLUGINS_DIRECTORY}/${SUBDIR}/CMakeLists.txt)
+			add_subdirectory(${PLUGINS_DIRECTORY}/${SUBDIR})
+		endif()
+	endif()
+ENDFOREACH()
+
+###########################################################
+###########################################################
+###########################################################
+
+add_definitions(${GLFW_DEFINITIONS})
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+
+# Plugin Apis for have it the visual studio tree of the App
+file(GLOB_RECURSE APIS_SOURCES ${CMAKE_SOURCE_DIR}/apis/*.*)
+source_group(TREE ${CMAKE_SOURCE_DIR}/apis PREFIX PluginApis FILES ${APIS_SOURCES})
+
+# Main sources
+file(GLOB MAIN_SOURCES ${CMAKE_SOURCE_DIR}/main.cpp)
+source_group(main FILES ${MAIN_SOURCES})
+
+# App Sources
+file(GLOB_RECURSE SRC_SOURCES ${CMAKE_SOURCE_DIR}/src/*.*)
+source_group(TREE ${CMAKE_SOURCE_DIR}/src PREFIX src FILES ${SRC_SOURCES})
+
+# cmake Sources for have it the visual studio tree of the App
+file(GLOB_RECURSE PROJECT_CMAKE_FILES
+		${CMAKE_SOURCE_DIR}/cmake/*.cmake)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/cmake PREFIX cmake FILES ${PROJECT_CMAKE_FILES})
+
+file(GLOB IMGUI_IMPL_SOURCES 
+		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/backends/imgui_impl_glfw.cpp
+		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/backends/imgui_impl_glfw.h
+		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/backends/imgui_impl_opengl3.cpp
+		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/backends/imgui_impl_opengl3.h
+		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/misc/freetype/imgui_freetype.cpp
+		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/misc/freetype/imgui_freetype.h)
+source_group(src\\ImGuiImpl FILES ${IMGUI_IMPL_SOURCES})
+
 add_executable(${PROJECT}
-	${SRC_LUA}
-	${SRC_CMAKE}
-	${PROJECT_MAIN}
-	${IMGUIIMPL_SOURCES}
-	${PROJECT_SRC_RECURSE}
-	${IMGUI_FREETYPE_SOURCES}
-	${APP_ICON_RESOURCE_WINDOWS})
+	${SRC_SOURCES}
+	${MAIN_SOURCES}
+	${APIS_SOURCES}
+	${EZ_LIBS_SOURCES}
+	${IMGUI_IMPL_SOURCES}
+	${PROJECT_CMAKE_FILES}
+)
+
+if (USE_SHARED_LIBS)
+	target_compile_definitions(${PROJECT} PRIVATE BUILD_IMGUI_PACK_SHARED_LIBS)	
+	target_compile_definitions(${PROJECT} PRIVATE BUILD_IN_APP_GPU_PROFILER_SHARED_LIBS)
+	target_compile_definitions(${PROJECT} PRIVATE BUILD_STROCKER_BRIDGE_SHARED_LIBS)
+endif()
+
+set_target_properties(${PROJECT} PROPERTIES OUTPUT_NAME "${PROJECT}_${CMAKE_SYSTEM_NAME}_${ARCH}")
+
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}")
+install(TARGETS ${PROJECT} DESTINATION ${CMAKE_INSTALL_PREFIX})
 
 include_directories(
-	src
-	3rdparty
-	${LUA_JIT_INCLUDE_DIR}
-	${PLOG_INCLUDE_DIR}
+	${STROCKER_BRIDGE_INCLUDE_DIRS}
+	${IN_APP_GPU_PROFILER_INCLUDE_DIR}
+	${CMAKE_SOURCE_DIR}/3rdparty
+	${IMGUIPACK_INCLUDE_DIRS}
+	${CMAKE_SOURCE_DIR}/src
+	${TINYXML2_INCLUDE_DIR}
+	${SQLITE3_INCLUDE_DIR}
+	${CTOOLS_INCLUDE_DIR}
 	${OPENGL_INCLUDE_DIR}
+	${CMAKE_SOURCE_DIR}
+	${PLOG_INCLUDE_DIR}
 	${GLFW_INCLUDE_DIR}
 	${GLAD_INCLUDE_DIR}
-	${IMGUI_INCLUDE_DIR}
-	${IMPLOT_INCLUDE_DIR}
-	${TINYXML2_INCLUDE_DIR}
-	${FREETYPE_INCLUDE_DIR}
-	${IMGUIFILEDIALOG_INCLUDE_DIR}
-	${IMGUICOLORTEXTEDIT_INCLUDE_DIR}
+	${CURL_INCLUDE_DIR}
+	${FMT_INCLUDE_DIR}
 )
 
-target_link_libraries(${PROJECT} PRIVATE
-	${LUA_JIT_LIBRARIES}
+target_link_libraries(${PROJECT}
+	${STROCKER_BRIDGE_LIBRARIES}
+	${IN_APP_GPU_PROFILER_LIBRARIES}
+	${IMGUIPACK_LIBRARIES}
+	${TINYXML2_LIBRARIES}
+	${SQLITE3_LIBRARIES}
+	${OPENGL_LIBRARIES}
+	${CTOOLS_LIBRARIES}
 	${GLFW_LIBRARIES}
 	${GLAD_LIBRARIES}
-	${IMGUI_LIBRARIES}
-	${OPENGL_LIBRARIES}
-	${IMPLOT_LIBRARIES}
-	${CTOOLS_LIBRARIES}
-	${SQLITE_LIBRARIES}
-	${FREETYPE_LIBRARIES}
-	${TINYXML2_LIBRARIES}
-	${IMGUIFILEDIALOG_LIBRARIES}
-	${IMGUICOLORTEXTEDIT_LIBRARIES}
+	${CURL_LIBRARIES}
+	${FMT_LIBRARIES}
 )
 
-set(${PROJECT}_Output_Name "${PROJECT}_${CMAKE_SYSTEM_NAME}$<$<CONFIG:Debug>:_Debug>$<$<CONFIG:Release>:_Release>$<$<CONFIG:MinSizeRel>:_MinSizeRel>$<$<CONFIG:RelWithDebInfo>:_RelWithDebInfo>_${ARCH}")
-set_target_properties(${PROJECT} PROPERTIES	OUTPUT_NAME "${${PROJECT}_Output_Name}")
+# define for let Strocker detext what is the config of a plugin 
+target_compile_definitions(${PROJECT} PRIVATE -DPLUGIN_RUNTIME_CONFIG=$<$<CONFIG:Debug>:"_Debug">$<$<CONFIG:Release>:"_Release">$<$<CONFIG:MinSizeRel>:"_MinSizeRel">$<$<CONFIG:RelWithDebInfo>:"_RelWithDebInfo">)
+target_compile_definitions(${PROJECT} PRIVATE -DPROJECT_EXT=".stro")
+target_compile_definitions(${PROJECT} PRIVATE -DPROJECT_EXT_DOT_LESS="stro")
 
-set_target_properties(${PROJECT} PROPERTIES	RUNTIME_OUTPUT_DIRECTORY "${FINAL_BIN_DIR}")
+set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${FINAL_BIN_DIR}")
+set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${FINAL_BIN_DIR}")
+set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${FINAL_BIN_DIR}")
+set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${FINAL_BIN_DIR}")
+
+########################################################
+############## FORCE BUILD OF PLUGINS ##################
+########################################################
+
+FOREACH(PLUGIN ${LOADED_STROCKER_PLUGINS})
+	add_dependencies(${PROJECT} ${PLUGIN})
+ENDFOREACH()
 
 ########################################################
 ################# BUILD INCREMENT TOOL #################
@@ -176,106 +225,17 @@ set_target_properties(${PROJECT} PROPERTIES	RUNTIME_OUTPUT_DIRECTORY "${FINAL_BI
 
 ## only for Debug
 add_subdirectory(3rdparty/BuildInc)
-set_target_properties(BuildInc PROPERTIES FOLDER 3rdparty/tools)
+## set_target_properties(BuildInc PROPERTIES FOLDER Tools)
 
 add_custom_command(
 	TARGET ${PROJECT} PRE_BUILD
-	COMMAND BuildInc -prefix=${PROJECT} 1000:10 $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/Headers/${PROJECT}Build.h>
-	DEPENDS ${PROJECT}
-)
+	COMMAND BuildInc -prefix=${PROJECT} 1000000:10 $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/Headers/${PROJECT}Build.h>
+	DEPENDS ${PROJECT})
 
 ########################################################
-################# Dependencies copy in bin dir #########
+##### TESTS ############################################
 ########################################################
 
-if(MSVC)
-	## only for Release
-	## add_custom_command(
-	## 	TARGET ${PROJECT} POST_BUILD
-	## 	COMMAND $<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/3rdparty/pedeps/bin/copypedeps.exe> -r $<$<CONFIG:Release>:${FINAL_BIN_DIR}/Release/${${PROJECT}_Output_Name}.exe> ${FINAL_BIN_DIR}/Release
-	## 	DEPENDS ${PROJECT}
-	## )
+if(USE_BUILDING_OF_TESTS)
+	enable_testing()
 endif()
-
-#############################################################
-### OUTPUT NAME #############################################
-#############################################################
-
-if(WIN32)
-	if (MINGW)
-		set(${PROJECT}_Output_Name "${PROJECT}_Mingw32_${ARCH}")
-	elseif (CYGWIN)
-		set(${PROJECT}_Output_Name "${PROJECT}_Cygwin_${ARCH}")
-	elseif(MSVC)
-		set(${PROJECT}_Output_Name "${PROJECT}_Msvc_${ARCH}")
-	endif()
-	set_target_properties(${PROJECT} PROPERTIES	OUTPUT_NAME "${${PROJECT}_Output_Name}")
-elseif(UNIX)
-	set(${PROJECT}_Output_Name "${PROJECT}_Linux_${ARCH}")
-	set_target_properties(${PROJECT} PROPERTIES	OUTPUT_NAME "${${PROJECT}_Output_Name}")
-endif()
-
-#############################################################
-### INSTALL #################################################
-#############################################################
-
-install(TARGETS ${PROJECT} RUNTIME DESTINATION / COMPONENT APP_BINARY)
-
-if (WIN32)
-install(FILES 
-	C:/Windows/System32/downlevel/api-ms-win-crt-convert-l1-1-0.dll
-	C:/Windows/System32/downlevel/api-ms-win-crt-environment-l1-1-0.dll
-	C:/Windows/System32/downlevel/api-ms-win-crt-filesystem-l1-1-0.dll
-	C:/Windows/System32/downlevel/api-ms-win-crt-heap-l1-1-0.dll
-	C:/Windows/System32/downlevel/api-ms-win-crt-locale-l1-1-0.dll
-	C:/Windows/System32/downlevel/api-ms-win-crt-math-l1-1-0.dll
-	C:/Windows/System32/downlevel/api-ms-win-crt-runtime-l1-1-0.dll
-	C:/Windows/System32/downlevel/api-ms-win-crt-stdio-l1-1-0.dll
-	C:/Windows/System32/downlevel/api-ms-win-crt-string-l1-1-0.dll
-	C:/Windows/System32/downlevel/api-ms-win-crt-time-l1-1-0.dll
-	C:/Windows/System32/downlevel/api-ms-win-crt-utility-l1-1-0.dll
-	C:/Windows/System32/MSVCP140.dll
-	C:/Windows/System32/VCRUNTIME140.dll
-	C:/Windows/System32/VCRUNTIME140_1.dll
-    DESTINATION /
-	COMPONENT APP_FILES)
-endif()
-
-#############################################################
-### VERSION #################################################
-#############################################################
-
-file(READ ${CMAKE_SOURCE_DIR}/src/Headers/LogToGraphBuild.h BuildIdFile)
-string(REGEX MATCH "#define ${PROJECT}_BuildNumber ([0-9]*)" _ ${BuildIdFile})
-set(BuildNumber ${CMAKE_MATCH_1})
-string(REGEX MATCH "#define ${PROJECT}_MinorNumber ([0-9]*)" _ ${BuildIdFile})
-set(MinorNumber ${CMAKE_MATCH_1})
-string(REGEX MATCH "#define ${PROJECT}_MajorNumber ([0-9]*)" _ ${BuildIdFile})
-set(MajorNumber ${CMAKE_MATCH_1})
-set(${PROJECT}_Version "v${MajorNumber}.${MinorNumber}.${BuildNumber}")
-message("${PROJECT} Version to install : ${${PROJECT}_Version}")
-
-#############################################################
-### PACK ####################################################
-## https://gitlab.kitware.com/cmake/community/-/wikis/doc/cpack/Component-Install-With-CPack
-#############################################################
-
-if (USE_PACKAGE_TO_NSIS)
-	set(CPACK_GENERATOR "NSIS")
-else()
-	set(CPACK_GENERATOR "ZIP")
-endif()
-set(CPACK_MONOLITHIC_INSTALL 1)
-set(CPACK_ZIP_COMPONENT_INSTALL ON)
-set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE 1)
-set(CPACK_PACKAGE_FILE_NAME "${${PROJECT}_Output_Name}_v${MajorNumber}.${MinorNumber}.${BuildNumber}")
-set(CPACK_PACKAGE_VENDOR "FunParadigm")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${${PROJECT}_Output_Name} - log analyzer with lua")
-set(CPACK_PACKAGE_VERSION "${MajorNumber}.${MinorNumber}.${BuildNumber}")
-set(CPACK_PACKAGE_VERSION_MAJOR "${MajorNumber}")
-set(CPACK_PACKAGE_VERSION_MINOR "${MinorNumber}")
-set(CPACK_PACKAGE_VERSION_PATCH "${BuildNumber}")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "${FINAL_BIN_DIR}")
-set(CPACK_COMPONENT_APPLICATIONS_DISPLAY_NAME "${CMAKE_PROJECT_NAME}")
-SET(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_INSTALL_PREFIX}")
-include(CPack)

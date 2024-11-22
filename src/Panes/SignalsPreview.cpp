@@ -18,26 +18,18 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "SignalsPreview.h"
-#include <Gui/MainFrame.h>
-#include <ctools/cTools.h>
-#include <ctools/FileHelper.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
 #include <Project/ProjectFile.h>
 #include <Project/ProjectFile.h>
-#include <imgui/imgui_internal.h>
-#include <Panes/Manager/LayoutManager.h>
-#include <ImGuiFileDialog/ImGuiFileDialog.h>
 #include <cinttypes> // printf zu
-#include <Panes/LogPane.h>
-#include <Panes/CodePane.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
+#include <panes/LogPane.h>
+#include <panes/CodePane.h>
 
-#include <Engine/Lua/LuaEngine.h>
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
+#include <models/lua/LuaEngine.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
 
-#include <Engine/Graphs/GraphView.h>
+#include <models/graphs/GraphView.h>
 
 static int SourcePane_WidgetId = 0;
 
@@ -55,19 +47,12 @@ void SignalsPreview::Unit()
 
 }
 
-int SignalsPreview::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/, PaneFlag& vInOutPaneShown)
-{
-	SourcePane_WidgetId = vWidgetId;
-
-	if (vInOutPaneShown & m_PaneFlag)
-	{
-		static ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoBringToFrontOnFocus |
-			ImGuiWindowFlags_MenuBar;
-		if (ImGui::Begin<PaneFlag>(m_PaneName,
-			&vInOutPaneShown , m_PaneFlag, flags))
-		{
+bool SignalsPreview::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
+    ImGui::SetCurrentContext(vContextPtr);
+    bool change = false;
+    if (vOpened != nullptr && *vOpened) {
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
+        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
 			auto win = ImGui::GetCurrentWindowRead();
 			if (win->Viewport->Idx != 0)
@@ -87,16 +72,6 @@ int SignalsPreview::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWid
 	}
 
 	return SourcePane_WidgetId;
-}
-
-void SignalsPreview::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
-{
-
-}
-
-int SignalsPreview::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
-{
-	return vWidgetId;
 }
 
 void SignalsPreview::Clear()
@@ -138,7 +113,7 @@ void SignalsPreview::SetHoveredTime(const SignalEpochTime& vHoveredTime)
 								auto parent_ptr = last_ptr->parent.lock();
 								if (parent_ptr && parent_ptr->show)
 								{
-									parent_ptr->color_u32 = ImGui::GetColorU32(ct::toImVec4(GraphView::GetRainBow((int32_t)visible_idx, (int32_t)visible_count)));
+									parent_ptr->color_u32 = ImGui::GetColorU32(GraphView::GetRainBow((int32_t)visible_idx, (int32_t)visible_count));
 									parent_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(parent_ptr->color_u32);
 
 									++visible_idx;
@@ -147,7 +122,7 @@ void SignalsPreview::SetHoveredTime(const SignalEpochTime& vHoveredTime)
 						}
 						else
 						{
-							CTOOL_DEBUG_BREAK;
+							EZ_TOOLS_DEBUG_BREAK;
 						}
 
 						break;
@@ -171,8 +146,8 @@ int SignalsPreview::CalcSignalsButtonCountAndSize(
 	int count = ProjectFile::Instance()->m_SignalPreview_CountX;
 	float width = ProjectFile::Instance()->m_SignalPreview_SizeX;
 
-	count = (int)(aw / ct::maxi(width, 1.0f));
-	width = aw / (float)ct::maxi(count, 1);
+	count = (int)(aw / ez::maxi(width, 1.0f));
+	width = aw / (float)ez::maxi(count, 1);
 
 	ProjectFile::Instance()->m_SignalPreview_CountX = count;
 
@@ -268,7 +243,7 @@ void SignalsPreview::DrawTable()
 			const auto& signals_max_count_x = CalcSignalsButtonCountAndSize(cell_size, button_size);
 			if (signals_max_count_x)
 			{
-				const int& rowCount = (int)ct::ceil((double)signals_count / (double)signals_max_count_x);
+				const int& rowCount = (int)ez::ceil((double)signals_count / (double)signals_max_count_x);
 
 				uint32_t idx = 0U;
 				m_VirtualClipper.Begin(rowCount, cell_size.y);

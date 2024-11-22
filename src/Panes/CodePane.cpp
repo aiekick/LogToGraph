@@ -1,223 +1,116 @@
-/*
-Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include "CodePane.h"
-#include <Gui/MainFrame.h>
-#include <ctools/cTools.h>
-#include <ctools/Logger.h>
-#include <Panes/ToolPane.h>
-#include <Helper/Messaging.h>
-#include <ctools/FileHelper.h>
-#include <Project/ProjectFile.h>
-#include <imgui/imgui_internal.h>
-#include <Panes/Manager/LayoutManager.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
-#include <Engine/Lua/LuaEngine.h>
+#include <panes/CodePane.h>
+#include <cinttypes>  // printf zu
 
-#include <cinttypes> // printf zu
+#include <ezlibs/ezLog.hpp>
+#include <ezlibs/ezFile.hpp>
 
-static int GeneratorPaneWidgetId = 0;
-
-///////////////////////////////////////////////////////////////////////////////////
-//// OVERRIDES ////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-
-bool CodePane::Init()
-{
-	m_CodeEditor.SetLanguageDefinition(TextEditor::LanguageDefinition::Lua());
-	m_CodeEditor.SetPalette(TextEditor::GetDarkPalette());
-
-	return true;
+CodePane::CodePane() = default;
+CodePane::~CodePane() {
+    Unit();
 }
 
-void CodePane::Unit()
-{
+bool CodePane::Init() {
+    // for avoid a reallocation of the vector for each push/emplace 
+    // where the the language Type in each editor got corrupted 
+    // because passed by ref
+    // 1000 editor is sufficient for our need
+    m_CodeSheets.reserve(1000U);
 
-}
-
-int CodePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/, PaneFlag& vInOutPaneShown)
-{
-	GeneratorPaneWidgetId = vWidgetId;
-
-	if (vInOutPaneShown & m_PaneFlag)
-	{
-		static ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoBringToFrontOnFocus |
-			ImGuiWindowFlags_MenuBar;
-		if (ImGui::Begin<PaneFlag>(m_PaneName,
-			&vInOutPaneShown , m_PaneFlag, flags))
-		{
-#ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
-			auto win = ImGui::GetCurrentWindowRead();
-			if (win->Viewport->Idx != 0)
-				flags |= ImGuiWindowFlags_NoResize;// | ImGuiWindowFlags_NoTitleBar;
-			else
-				flags = ImGuiWindowFlags_NoCollapse |
-				ImGuiWindowFlags_NoBringToFrontOnFocus |
-				ImGuiWindowFlags_MenuBar;
+#ifdef _DEBUG
+/*    
+    auto& sheet = m_CodeSheets.emplace_back();
+    sheet.codeEditor.init();
+    sheet.filepathName = "C:/Gamedev/gitea/CuiCuiTools/samples/datas/ReportTests/Result_VALGRIND_TOTO.xml";
+    sheet.opened = true;
+    sheet.wasModified = false;
+    sheet.title = "Result_VALGRIND_TOTO.xml";
+    auto code = FileHelper::Instance()->LoadFileToString(sheet.filepathName);
+    sheet.codeEditor.SetCode(code, TextEditor::LanguageDefinition::Xml());
+*/
 #endif
-			if (ProjectFile::Instance()->IsLoaded()) 
-			{
-				DrawEditor();
-			}
-		}
 
-		//MainFrame::sAnyWindowsHovered |= ImGui::IsWindowHovered();
-
-		ImGui::End();
-	}
-
-	return GeneratorPaneWidgetId;
+    return true;
 }
 
-void CodePane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
-{
-	ImVec2 maxSize = MainFrame::Instance()->m_DisplaySize;
-	ImVec2 minSize = maxSize * 0.5f;
-
-	if (ImGuiFileDialog::Instance()->Display("OpenLuaScript",
-		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking,
-		minSize, maxSize))
-	{
-		if (ImGuiFileDialog::Instance()->IsOk())
-		{
-			ProjectFile::Instance()->m_CodeFilePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-			SetCode(FileHelper::Instance()->LoadFileToString(ProjectFile::Instance()->m_CodeFilePathName));
-		}
-
-		ImGuiFileDialog::Instance()->Close();
-	}
-
-	if (ImGuiFileDialog::Instance()->Display("SaveLuaScript",
-		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking,
-		minSize, maxSize))
-	{
-		if (ImGuiFileDialog::Instance()->IsOk())
-		{
-			ProjectFile::Instance()->m_CodeFilePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-			FileHelper::Instance()->SaveStringToFile(GetCode(), ProjectFile::Instance()->m_CodeFilePathName);
-		}
-
-		ImGuiFileDialog::Instance()->Close();
-	}
+void CodePane::Unit() {
+    m_CodeSheets.clear();
 }
 
-int CodePane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
-{
-	return vWidgetId;
+///////////////////////////////////////////////////////////////////////////////////
+//// IMGUI PANE ///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+
+bool CodePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
+    ImGui::SetCurrentContext(vContextPtr);
+    bool change = false;
+    if (vOpened != nullptr && *vOpened) {
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus  | ImGuiWindowFlags_MenuBar;
+        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+#ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
+            auto win = ImGui::GetCurrentWindowRead();
+            if (win->Viewport->Idx != 0)
+                flags |= ImGuiWindowFlags_NoResize;  // | ImGuiWindowFlags_NoTitleBar;
+            else
+                flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus  | ImGuiWindowFlags_MenuBar;
+#endif
+            if (ImGui::BeginTabBar("CodePane")) {
+                for (auto& sheet : m_CodeSheets) {
+                    ImGui::PushID(sheet.filepathName.c_str());
+                    if (ImGui::BeginTabItem(sheet.title.c_str(), &sheet.opened)) {
+                        sheet.codeEditor.OnImGui();
+                        ImGui::EndTabItem();
+                    }
+                    ImGui::PopID();
+                }
+                ImGui::EndTabBar();
+            }
+        }
+
+        ImGui::End();
+    }
+    return change;
 }
 
-void CodePane::SetCodeFile(const std::string& vFile)
-{
-	SetCode(FileHelper::Instance()->LoadFileToString(vFile));
-}
+void CodePane::OpenFile(const std::string& vFilePathName,  size_t vErrorLine,  std::string vErrorMsg) {
+    CodeSheet* existing_code_sheet_ptr = nullptr;
+    for (auto& sheet : m_CodeSheets) {
+        if (sheet.filepathName == vFilePathName) {
+            existing_code_sheet_ptr = &sheet;
+            break;
+        }
+    }
 
-void CodePane::SetCode(const std::string& vCode)
-{
-	m_CodeEditor.SetText(vCode);
-}
-
-std::string CodePane::GetCode()
-{
-	return m_CodeEditor.GetText();
-}
-
-std::string CodePane::getXml(const std::string& /*vOffset*/, const std::string& /*vUserDatas*/)
-{
-	std::string str;
-
-	return str;
-}
-
-bool CodePane::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
-{
-	// The value of this child identifies the name of this element
-	std::string strName;
-	std::string strValue;
-	std::string strParentName;
-
-	strName = vElem->Value();
-	if (vElem->GetText())
-		strValue = vElem->GetText();
-	if (vParent != nullptr)
-		strParentName = vParent->Value();
-
-	return true;
-}
-
-void CodePane::DrawEditor()
-{
-	if (ImGui::BeginMenuBar())
-	{
-		if (ImGui::MenuItem("Open", "Open Lua Script"))
-		{
-			ImGuiFileDialog::Instance()->OpenDialog("OpenLuaScript", "Open Lua Script", ".lua, .*", "");
-		}
-
-		if (ImGui::MenuItem("Save", "Save Lua Script"))
-		{
-			if (ProjectFile::Instance()->m_CodeFilePathName.empty() || 
-				!FileHelper::Instance()->IsFileExist(ProjectFile::Instance()->m_CodeFilePathName))
-			{
-				ImGuiFileDialog::Instance()->OpenDialog("SaveLuaScript", "Save Lua Script", ".lua", "");
-			}
-			else
-			{
-				FileHelper::Instance()->SaveStringToFile(GetCode(), ImGuiFileDialog::Instance()->GetFilePathName());
-			}
-		}
-
-		if (ImGui::MenuItem("Save As", "Save Lua Script"))
-		{
-			ImGuiFileDialog::Instance()->OpenDialog("SaveLuaScript", "Save Lua Script", ".lua", "");
-		}
-
-		if (ImGui::MenuItem("Clear", "Clear Shader Code"))
-		{
-			m_CodeEditor.SetText("");
-		}
-
-		if (ImGui::MenuItem("Run"))
-		{
-			ExecCode();
-		}
-
-		ImGui::EndMenuBar();
-	}
-
-	m_CodeEditor.Render("Code", ImVec2(-1, -1), false);
-
-	if (m_CodeEditor.IsTextChanged()) // is user write code
-	{
-		ProjectFile::Instance()->SetProjectChange();
-	}
-}
-
-void CodePane::ExecCode()
-{
-	std::string errors;
-	LuaEngine::Instance()->ExecScriptCode(GetCode(), errors);
-
-	auto arr = ct::splitStringToVector(errors, '\n');
-	for (auto a : arr)
-	{
-		LogVarLightError("%s", a.c_str());
-	}
+    auto ps = ez::file::parsePathFileName(vFilePathName);
+    if (ps.isOk) {
+        const auto code = ez::file::loadFileToString(vFilePathName);
+        auto type = TextEditor::LanguageDefinition::C();
+        if (ps.ext == "cpp" || ps.ext == "hpp") {
+            type = TextEditor::LanguageDefinition::Cpp();
+        } else if (ps.ext == "c" || ps.ext == "h") {
+            type = TextEditor::LanguageDefinition::C();
+        } else if (ps.ext == "lua") {
+            type = TextEditor::LanguageDefinition::Lua();
+        } 
+        if (existing_code_sheet_ptr != nullptr) {
+            existing_code_sheet_ptr->wasModified = false;
+            existing_code_sheet_ptr->opened = true;
+            if (!existing_code_sheet_ptr->opened) {
+                existing_code_sheet_ptr->wasModified = false;
+                existing_code_sheet_ptr->codeEditor.SetCode(code, type);
+            }
+            existing_code_sheet_ptr->codeEditor.AddErrorMarker(vErrorLine, vErrorMsg);
+        } else {
+            auto& sheet = m_CodeSheets.emplace_back();
+            sheet.codeEditor.init();
+            sheet.filepathName = vFilePathName;
+            sheet.opened = true;
+            sheet.wasModified = false;
+            sheet.title = ps.name + "." + ps.ext;
+            sheet.codeEditor.SetCode(code, type);
+            sheet.codeEditor.AddErrorMarker(vErrorLine, vErrorMsg);
+        }
+    }
 }

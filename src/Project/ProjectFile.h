@@ -17,11 +17,10 @@
 
 #include <string>
 #include <memory>
-#include <imgui/imgui.h>
+#include <EzLibs/EzXmlConfig.hpp>
 #include <unordered_map>
 #include <Headers/Globals.h>
-#include <ctools/ConfigAbstract.h>
-#include <implot/implot.h>
+#include <apis/LtgPluginApi.h>
 
 struct GraphColor
 {
@@ -32,14 +31,14 @@ struct GraphColor
     ImVec4 graphSecondDiffMarkColor = ImVec4(0.2f, 0.2f, 0.8f, 0.8f);
 };
 
-class ProjectFile : public conf::ConfigAbstract
-{
+class ProjectFile : public Ltg::ProjectInterface, public ez::xml::Config {
 public: // to save
 	GraphColor m_GraphColors;
 	bool m_CollapseLogSelection = false;
 	bool m_HideSomeValues = false;
 	bool m_AutoColorize = true;
-	bool m_SyncGraphs = true;
+    bool m_SyncGraphs = true;
+    std::string m_ProjectFileName;
 	std::string m_ProjectFilePathName;
 	std::string m_ProjectFilePath;
 	std::string m_SearchString;
@@ -59,47 +58,45 @@ public: // to save
 	double m_PredefinedZeroValue = 0.0; // the predefined zero value for signals
 
 private: // dont save
-	bool m_IsLoaded = false;
-	bool m_NeverSaved = true;
-	bool m_IsThereAnyNotSavedChanged = false;
+    bool m_IsLoaded = false;
+    bool m_NeverSaved = false;
+    bool m_IsThereAnyChanges = false;
+    bool m_WasJustSaved = false;
+    size_t m_WasJustSavedFrameCounter = 0U;  // the state of m_WasJustSaved will be keeped during two frames
 
 public:
-	void Clear();
-	void ClearDatas();
+    ProjectFile();
+    explicit ProjectFile(const std::string& vFilePathName);
+    virtual ~ProjectFile();
 
-	void New();
-	void New(const std::string& vFilePathName);
-	bool Load();
-	bool LoadAs(const std::string& vFilePathName); // ils wanted to not pass the adress for re open case
-	bool Save();
-	bool SaveAs(const std::string& vFilePathName);
-	bool IsLoaded() const;
-	bool IsNeverSaved() const;
+    void Clear();
+    void ClearDatas();
+    void New();
+    void New(const std::string& vFilePathName);
+    bool Load();
+    bool LoadAs(const std::string& vFilePathName);  // ils wanted to not pass the adress for re open case
+    bool Save();
+    bool SaveTemporary();
+    bool SaveAs(const std::string& vFilePathName);
 
-	bool IsThereAnyNotSavedChanged() const;
-	void SetProjectChange(const bool& vChange = true);
+    bool IsProjectLoaded() const override;
+    bool IsProjectNeverSaved() const override;
+    bool IsThereAnyProjectChanges() const override;
+    void SetProjectChange(bool vChange = true) override;
+    bool WasJustSaved() override;
 
-	std::string GetAbsolutePath(const std::string& vFilePathName) const;
-	std::string GetRelativePath(const std::string& vFilePathName) const;
+    void NewFrame();
+
+    std::string GetProjectFilepathName() const;
 
 public:
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
-
-public: // utils
-	ImVec4 GetColorFromInteger(uint32_t vInteger) const;
+    ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;
+    bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
 
 public: // singleton
-	static ProjectFile* Instance()
-	{
-		static ProjectFile _instance;
-		return &_instance;
-	}
-
-protected:
-	ProjectFile() = default; // Prevent construction
-	ProjectFile(const ProjectFile&) {}; // Prevent construction by copying
-	ProjectFile& operator =(const ProjectFile&) { return *this; }; // Prevent assignment
-    virtual ~ProjectFile() = default; // Prevent unwanted destruction};
+    static std::shared_ptr<ProjectFile> Instance() {
+        static auto _instancePtr = std::make_shared<ProjectFile>();
+        return _instancePtr;
+    }
 };
 

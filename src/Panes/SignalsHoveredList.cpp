@@ -18,21 +18,14 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "SignalsHoveredList.h"
-#include <Gui/MainFrame.h>
-#include <ctools/cTools.h>
-#include <ctools/FileHelper.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
 #include <Project/ProjectFile.h>
-#include <imgui/imgui_internal.h>
-#include <Panes/Manager/LayoutManager.h>
-#include <ImGuiFileDialog/ImGuiFileDialog.h>
 #include <cinttypes> // printf zu
-#include <Panes/CodePane.h>
+#include <panes/CodePane.h>
 
-#include <Engine/Lua/LuaEngine.h>
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
+#include <models/lua/LuaEngine.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
 
 static int SourcePane_WidgetId = 0;
 
@@ -55,19 +48,12 @@ void SignalsHoveredList::Unit()
 
 }
 
-int SignalsHoveredList::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/, PaneFlag& vInOutPaneShown)
-{
-	SourcePane_WidgetId = vWidgetId;
-
-	if (vInOutPaneShown & m_PaneFlag)
-	{
-		static ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoBringToFrontOnFocus |
-			ImGuiWindowFlags_MenuBar;
-		if (ImGui::Begin<PaneFlag>(m_PaneName,
-			&vInOutPaneShown , m_PaneFlag, flags))
-		{
+bool SignalsHoveredList::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
+    ImGui::SetCurrentContext(vContextPtr);
+    bool change = false;
+    if (vOpened != nullptr && *vOpened) {
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
+        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
 			auto win = ImGui::GetCurrentWindowRead();
 			if (win->Viewport->Idx != 0)
@@ -89,16 +75,6 @@ int SignalsHoveredList::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& 
 	return SourcePane_WidgetId;
 }
 
-void SignalsHoveredList::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
-{
-
-}
-
-int SignalsHoveredList::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
-{
-	return vWidgetId;
-}
-
 int SignalsHoveredList::CalcSignalsButtonCountAndSize(
 	ImVec2& vOutCellSize,					/* cell size						*/
 	ImVec2& vOutButtonSize)					/* button size (cell - paddings)	*/
@@ -107,8 +83,8 @@ int SignalsHoveredList::CalcSignalsButtonCountAndSize(
 
 	float width = ProjectFile::Instance()->m_SignalPreview_SizeX;
 
-	int count = (int)(aw / ct::maxi(width, 1.0f));
-	width = aw / (float)ct::maxi(count, 1);
+	int count = (int)(aw / ez::maxi(width, 1.0f));
+	width = aw / (float)ez::maxi(count, 1);
 
 	ProjectFile::Instance()->m_SignalPreview_CountX = count;
 
@@ -170,9 +146,9 @@ void SignalsHoveredList::DrawTable()
 								ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
 								ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
 								count_color_push = 3;
-								if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
-									ImGui::CustomStyle::Instance()->puContrastedTextColor,
-									ImGui::CustomStyle::Instance()->puContrastRatio))
+								if (ImGui::PushStyleColorWithContrast1(ImGuiCol_Header, ImGuiCol_Text,
+									ImGui::CustomStyle::puContrastedTextColor,
+									ImGui::CustomStyle::puContrastRatio))
 								{
 									count_color_push = 4;
 								}
@@ -184,7 +160,7 @@ void SignalsHoveredList::DrawTable()
 							
 							if (ImGui::TableNextColumn()) // time
 							{
-								ImGui::Selectable(ct::toStr("%f", infos_ptr->time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+								ImGui::Selectable(ez::str::toStr("%f", infos_ptr->time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
 							}
 							if (ImGui::TableNextColumn()) // date time
 							{
@@ -208,11 +184,11 @@ void SignalsHoveredList::DrawTable()
 								{
 									if (infos_ptr->status == LuaEngine::sc_START_ZONE)
 									{
-										ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", infos_ptr->string.c_str());
+										ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", infos_ptr->string.c_str());
 									}
 									else if (infos_ptr->status == LuaEngine::sc_END_ZONE)
 									{
-										ImGui::Text("%s " ICON_NDP_ARROW_LEFT, infos_ptr->string.c_str());
+										ImGui::Text("%s " ICON_FONT_ARROW_LEFT, infos_ptr->string.c_str());
 									}
 									else
 									{

@@ -18,25 +18,18 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "LogPane.h"
-#include <Gui/MainFrame.h>
-#include <ctools/cTools.h>
-#include <ctools/Logger.h>
-#include <Panes/ToolPane.h>
-#include <Panes/SignalsHoveredMap.h>
-#include <Panes/GraphGroupPane.h>
-#include <Helper/Messaging.h>
+#include <panes/ToolPane.h>
+#include <panes/SignalsHoveredMap.h>
+#include <panes/GraphGroupPane.h>
 #include <Project/ProjectFile.h>
-#include <imgui/imgui_internal.h>
-#include <Panes/Manager/LayoutManager.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
 #include <cinttypes> // printf zu
 
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
-#include <Engine/Lua/LuaEngine.h>
-#include <Panes/GraphListPane.h>
-#include <Engine/Graphs/GraphView.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
+#include <models/lua/LuaEngine.h>
+#include <panes/GraphListPane.h>
+#include <models/graphs/GraphView.h>
 
 static int GeneratorPaneWidgetId = 0;
 
@@ -54,19 +47,12 @@ void LogPane::Unit()
 
 }
 
-int LogPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/, PaneFlag& vInOutPaneShown)
-{
-	GeneratorPaneWidgetId = vWidgetId;
-
-	if (vInOutPaneShown & m_PaneFlag)
-	{
-		static ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoBringToFrontOnFocus |
-			ImGuiWindowFlags_MenuBar;
-		if (ImGui::Begin<PaneFlag>(m_PaneName,
-			&vInOutPaneShown , m_PaneFlag, flags))
-		{
+bool LogPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
+    ImGui::SetCurrentContext(vContextPtr);
+    bool change = false;
+    if (vOpened != nullptr && *vOpened) {
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
+        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
 			auto win = ImGui::GetCurrentWindowRead();
 			if (win->Viewport->Idx != 0)
@@ -88,39 +74,6 @@ int LogPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, 
 	}
 
 	return GeneratorPaneWidgetId;
-}
-
-void LogPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
-{
-
-}
-
-int LogPane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
-{
-	return vWidgetId;
-}
-
-std::string LogPane::getXml(const std::string& /*vOffset*/, const std::string& /*vUserDatas*/)
-{
-	std::string str;
-
-	return str;
-}
-
-bool LogPane::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
-{
-	// The value of this child identifies the name of this element
-	std::string strName;
-	std::string strValue;
-	std::string strParentName;
-
-	strName = vElem->Value();
-	if (vElem->GetText())
-		strValue = vElem->GetText();
-	if (vParent != nullptr)
-		strParentName = vParent->Value();
-
-	return true;
 }
 
 void LogPane::Clear()
@@ -266,9 +219,9 @@ void LogPane::DrawTable()
 						ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
 						ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
 						count_color_push = 3U;
-						if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
-							ImGui::CustomStyle::Instance()->puContrastedTextColor,
-							ImGui::CustomStyle::Instance()->puContrastRatio))
+						if (ImGui::PushStyleColorWithContrast1(ImGuiCol_Header, ImGuiCol_Text,
+							ImGui::CustomStyle::puContrastedTextColor,
+							ImGui::CustomStyle::puContrastRatio))
 						{
 							count_color_push = 4U;
 						}
@@ -280,7 +233,7 @@ void LogPane::DrawTable()
 
 					if (ImGui::TableNextColumn()) // time
 					{
-						ImGui::Selectable(ct::toStr("%f", infos_ptr->time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+						ImGui::Selectable(ez::str::toStr("%f", infos_ptr->time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
 						CheckItem(infos_ptr);
 					}
 					if (ImGui::TableNextColumn()) // date time
@@ -308,11 +261,11 @@ void LogPane::DrawTable()
 						{
 							if (infos_ptr->status == LuaEngine::sc_START_ZONE)
 							{
-								ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", infos_ptr->string.c_str());
+								ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", infos_ptr->string.c_str());
 							}
 							else if (infos_ptr->status == LuaEngine::sc_END_ZONE)
 							{
-								ImGui::Text("%s " ICON_NDP_ARROW_LEFT, infos_ptr->string.c_str());
+								ImGui::Text("%s " ICON_FONT_ARROW_LEFT, infos_ptr->string.c_str());
 							}
 							else
 							{
@@ -351,10 +304,10 @@ void LogPane::PrepareLog()
 	if (ProjectFile::Instance()->m_HideSomeValues)
 	{
 		m_ValuesToHide.clear();
-		auto arr = ct::splitStringToVector(ProjectFile::Instance()->m_ValuesToHide, ",");
+		auto arr = ez::str::splitStringToVector(ProjectFile::Instance()->m_ValuesToHide, ",");
 		for (const auto& a : arr)
 		{
-			m_ValuesToHide.push_back(ct::dvariant(a).GetD());
+			m_ValuesToHide.push_back(ez::dvariant(a).GetD());
 		}
 	}
 
@@ -376,7 +329,7 @@ void LogPane::PrepareLog()
 
 				for (const auto& a : m_ValuesToHide)
 				{
-					if (IS_DOUBLE_EQUAL(a, infos_ptr->value))
+					if (ez::isEqual(a, infos_ptr->value))
 					{
 						found = true;
 						break;

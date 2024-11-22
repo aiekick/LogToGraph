@@ -19,14 +19,11 @@ limitations under the License.
 #include <string>
 #include <vector>
 #include <map>
-#include <imgui/imgui.h>
 #include <Headers/Globals.h>
-#include <ctools/ConfigAbstract.h>
-#include <Panes/Abstract/AbstractPane.h>
-#include <ImGuiFileDialog/ImGuiFileDialog.h>
+#include <ImGuiPack/ImGuiPack.h>
 
 class ProjectFile;
-class AnnotationPane : public AbstractPane, public conf::ConfigAbstract
+class AnnotationPane : public AbstractPane
 {
 private:
 	ImGuiListClipper m_AnnotationsListClipper;
@@ -34,14 +31,7 @@ private:
 public:
 	bool Init() override;
 	void Unit() override;
-	int DrawPanes(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas, PaneFlag& vInOutPaneShown) override;
-	void DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const std::string& vUserDatas) override;
-	int DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas) override;
-
-public:
-	// configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
+	bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
 	
 private:
 	void DrawContent();

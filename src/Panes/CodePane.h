@@ -1,65 +1,40 @@
-/*
-Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 #pragma once
 
+#include <ImGuiPack.h>
+#include <frontend/Components/CodeEditor.h>
+#include <cstdint>
+#include <memory>
 #include <string>
-#include <imgui/imgui.h>
-#include <Engine/Log/LogEngine.h>
-#include <ctools/ConfigAbstract.h>
-#include <Panes/Abstract/AbstractPane.h>
-#include <ImGuiFileDialog/ImGuiFileDialog.h>
-#include <ImGuiColorTextEdit/TextEditor.h>
+#include <vector>
 
 class ProjectFile;
-class CodePane : public AbstractPane, public conf::ConfigAbstract
-{
+class CodePane : public AbstractPane {
 private:
-	TextEditor m_CodeEditor;
+    struct CodeSheet {
+        CodeEditor codeEditor;
+        std::string filepathName;
+        std::string title;
+        bool wasModified = false;
+        bool opened = false;
+    };
+    std::vector<CodeSheet> m_CodeSheets;
 
 public:
-	bool Init() override;
-	void Unit() override;
-	int DrawPanes(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas, PaneFlag& vInOutPaneShown) override;
-	void DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const std::string& vUserDatas) override;
-	int DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas) override;
+    bool Init() final;
+    void Unit() final;
+    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) final;
 
-	void SetCodeFile(const std::string& vFile);
-	void SetCode(const std::string& vCode);
-	std::string GetCode();
+    void OpenFile(const std::string& vFilePathName, size_t vErrorLine = 0, std::string vErrorMsg = {});
 
-	// configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
-
-public: // singleton
-	static std::shared_ptr<CodePane> Instance()
-	{
-		static auto _instance = std::make_shared<CodePane>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<CodePane> Instance() {
+        static std::shared_ptr<CodePane> _instance = std::make_shared<CodePane>();
+        return _instance;
+    }
 
 public:
-	CodePane() = default; // Prevent construction
-	CodePane(const CodePane&) = delete; // Prevent construction by copying
-	CodePane& operator =(const CodePane&) { return *this; }; // Prevent assignment
-    virtual ~CodePane() = default; // Prevent unwanted destruction};
-
-private:
-	void DrawEditor();
-	void ExecCode();
+    CodePane();                                              // Prevent construction
+    CodePane(const CodePane&) = default;                     // Prevent construction by copying
+    CodePane& operator=(const CodePane&) { return *this; };  // Prevent assignment
+    virtual ~CodePane();                                     // Prevent unwanted destruction};
 };
-

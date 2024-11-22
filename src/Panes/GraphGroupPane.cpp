@@ -18,25 +18,18 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "GraphGroupPane.h"
-#include <Gui/MainFrame.h>
-#include <ctools/cTools.h>
-#include <ctools/FileHelper.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
 #include <Project/ProjectFile.h>
-#include <Project/ProjectFile.h>
-#include <imgui/imgui_internal.h>
-#include <Panes/Manager/LayoutManager.h>
-#include <ImGuiFileDialog/ImGuiFileDialog.h>
+
 #include <cinttypes> // printf zu
-#include <Panes/LogPane.h>
-#include <Panes/CodePane.h>
+#include <panes/LogPane.h>
+#include <panes/CodePane.h>
 
-#include <Engine/Lua/LuaEngine.h>
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
+#include <models/lua/LuaEngine.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
 
-#include <Engine/Graphs/GraphView.h>
+#include <models/graphs/GraphView.h>
 
 static int SourcePane_WidgetId = 0;
 
@@ -59,19 +52,12 @@ void GraphGroupPane::Unit()
 
 }
 
-int GraphGroupPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/, PaneFlag& vInOutPaneShown)
-{
-	SourcePane_WidgetId = vWidgetId;
-
-	if (vInOutPaneShown & m_PaneFlag)
-	{
-		static ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoBringToFrontOnFocus |
-			ImGuiWindowFlags_MenuBar;
-		if (ImGui::Begin<PaneFlag>(m_PaneName,
-			&vInOutPaneShown , m_PaneFlag, flags))
-		{
+bool GraphGroupPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
+    ImGui::SetCurrentContext(vContextPtr);
+    bool change = false;
+    if (vOpened != nullptr && *vOpened) {
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
+        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
 			auto win = ImGui::GetCurrentWindowRead();
 			if (win->Viewport->Idx != 0)
@@ -90,15 +76,5 @@ int GraphGroupPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWid
 		ImGui::End();
 	}
 
-	return SourcePane_WidgetId;
-}
-
-void GraphGroupPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
-{
-	
-}
-
-int GraphGroupPane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
-{
-	return vWidgetId;
+	return change;
 }

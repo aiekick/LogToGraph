@@ -19,12 +19,10 @@ limitations under the License.
 #include <string>
 #include <vector>
 #include <map>
-#include <ctools/ConfigAbstract.h>
-#include <Panes/Abstract/AbstractPane.h>
-#include <ImGuiFileDialog/ImGuiFileDialog.h>
+#include <ImGuiPack.h>
 
 class ProjectFile;
-class GraphPane : public AbstractPane, public conf::ConfigAbstract
+class GraphPane : public AbstractPane
 {
 private:
 	bool m_show_hide_x_axis = true;
@@ -32,20 +30,9 @@ private:
 
 public:
 	bool Init() override;
-	void Unit() override;
-	int DrawPanes(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas, PaneFlag& vInOutPaneShown) override;
-	void DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const std::string& vUserDatas) override;
-	int DrawWidgets(const uint32_t& vCurrentFrame, const int& vWidgetId, const std::string& vUserDatas) override;
+    void Unit() override;
+    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
 	void DoVirtualLayout() override;
-
-public:
-	// configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
-	
-private:
-	void DrawGraph_ImPlot();
-	void DrawGraph_Custom();
 
 public: // singleton
 	static std::shared_ptr<GraphPane> Instance()
