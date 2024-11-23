@@ -1,5 +1,5 @@
 #include <Frontend/Components/CodeEditor.h>
-#include <EzLibs/EzStr.hpp>
+#include <ezlibs/ezStr.hpp>
 #include <filesystem>
 #include <fstream>
 #include <codecvt>

@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-#include <EzLibs/EzLog.hpp>
+#include <ezlibs/ezLog.hpp>
 #include <curl/curl.h>
 
 using namespace std::chrono;

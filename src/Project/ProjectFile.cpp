@@ -32,190 +32,156 @@
 #include <Panes/SignalsHoveredDiff.h>
 #include <Panes/SignalsHoveredList.h>
 #include <Panes/SignalsHoveredMap.h>
-#include <EzLibs/EzFile.hpp>
+#include <ezlibs/ezFile.hpp>
+#include <ImGuiPack/ImGuiPack.h>
+#include <ezlibs/ezTools.hpp>
 
-/*ProjectFile::ProjectFile(const std::string & vFilePathName)
-{
-	PathName = ez::file::simplifyFilePath(vFilePathName);
-	auto ps = ez::file::parsePathFileName(PathName);
-	if (ps.isOk)
-	{
-		Path = ps.path;
-	}
-}*/
-
-void ProjectFile::Clear()
-{
-	m_ProjectFilePathName.clear();
-	m_ProjectFilePath.clear();
-	m_IsLoaded = false;
-	m_NeverSaved = true;
-	m_IsThereAnyNotSavedChanged = false;
+void ProjectFile::Clear() {
+    m_ProjectFilePathName.clear();
+    m_ProjectFilePath.clear();
+    m_IsLoaded = false;
+    m_NeverSaved = true;
+    m_IsThereAnyNotSavedChanged = false;
 }
 
-void ProjectFile::ClearDatas()
-{
-	LuaEngine::Instance()->Clear();
-	LogEngine::Instance()->Clear();
-	GraphView::Instance()->Clear();
-	GraphGroup::Instance()->Clear();
-	ToolPane::Instance()->Clear();
-	LogPane::Instance()->Clear();
-	LogPaneSecondView::Instance()->Clear();
-	GraphListPane::Instance()->Clear();
-	GraphGroupPane::Instance()->Clear();
-	SignalsHoveredDiff::Instance()->Clear();
-	SignalsHoveredList::Instance()->Clear();
-	SignalsHoveredMap::Instance()->Clear();
+void ProjectFile::ClearDatas() {
+    LuaEngine::Instance()->Clear();
+    LogEngine::Instance()->Clear();
+    GraphView::Instance()->Clear();
+    GraphGroup::Instance()->Clear();
+    ToolPane::Instance()->Clear();
+    LogPane::Instance()->Clear();
+    LogPaneSecondView::Instance()->Clear();
+    GraphListPane::Instance()->Clear();
+    GraphGroupPane::Instance()->Clear();
+    SignalsHoveredDiff::Instance()->Clear();
+    SignalsHoveredList::Instance()->Clear();
+    SignalsHoveredMap::Instance()->Clear();
 }
 
-void ProjectFile::New()
-{
-	Clear();
-	ClearDatas();
-	m_IsLoaded = true;
+void ProjectFile::New() {
+    Clear();
+    ClearDatas();
+    m_IsLoaded = true;
 }
 
-void ProjectFile::New(const std::string& vFilePathName)
-{
-	Clear();
-	ClearDatas();
-	m_ProjectFilePathName = ez::file::simplifyFilePath(vFilePathName);
-	DBEngine::Instance()->CreateDBFile(m_ProjectFilePathName);
-	auto ps = ez::file::parsePathFileName(m_ProjectFilePathName);
-	if (ps.isOk)
-	{
-		m_ProjectFilePath = ps.path;
-	}
-	m_IsLoaded = true;
-	if (!vFilePathName.empty())
-	{
-		m_NeverSaved = false;
-		SetProjectChange(false);
-	}
+void ProjectFile::New(const std::string& vFilePathName) {
+    Clear();
+    ClearDatas();
+    m_ProjectFilePathName = ez::file::simplifyFilePath(vFilePathName);
+    DBEngine::Instance()->CreateDBFile(m_ProjectFilePathName);
+    auto ps = ez::file::parsePathFileName(m_ProjectFilePathName);
+    if (ps.isOk) {
+        m_ProjectFilePath = ps.path;
+    }
+    m_IsLoaded = true;
+    if (!vFilePathName.empty()) {
+        m_NeverSaved = false;
+        SetProjectChange(false);
+    }
 }
 
-bool ProjectFile::Load()
-{
-	return LoadAs(m_ProjectFilePathName);
+bool ProjectFile::Load() {
+    return LoadAs(m_ProjectFilePathName);
 }
 
 // ils wanted to not pass the adress for re open case
 // else, the clear will set vFilePathName to empty because with re open, target PathName
-bool ProjectFile::LoadAs(const std::string& vFilePathName)
-{
-	Clear();
-	std::string filePathName = ez::file::simplifyFilePath(vFilePathName);
-	if (DBEngine::Instance()->IsFileASqlite3DB(filePathName))
-	{
-		if (DBEngine::Instance()->OpenDBFile(filePathName))
-		{
-			ClearDatas();
+bool ProjectFile::LoadAs(const std::string& vFilePathName) {
+    Clear();
+    std::string filePathName = ez::file::simplifyFilePath(vFilePathName);
+    if (DBEngine::Instance()->IsFileASqlite3DB(filePathName)) {
+        if (DBEngine::Instance()->OpenDBFile(filePathName)) {
+            ClearDatas();
 
-			auto xml_settings = DBEngine::Instance()->GetSettingsXMLDatas();
-			if (LoadConfigString(ez::xml::Node::unEscapeXml(xml_settings), "project"))
-			{
-				m_ProjectFilePathName = filePathName;
-				auto ps = ez::file::parsePathFileName(m_ProjectFilePathName);
-				if (ps.isOk)
-				{
-					m_ProjectFilePath = ps.path;
-					CodePane::Instance()->SetCodeFile(m_CodeFilePathName);
-				}
-				m_IsLoaded = true;
-				m_NeverSaved = false;
-				SetProjectChange(false);
-			}
-			else
-			{
-				Clear();
-			}
+            auto xml_settings = DBEngine::Instance()->GetSettingsXMLDatas();
+            if (LoadConfigString(ez::xml::Node::unEscapeXml(xml_settings), "project")) {
+                m_ProjectFilePathName = filePathName;
+                auto ps = ez::file::parsePathFileName(m_ProjectFilePathName);
+                if (ps.isOk) {
+                    m_ProjectFilePath = ps.path;
+                    CodePane::Instance()->SetCodeFile(m_CodeFilePathName);
+                }
+                m_IsLoaded = true;
+                m_NeverSaved = false;
+                SetProjectChange(false);
+            } else {
+                Clear();
+            }
 
-			LogEngine::Instance()->Finalize();
-			GraphListPane::Instance()->UpdateDB();
-			ToolPane::Instance()->UpdateTree();
-			LogEngine::Instance()->PrepareAfterLoad();
+            LogEngine::Instance()->Finalize();
+            GraphListPane::Instance()->UpdateDB();
+            ToolPane::Instance()->UpdateTree();
+            LogEngine::Instance()->PrepareAfterLoad();
 
-			DBEngine::Instance()->CloseDBFile();
-		}
-	}
-	else
-	{
-		Clear();
-	}
+            DBEngine::Instance()->CloseDBFile();
+        }
+    } else {
+        Clear();
+    }
 
-	return m_IsLoaded;
+    return m_IsLoaded;
 }
 
-bool ProjectFile::Save()
-{
-	if (m_NeverSaved) 
-		return false;
+bool ProjectFile::Save() {
+    if (m_NeverSaved)
+        return false;
 
-	LogEngine::Instance()->PrepareForSave();
+    LogEngine::Instance()->PrepareForSave();
 
-	if (DBEngine::Instance()->OpenDBFile(m_ProjectFilePathName))
-	{
-		if (DBEngine::Instance()->SetSettingsXMLDatas(//
-			ez::xml::Node::escapeXml(SaveConfigString("project", "config"))))
-		{
-			SetProjectChange(false);
+    if (DBEngine::Instance()->OpenDBFile(m_ProjectFilePathName)) {
+        if (DBEngine::Instance()->SetSettingsXMLDatas(  //
+                ez::xml::Node::escapeXml(SaveConfigString("project", "config")))) {
+            SetProjectChange(false);
 
-			DBEngine::Instance()->CloseDBFile();
+            DBEngine::Instance()->CloseDBFile();
 
-			return true;
-		}
+            return true;
+        }
 
-		DBEngine::Instance()->CloseDBFile();
-	}
+        DBEngine::Instance()->CloseDBFile();
+    }
 
-	return false;
+    return false;
 }
 
-bool ProjectFile::SaveAs(const std::string& vFilePathName)
-{
-	std::string filePathName = ez::file::simplifyFilePath(vFilePathName);
-	auto ps = ez::file::parsePathFileName(filePathName);
-	if (ps.isOk)
-	{
-		m_ProjectFilePathName = ez::file::composePath(ps.path, ps.name, APP_PROJECT_FILE_EXT);
-		m_ProjectFilePath = ps.path;
-		m_NeverSaved = false;
-		return Save();
-	}
-	return false;
+bool ProjectFile::SaveAs(const std::string& vFilePathName) {
+    std::string filePathName = ez::file::simplifyFilePath(vFilePathName);
+    auto ps = ez::file::parsePathFileName(filePathName);
+    if (ps.isOk) {
+        m_ProjectFilePathName = ez::file::composePath(ps.path, ps.name, APP_PROJECT_FILE_EXT);
+        m_ProjectFilePath = ps.path;
+        m_NeverSaved = false;
+        return Save();
+    }
+    return false;
 }
 
-bool ProjectFile::IsLoaded() const
-{
-	return m_IsLoaded;
+bool ProjectFile::IsLoaded() const {
+    return m_IsLoaded;
 }
 
-bool ProjectFile::IsNeverSaved() const
-{
-	return m_NeverSaved;
+bool ProjectFile::IsNeverSaved() const {
+    return m_NeverSaved;
 }
 
-bool ProjectFile::IsThereAnyNotSavedChanged() const
-{
-	return m_IsThereAnyNotSavedChanged;
+bool ProjectFile::IsThereAnyNotSavedChanged() const {
+    return m_IsThereAnyNotSavedChanged;
 }
 
-void ProjectFile::SetProjectChange(const bool& vChange)
-{
-	m_IsThereAnyNotSavedChanged = vChange;
+void ProjectFile::SetProjectChange(const bool& vChange) {
+    m_IsThereAnyNotSavedChanged = vChange;
 }
 
-ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& vUserDatas = "") 
-{
+ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& vUserDatas = "") {
     ez::xml::Node node;
 
-	std::string str;
+    std::string str;
 
-	node.setName("project");
+    node.setName("project");
     node.addChilds(LayoutManager::Instance()->getXmlNodes("project"));
     node.addChilds(LuaEngine::Instance()->getXmlNodes("project"));
-    //node.addChilds(LogEngine::Instance()->getSignalVisibilty( "project"));
+    // node.addChilds(LogEngine::Instance()->getSignalVisibilty( "project"));
     node.addChild("graph_bar_colors").setContent(m_GraphColors.graphBarColor);
     node.addChild("graph_bar_colors").setContent(m_GraphColors.graphBarColor);
     node.addChild("graph_current_time_colors").setContent(m_GraphColors.graphHoveredTimeColor);
@@ -229,20 +195,20 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& vUserDatas = "")
     node.addChild("values_to_hide>").setContent(m_ValuesToHide);
     node.addChild("hide_some_values>").setContent(m_HideSomeValues);
     node.addChild("signals_preview_count_x>").setContent(m_SignalPreview_CountX);
-	node.addChild("signals_preview_size_x>").setContent(m_SignalPreview_SizeX);
-	node.addChild("graph_diff_first_mark>").setContent(m_DiffFirstMark);
-	node.addChild("graph_diff_second_mark>").setContent(m_DiffSecondMark);
-	node.addChild("graph_synchronize>").setContent(m_SyncGraphs);
-	node.addChild("graph_sync_limits>").setContent(m_SyncGraphsLimits);
+    node.addChild("signals_preview_size_x>").setContent(m_SignalPreview_SizeX);
+    node.addChild("graph_diff_first_mark>").setContent(m_DiffFirstMark);
+    node.addChild("graph_diff_second_mark>").setContent(m_DiffSecondMark);
+    node.addChild("graph_synchronize>").setContent(m_SyncGraphs);
+    node.addChild("graph_sync_limits>").setContent(m_SyncGraphsLimits);
     node.addChild("code_file_path_name>").setContent(m_CodeFilePathName);
     node.addChild("curve_radius_detection>").setContent(m_CurveRadiusDetection);
     node.addChild("selected_curve_display_thickness>").setContent(m_SelectedCurveDisplayThickNess);
     node.addChild("default_curve_display_thickness>").setContent(m_DefaultCurveDisplayThickNess);
     node.addChild("use_predefined_zero_value>").setContent(m_UsePredefinedZeroValue);
     node.addChild("predefined_zero_value>").setContent(m_PredefinedZeroValue);
-	node.addChild("last_log_file_path>").setContent(m_LastLogFilePath);
+    node.addChild("last_log_file_path>").setContent(m_LastLogFilePath);
 
-	return {node};
+    return {node};
 }
 
 bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
@@ -250,113 +216,65 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
     const auto& strValue = vNode.getContent();
     const auto& strParentName = vParent.getName();
 
-	if (strParentName == "project")
-	{
-		if (strName == "graph_bar_colors")
-		{
-            m_GraphColors.graphBarColor = ez::toImVec4(ez::fvariant(strValue).GetV4());
-		}
-		else if (strName == "graph_current_time_colors")
-		{
-            m_GraphColors.graphHoveredTimeColor = ez::toImVec4(ez::fvariant(strValue).GetV4());
-		}
-		else if (strName == "graph_mouse_current_time_colors")
-		{
-            m_GraphColors.graphMouseHoveredTimeColor = ez::toImVec4(ez::fvariant(strValue).GetV4());
-		}
-		else if (strName == "graph_diff_first_mark_color")
-		{
-            m_GraphColors.graphFirstDiffMarkColor = ez::toImVec4(ez::fvariant(strValue).GetV4());
-		}
-		else if (strName == "graph_diff_second_mark_color")
-		{
-            m_GraphColors.graphSecondDiffMarkColor = ez::toImVec4(ez::fvariant(strValue).GetV4());
-		}
-		else if (strName == "selection_collapsing")
-		{
-			m_CollapseLogSelection = ez::ivariant(strValue).GetB();
-		}
-		else if (strName == "auto_colorize")
-		{
-			m_AutoColorize = ez::ivariant(strValue).GetB();
-		}
-		else if (strName == "search_string")
-		{
-			m_SearchString = strValue;
-		}
-		else if (strName == "all_graphs_signals_search_string")
-		{
-			m_AllGraphSignalsSearchString = strValue;
-		}
-		else if (strName == "values_to_hide")
-		{
-			m_ValuesToHide = strValue;
-		}
-		else if (strName == "hide_some_values")
-		{
-			m_HideSomeValues = ez::ivariant(strValue).GetB();
-		}
-		else if (strName == "signals_preview_count_x")
-		{
-			m_SignalPreview_CountX = ez::uvariant(strValue).GetU();
-		}
-		else if (strName == "signals_preview_size_x")
-		{
-			m_SignalPreview_SizeX = ez::fvariant(strValue).GetF();
-		}
-		else if (strName == "graph_diff_first_mark")
-		{
-			m_DiffFirstMark = ez::fvariant(strValue).GetD();
-		}
-		else if (strName == "graph_diff_second_mark")
-		{
-			m_DiffSecondMark = ez::fvariant(strValue).GetD();
-		}
-		else if (strName == "graph_synchronize")
-		{
-			m_SyncGraphs = ez::ivariant(strValue).GetB();
-		}
-		else if (strName == "graph_sync_limits")
-		{
-			auto v4 = ez::dvariant(strValue).GetV4();
-			m_SyncGraphsLimits.X.Min = v4.x;
-			m_SyncGraphsLimits.X.Max = v4.y;
-			m_SyncGraphsLimits.Y.Min = v4.z;
-			m_SyncGraphsLimits.Y.Max = v4.w;
-		}
-		else if (strName == "code_file_path_name")
-		{
-			m_CodeFilePathName = strValue;
-		}
-		else if (strName == "curve_radius_detection")
-		{
-			m_CurveRadiusDetection = ez::dvariant(strValue).GetD();
-		}
-		else if (strName == "selected_curve_display_thickness")
-		{
-			m_SelectedCurveDisplayThickNess = ez::dvariant(strValue).GetD();
-		}
-		else if (strName == "default_curve_display_thickness")
-		{
-			m_DefaultCurveDisplayThickNess = ez::dvariant(strValue).GetD();
-		}
-		else if (strName == "use_predefined_zero_value")
-		{
-			m_UsePredefinedZeroValue = ez::ivariant(strValue).GetB();
-		}
-		else if (strName == "predefined_zero_value")
-		{
-			m_PredefinedZeroValue = ez::dvariant(strValue).GetD();
-		}
-		else if (strName == "last_log_file_path")
-		{
-			m_LastLogFilePath = strValue;
-		}
-	}
-	
-	LayoutManager::Instance()->setFromXml(vElem, vParent, "project");
-	LuaEngine::Instance()->setFromXml(vElem, vParent, "project");
-	LogEngine::Instance()->setSignalVisibilty(vElem, vParent, "project");
+    if (strParentName == "project") {
+        if (strName == "graph_bar_colors") {
+            m_GraphColors.graphBarColor = ez::fvariant(strValue).GetV4();
+        } else if (strName == "graph_current_time_colors") {
+            m_GraphColors.graphHoveredTimeColor = ez::fvariant(strValue).GetV4();
+        } else if (strName == "graph_mouse_current_time_colors") {
+            m_GraphColors.graphMouseHoveredTimeColor = ez::fvariant(strValue).GetV4();
+        } else if (strName == "graph_diff_first_mark_color") {
+            m_GraphColors.graphFirstDiffMarkColor = ez::fvariant(strValue).GetV4();
+        } else if (strName == "graph_diff_second_mark_color") {
+            m_GraphColors.graphSecondDiffMarkColor = ez::fvariant(strValue).GetV4();
+        } else if (strName == "selection_collapsing") {
+            m_CollapseLogSelection = ez::ivariant(strValue).GetB();
+        } else if (strName == "auto_colorize") {
+            m_AutoColorize = ez::ivariant(strValue).GetB();
+        } else if (strName == "search_string") {
+            m_SearchString = strValue;
+        } else if (strName == "all_graphs_signals_search_string") {
+            m_AllGraphSignalsSearchString = strValue;
+        } else if (strName == "values_to_hide") {
+            m_ValuesToHide = strValue;
+        } else if (strName == "hide_some_values") {
+            m_HideSomeValues = ez::ivariant(strValue).GetB();
+        } else if (strName == "signals_preview_count_x") {
+            m_SignalPreview_CountX = ez::uvariant(strValue).GetU();
+        } else if (strName == "signals_preview_size_x") {
+            m_SignalPreview_SizeX = ez::fvariant(strValue).GetF();
+        } else if (strName == "graph_diff_first_mark") {
+            m_DiffFirstMark = ez::fvariant(strValue).GetD();
+        } else if (strName == "graph_diff_second_mark") {
+            m_DiffSecondMark = ez::fvariant(strValue).GetD();
+        } else if (strName == "graph_synchronize") {
+            m_SyncGraphs = ez::ivariant(strValue).GetB();
+        } else if (strName == "graph_sync_limits") {
+            auto v4 = ez::dvariant(strValue).GetV4();
+            m_SyncGraphsLimits.X.Min = v4.x;
+            m_SyncGraphsLimits.X.Max = v4.y;
+            m_SyncGraphsLimits.Y.Min = v4.z;
+            m_SyncGraphsLimits.Y.Max = v4.w;
+        } else if (strName == "code_file_path_name") {
+            m_CodeFilePathName = strValue;
+        } else if (strName == "curve_radius_detection") {
+            m_CurveRadiusDetection = ez::dvariant(strValue).GetD();
+        } else if (strName == "selected_curve_display_thickness") {
+            m_SelectedCurveDisplayThickNess = ez::dvariant(strValue).GetD();
+        } else if (strName == "default_curve_display_thickness") {
+            m_DefaultCurveDisplayThickNess = ez::dvariant(strValue).GetD();
+        } else if (strName == "use_predefined_zero_value") {
+            m_UsePredefinedZeroValue = ez::ivariant(strValue).GetB();
+        } else if (strName == "predefined_zero_value") {
+            m_PredefinedZeroValue = ez::dvariant(strValue).GetD();
+        } else if (strName == "last_log_file_path") {
+            m_LastLogFilePath = strValue;
+        }
+    }
 
-	return true;
+    LayoutManager::Instance()->setFromXmlNodes(vNode, vParent, "project");
+    LuaEngine::Instance()->setFromXmlNodes(vNode, vParent, "project");
+    LogEngine::Instance()->setSignalVisibilty(vNode, vParent, "project");
+
+    return true;
 }

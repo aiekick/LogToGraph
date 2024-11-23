@@ -1,7 +1,7 @@
 #include <core/managers/PluginManager.h>
 
-#include <EzLibs/EzFile.hpp>
-#include <EzLibs/EzMath.hpp>
+#include <ezlibs/ezFile.hpp>
+#include <ezlibs/ezMath.hpp>
 
 namespace fs = std::filesystem;
 

@@ -6,7 +6,7 @@
 #include <headers/StrockerBuild.h>
 #include <Backend/MainBackend.h>
 
-#include <EzLibs/EzLog.hpp>
+#include <ezlibs/ezLog.hpp>
 
 // messaging
 #define MESSAGING_CODE_INFOS 0

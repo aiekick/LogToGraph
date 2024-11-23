@@ -11,7 +11,7 @@
 #include <string>
 #include <memory>
 #include <ImGuiPack/ImGuiPack.h>
-#include <EzLibs/EzMath.hpp>
+#include <ezlibs/ezMath.hpp>
 
 typedef const char* ImGuiLabel;
 

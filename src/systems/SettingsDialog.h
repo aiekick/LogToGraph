@@ -1,6 +1,6 @@
 #pragma once
 
-#include <EzLibs/EzXmlConfig.hpp>
+#include <ezlibs/ezXmlConfig.hpp>
 #include <apis/StrockerPluginApi.h>
 
 class SettingsDialog : public ez::xml::Config {
