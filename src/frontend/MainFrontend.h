@@ -125,16 +125,11 @@ public:
     bool isThereAnError() const;
 
     void Display(const uint32_t& vCurrentFrame, const ImVec2& vpos, const ImVec2& vSize);
-
-    bool DrawWidgets(const uint32_t& vCurrentFrame, ImGuiContext* vContextPtr, void* vUserDatas);
-    bool DrawOverlays(const uint32_t& vCurrentFrame, const ImRect& vRect, ImGuiContext* vContextPtr, void* vUserDatas);
     bool DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const ImRect& vMaxRect, ImGuiContext* vContextPtr, void* vUserDatas);
 
     void OpenAboutDialog();
 
-    FrameActionSystem* GetActionSystem() {
-        return &m_ActionSystem;
-    }
+    FrameActionSystem* GetActionSystem() { return &m_ActionSystem; }
 
 public:                         // save : on quit or project loading
     void IWantToCloseTheApp();  // user want close app, but we want to ensure its saved
@@ -179,6 +174,7 @@ private:
     bool m_build_themes();
     void m_drawMainMenuBar();
     void m_drawMainStatusBar();
+    void m_drawAboutDialog();
 
 public:  // singleton
     static MainFrontend* Instance() {

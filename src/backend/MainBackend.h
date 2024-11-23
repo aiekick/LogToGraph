@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glad/glad.h>
 #include <ImGuiPack.h>
 #include <EzLibs/EzTools.hpp>
 #include <EzLibs/EzXmlConfig.hpp>
@@ -37,6 +38,9 @@ private:
     std::function<void(std::set<std::string>)> m_ChangeFunc;
     std::set<std::string> m_PathsToTrack;
 
+    GLuint m_AppIconID = 0U;
+    GLuint m_BigAppIconID = 0U;
+
 public:  // getters
     ImRect GetDisplayRect() { return m_DisplayRect; }
 
@@ -64,6 +68,8 @@ public:
     void CloseApp();
 
     void setAppTitle(const std::string& vFilePathName = {});
+
+    GLuint getBigAppIconID() { return m_BigAppIconID; }
 
     ez::dvec2 GetMousePos();
     int GetMouseButton(int vButton);
@@ -98,6 +104,10 @@ private:
     void m_MainLoop();
     void m_Update();
     void m_IncFrame();
+
+    void m_SetEmbeddedIconApp(const char* vEmbeddedIconID);
+    GLuint m_ExtractEmbeddedIcon(const char* vEmbeddedIconID);
+    GLuint m_ExtractEmbeddedImage(const char* vEmbeddedImageID);
 
 public:  // singleton
     static MainBackend* Instance() {

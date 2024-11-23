@@ -1,6 +1,6 @@
 #include <Systems/SettingsDialog.h>
 
-#include <core/managers/PluginManager.h>
+#include <systems/PluginManager.h>
 
 #include <ImGuiPack/ImGuiPack.h>
 
@@ -112,37 +112,27 @@ bool SettingsDialog::m_Save() {
     return false;
 }
 
-std::string SettingsDialog::getXml(const std::string& vOffset, const std::string& vUserDatas) {
-    UNUSED(vUserDatas);
-
-    std::string str;
-
-    str += vOffset + "<plugins>\n";
-
+ez::xml::Nodes SettingsDialog::getXmlNodes(const std::string& vUserDatas) {
+    ez::xml::Node node("plugins");
     for (const auto& cat : m_SettingsPerCategoryPath) {
         auto ptr = cat.second.lock();
         if (ptr != nullptr) {
             if (vUserDatas == "app") {
-                str += ptr->GetXmlSettings(vOffset + "\t", Ltg::ISettingsType::APP);
+                node.addChilds(ptr->GetXmlSettings(Ltg::ISettingsType::APP));
             } else if (vUserDatas == "project") {
-                str += ptr->GetXmlSettings(vOffset + "\t", Ltg::ISettingsType::PROJECT);
+                node.addChilds(ptr->GetXmlSettings(Ltg::ISettingsType::PROJECT));
             } else {
-                EZ_TOOLS_DEBUG_BREAK; // ERROR
+                EZ_TOOLS_DEBUG_BREAK;  // ERROR
             }
         }
     }
-
-    str += vOffset + "</plugins>\n";
-
-    return str;
+    return {node};
 }
 
 bool SettingsDialog::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
-    UNUSED(vUserDatas);
     const auto& strName = vNode.getName();
     const auto& strValue = vNode.getContent();
     const auto& strParentName = vParent.getName();
-
     for (const auto& cat : m_SettingsPerCategoryPath) {
         auto ptr = cat.second.lock();
         if (ptr != nullptr) {
@@ -157,6 +147,5 @@ bool SettingsDialog::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::
             }
         }
     }
-
     return false;
 }

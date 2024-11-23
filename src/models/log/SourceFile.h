@@ -23,28 +23,23 @@ limitations under the License.
 #include <unordered_map>
 #include <Headers/Globals.h>
 
-class SourceFile
-{
+class SourceFile {
 public:
-	static SourceFilePtr Create(); 
-	static SourceFilePtr Create(const SourceFileName& vSourceFileName);
+    static SourceFilePtr Create();
+    static SourceFilePtr Create(const SourceFileName& vSourceFileName);
 
 private:
-	SourceFileWeak m_This;
-	SourceFilePathName m_SourceFilePathName;
-	SourceFileName m_SourceFileName;
-	EpochOffset m_EpochOffset = 0.0;
+    SourceFileWeak m_This;
+    SourceFilePathName m_SourceFilePathName;
+    SourceFileName m_SourceFileName;
+    EpochOffset m_EpochOffset = 0.0;
 
 public:
-	void SetSourceFilePathName(const SourceFileName& vSourceFileName);
-	SourceFilePathName GetSourceFilePathName() const;
-	SourceFileName GetSourceFileName() const;
-	ImGuiLabel GetImGuiLabel() const;
+    void SetSourceFilePathName(const SourceFileName& vSourceFileName);
+    SourceFilePathName GetSourceFilePathName() const;
+    SourceFileName GetSourceFileName() const;
+    ImGuiLabel GetImGuiLabel() const;
 
-	void SetEpochOffset(const EpochOffset& vEpohOffset);
-	EpochOffset GetEpochOffset() const;
-
-public:
-	SourceFile();
-    virtual ~SourceFile();
+    void SetEpochOffset(const EpochOffset& vEpohOffset);
+    EpochOffset GetEpochOffset() const;
 };

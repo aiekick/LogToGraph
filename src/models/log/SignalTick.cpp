@@ -19,9 +19,8 @@ limitations under the License.
 
 #include "SignalTick.h"
 
-SignalTickPtr SignalTick::Create()
-{
-	auto res = std::make_shared<SignalTick>();
-	res->m_This = res;
-	return res;
+SignalTickPtr SignalTick::Create() {
+    auto res = std::make_shared<SignalTick>();
+    res->m_This = res;
+    return res;
 }

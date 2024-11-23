@@ -19,9 +19,8 @@ limitations under the License.
 
 #include "SignalTag.h"
 
-SignalTagPtr SignalTag::Create()
-{
-	auto res = std::make_shared<SignalTag>();
-	res->m_This = res;
-	return res;
+SignalTagPtr SignalTag::Create() {
+    auto res = std::make_shared<SignalTag>();
+    res->m_This = res;
+    return res;
 }

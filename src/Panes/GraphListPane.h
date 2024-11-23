@@ -24,38 +24,36 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class GraphListPane : public AbstractPane
-{
+class GraphListPane : public AbstractPane {
 private:
-	ImGuiListClipper m_VirtualClipper;
-	std::map<SignalCategory, std::vector<SignalSerieWeak>> m_CategorizedSignalSeries;
-	std::vector<SignalSerieWeak> m_FilteredSignalSeries;
-	char m_search_buffer[1024 + 1] = "";
+    ImGuiListClipper m_VirtualClipper;
+    std::map<SignalCategory, std::vector<SignalSerieWeak>> m_CategorizedSignalSeries;
+    std::vector<SignalSerieWeak> m_FilteredSignalSeries;
+    char m_search_buffer[1024 + 1] = "";
 
 public:
-	void Clear();
-	bool Init() override;
+    void Clear();
+    bool Init() override;
     void Unit() override;
     bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
 
-	void UpdateDB();
+    void UpdateDB();
 
-public: // singleton
-	static std::shared_ptr<GraphListPane> Instance()
-	{
-		static auto _instance = std::make_shared<GraphListPane>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<GraphListPane> Instance() {
+        static auto _instance = std::make_shared<GraphListPane>();
+        return _instance;
+    }
 
 public:
-	GraphListPane() = default; // Prevent construction
-	GraphListPane(const GraphListPane&) = delete; // Prevent construction by copying
-	GraphListPane& operator =(const GraphListPane&) { return *this; }; // Prevent assignment
-    virtual ~GraphListPane() = default; // Prevent unwanted destruction};
+    GraphListPane() = default;                                         // Prevent construction
+    GraphListPane(const GraphListPane&) = delete;                      // Prevent construction by copying
+    GraphListPane& operator=(const GraphListPane&) { return *this; };  // Prevent assignment
+    virtual ~GraphListPane() = default;                                // Prevent unwanted destruction};
 
 private:
-	void DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSerie);
-	void DrawTree();
-	void PrepareLog(const std::string& vSearchString);
-	void HideAllGraphs();
+    void DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSerie);
+    void DrawTree();
+    void PrepareLog(const std::string& vSearchString);
+    void HideAllGraphs();
 };

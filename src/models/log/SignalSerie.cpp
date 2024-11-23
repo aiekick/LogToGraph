@@ -21,65 +21,53 @@ limitations under the License.
 #include <models/log/SignalTick.h>
 #include <models/graphs/GraphAnnotation.h>
 
-SignalSeriePtr SignalSerie::Create()
-{
-	auto res = std::make_shared<SignalSerie>();
-	res->m_This = res;
-	return res;
+SignalSeriePtr SignalSerie::Create() {
+    auto res = std::make_shared<SignalSerie>();
+    res->m_This = res;
+    return res;
 }
 
-void SignalSerie::InsertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount)
-{
-	if (vIdx < datas_values.size())
-	{
-		auto ptr = vTick.lock();
-		if (ptr)
-		{
-			ptr->parent = m_This;
+void SignalSerie::InsertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount) {
+    if (vIdx < datas_values.size()) {
+        auto ptr = vTick.lock();
+        if (ptr) {
+            ptr->parent = m_This;
 
-			range_value.x = ez::mini(range_value.x, ptr->value);
-			range_value.y = ez::maxi(range_value.y, ptr->value);
-			datas_values.insert(datas_values.begin() + vIdx, vTick);
+            range_value.x = ez::mini(range_value.x, ptr->value);
+            range_value.y = ez::maxi(range_value.y, ptr->value);
+            datas_values.insert(datas_values.begin() + vIdx, vTick);
 
-			if (vIncBaseRecordsCount)
-			{
-				++count_base_records;
-			}
-		}
-	}
+            if (vIncBaseRecordsCount) {
+                ++count_base_records;
+            }
+        }
+    }
 }
 
-void SignalSerie::AddTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount)
-{
-	auto ptr = vTick.lock();
-	if (ptr)
-	{
-		ptr->parent = m_This;
+void SignalSerie::AddTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount) {
+    auto ptr = vTick.lock();
+    if (ptr) {
+        ptr->parent = m_This;
 
-		range_value.x = ez::mini(range_value.x, ptr->value);
-		range_value.y = ez::maxi(range_value.y, ptr->value);
-		datas_values.push_back(vTick);
+        range_value.x = ez::mini(range_value.x, ptr->value);
+        range_value.y = ez::maxi(range_value.y, ptr->value);
+        datas_values.push_back(vTick);
 
-		if (vIncBaseRecordsCount)
-		{
-			++count_base_records;
-		}
-	}
+        if (vIncBaseRecordsCount) {
+            ++count_base_records;
+        }
+    }
 }
 
-void SignalSerie::AddGraphAnnotation(GraphAnnotationWeak vGraphAnnotation)
-{
-	m_GraphAnnotations.push_back(vGraphAnnotation);
+void SignalSerie::AddGraphAnnotation(GraphAnnotationWeak vGraphAnnotation) {
+    m_GraphAnnotations.push_back(vGraphAnnotation);
 }
 
-void SignalSerie::DrawAnnotations()
-{
-	for (const auto& anno : m_GraphAnnotations)
-	{
-		auto ptr = anno.lock();
-		if (ptr)
-		{
-			ptr->Draw();
-		}
-	}
+void SignalSerie::DrawAnnotations() {
+    for (const auto& anno : m_GraphAnnotations) {
+        auto ptr = anno.lock();
+        if (ptr) {
+            ptr->Draw();
+        }
+    }
 }

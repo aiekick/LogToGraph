@@ -25,32 +25,30 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class SignalsHoveredDiff : public AbstractPane
-{
+class SignalsHoveredDiff : public AbstractPane {
 private:
-	ImGuiListClipper m_VirtualClipper;
-	std::vector<SignalTickWeak> m_PreviewTicks;
+    ImGuiListClipper m_VirtualClipper;
+    std::vector<SignalTickWeak> m_PreviewTicks;
 
 public:
-	void Clear();
-	bool Init() override;
+    void Clear();
+    bool Init() override;
     void Unit() override;
     bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
 
 private:
-	static void CheckItem(const SignalTickPtr& vSignalTick);
-	void DrawTable();
+    static void CheckItem(const SignalTickPtr& vSignalTick);
+    void DrawTable();
 
-public: // singleton
-	static std::shared_ptr<SignalsHoveredDiff> Instance()
-	{
-		static auto _instance = std::make_shared<SignalsHoveredDiff>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<SignalsHoveredDiff> Instance() {
+        static auto _instance = std::make_shared<SignalsHoveredDiff>();
+        return _instance;
+    }
 
 public:
-	SignalsHoveredDiff() = default; // Prevent construction
-	SignalsHoveredDiff(const SignalsHoveredDiff&) = delete; // Prevent construction by copying
-	SignalsHoveredDiff& operator =(const SignalsHoveredDiff&) { return *this; }; // Prevent assignment
-    virtual ~SignalsHoveredDiff() = default; // Prevent unwanted destruction};
+    SignalsHoveredDiff() = default;                                              // Prevent construction
+    SignalsHoveredDiff(const SignalsHoveredDiff&) = delete;                      // Prevent construction by copying
+    SignalsHoveredDiff& operator=(const SignalsHoveredDiff&) { return *this; };  // Prevent assignment
+    virtual ~SignalsHoveredDiff() = default;                                     // Prevent unwanted destruction};
 };

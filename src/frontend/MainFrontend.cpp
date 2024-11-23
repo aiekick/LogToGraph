@@ -47,6 +47,8 @@ limitations under the License.
 
 #include <systems/TranslationHelper.h>
 
+#include <Headers/LogToGraphBuild.h>
+
 // panes
 #define DEBUG_PANE_ICON ICON_SDFM_BUG
 #define SCENE_PANE_ICON ICON_SDFM_FORMAT_LIST_BULLETED_TYPE
@@ -71,7 +73,6 @@ bool MainFrontend::sCentralWindowHovered = false;
 //// PUBLIC //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-
 MainFrontend::~MainFrontend() = default;
 
 bool MainFrontend::init() {
@@ -86,7 +87,6 @@ bool MainFrontend::init() {
     LayoutManager::Instance()->SetPaneDisposalRatio("BOTTOM", 0.25f);
 
     LayoutManager::Instance()->AddPane(CodePane::Instance(), "Debug Pane", "", "RIGHT", 0.25f, false, false);
-    LayoutManager::Instance()->AddPane(GraphPane::Instance(), "Graph Pane", "", "CENTRAL", 0.0f, false, false);
     LayoutManager::Instance()->AddPane(ConsolePane::Instance(), "Console Pane", "", "BOTTOM", 0.3f, false, false);
     LayoutManager::Instance()->AddPane(ProfilerPane::Instance(), "Profiler Pane", "", "BOTTOM", 0.3f, false, false);
 
@@ -162,18 +162,7 @@ void MainFrontend::Display(const uint32_t& vCurrentFrame, const ImVec2& vPos, co
     }
 }
 
-bool MainFrontend::DrawWidgets(const uint32_t& vCurrentFrame, ImGuiContext* vContextPtr, void* vUserDatas) {
-    bool res = false;
-    return res;
-}
-
-bool MainFrontend::DrawOverlays(const uint32_t& vCurrentFrame, const ImRect& vRect, ImGuiContext* vContextPtr, void* vUserDatas) {
-    bool res = false;
-    return res;
-}
-
-bool MainFrontend::DrawDialogsAndPopups(
-    const uint32_t& vCurrentFrame, const ImRect& vMaxRect, ImGuiContext* vContextPtr, void* vUserDatas) {
+bool MainFrontend::DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const ImRect& vMaxRect, ImGuiContext* vContextPtr, void* vUserDatas) {
     m_ActionSystem.RunActions();
     LayoutManager::Instance()->DrawDialogsAndPopups(vCurrentFrame, vMaxRect, vContextPtr, vUserDatas);
     if (m_ShowImGui) {
@@ -186,7 +175,101 @@ bool MainFrontend::DrawDialogsAndPopups(
         ImGui::ShowMetricsWindow(&m_ShowMetric);
     }
     SettingsDialog::Instance()->Draw();
+    m_drawAboutDialog();
     return false;
+}
+
+void MainFrontend::m_drawAboutDialog() {
+    if (m_ShowAboutDialog) {
+        ImGui::OpenPopup("About");
+        if (ImGui::BeginPopupModal("About", &m_ShowAboutDialog, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
+            ImGui::BeginGroup();
+
+            // texture is inverted, so we invert uv.y
+            auto texID = (ImTextureID)(void*)(size_t)MainBackend::Instance()->getBigAppIconID();
+            ImGui::Image(texID, ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+
+            auto str = ez::str::toStr("%s %s", APP_TITLE, LogToGraph_BuildId);
+            ImGui::ClickableTextUrl(str.c_str(), "https://github.com/aiekick/LogToGraph");
+
+            ImGui::EndGroup();
+
+            ImGui::SameLine();
+
+            ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+
+            ImGui::SameLine();
+
+            ImGui::BeginGroup();
+
+            ImGui::Text("License : %s",
+                        u8R"(
+Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at)");
+            ImGui::ClickableTextUrl("http://www.apache.org/licenses/LICENSE-2.0", "http://www.apache.org/licenses/LICENSE-2.0");
+
+            ImGui::Text("%s",
+                        u8R"(Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+)");
+
+            ImGui::Separator();
+
+            ImGui::Text("%s", "Frameworks / Libraries used :");
+            ImGui::Indent();
+            {
+                // glfw3
+                ImGui::ClickableTextUrl("Glfw (ZLIB)", "https://github.com/glfw/glfw");
+                ImGui::SameLine();
+                // glad
+                ImGui::ClickableTextUrl("Glad (MIT)", "https://github.com/Dav1dde/glad");
+                ImGui::SameLine();
+                // stb
+                ImGui::ClickableTextUrl("Stb (MIT)", "https://github.com/nothings/stb");
+                ImGui::SameLine();
+                // tinyxml2
+                ImGui::ClickableTextUrl("tinyxml2 (ZLIB)", "https://github.com/leethomason/tinyxml2");
+                // dirent
+                ImGui::ClickableTextUrl("dirent (MIT)", "https://github.com/tronkko/dirent/blob/master/include/dirent.h");
+                ImGui::SameLine();
+                // freetype 2
+                ImGui::ClickableTextUrl("FreeType2 (FreeType2)", "https://github.com/freetype/freetype2");
+                ImGui::SameLine();
+                // cTools
+                ImGui::ClickableTextUrl("cTools (MIT)", "https://github.com/aiekick/cTools");
+                ImGui::SameLine();
+                // LuaJit
+                ImGui::ClickableTextUrl("Lua Jit (MIT)", "https://github.com/LuaJIT/LuaJIT");
+                // BuildInc
+                ImGui::ClickableTextUrl("BuildInc (MIT)", "https://github.com/aiekick/buildinc");
+                ImGui::SameLine();
+                // ImGui
+                ImGui::ClickableTextUrl("ImGui (MIT)", "https://github.com/ocornut/imgui");
+                ImGui::SameLine();
+                // ImPlot
+                ImGui::ClickableTextUrl("ImPlot (MIT)", "https://github.com/epezent/implot");
+                // ImGui MarkDown
+                ImGui::ClickableTextUrl("ImGui MarkDown (Zlib)", "https://github.com/juliettef/imgui_markdown");
+                ImGui::SameLine();
+                // ImGuiColorTextEdit
+                ImGui::ClickableTextUrl("ImGuiColorTextEdit (Zlib)", "https://github.com/BalazsJako/ImGuiColorTextEdit");
+                ImGui::SameLine();
+                // ImGuiFileDialog
+                ImGui::ClickableTextUrl("ImGuiFileDialog (MIT)", "https://github.com/aiekick/ImGuiFileDialog");
+            }
+            ImGui::Unindent();
+
+            ImGui::EndGroup();
+
+            ImGui::EndPopup();
+        }
+    }
 }
 
 void MainFrontend::OpenAboutDialog() {
@@ -226,15 +309,6 @@ void MainFrontend::m_drawMainMenuBar() {
                 if (ImGui::MenuItem(" Close")) {
                     Action_Menu_CloseProject();
                 }
-            }
-
-            ImGui::Separator();
-
-            if (ImGui::BeginMenu(" Import Prices")) {
-                if (ImGui::MenuItem("MetaTrader csv")) {
-                    Action_Menu_ImportPrices(ImportTypeEnum::IMPORT_FROM_METATREADER_FILE);
-                }
-                ImGui::EndMenu();
             }
 
             ImGui::Separator();
@@ -351,7 +425,7 @@ bool MainFrontend::ShowUnSavedDialog() {
                 ImGui::SetNextWindowPos(m_DisplayPos + m_DisplaySize * 0.5f, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
                 if (ImGui::BeginPopupModal(label, (bool*)0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDocking)) {
                     const auto& width = ImGui::CalcTextSize("Continue without saving").x + ImGui::GetStyle().ItemInnerSpacing.x;
-                    
+
                     if (ImGui::ContrastedButton("Save", nullptr, nullptr, width * 0.5f)) {
                         res = Action_UnSavedDialog_SaveProject();
                     }
@@ -707,7 +781,6 @@ bool MainFrontend::m_build() {
         m_ToolbarFontPtr->Scale = font_scale_ratio;
         return true;
     }*/
-
     return true;
 }
 

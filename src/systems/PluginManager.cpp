@@ -1,4 +1,4 @@
-#include <core/managers/PluginManager.h>
+#include <systems/PluginManager.h>
 
 #include <EzLibs/EzFile.hpp>
 #include <EzLibs/EzMath.hpp>
@@ -9,8 +9,7 @@ namespace fs = std::filesystem;
 ////// PluginInstance ////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
-PluginInstance::PluginInstance() {
-}
+PluginInstance::PluginInstance() {}
 
 PluginInstance::~PluginInstance() {
     unit();
@@ -82,19 +81,6 @@ void PluginManager::loadPlugins(const std::string& vAppPath, const std::set<Ltg:
         LogVarLightInfo("Plugin directory %s not found !", plugin_directory.string().c_str());
     }
     printf("-----------\n");
-}
-
-Ltg::IndicatorComputingPtr PluginManager::getIndicatorPtr(const std::string& vIndicatorName) {
-    auto ptr = createPluginModule(vIndicatorName);
-    if (ptr != nullptr) {
-        auto indicatorPtr = std::dynamic_pointer_cast<Ltg::IndicatorComputing>(ptr);
-        if (indicatorPtr != nullptr) {
-            return indicatorPtr; // the plugin will retain the pointer, he must free it
-        } else {
-            LogVarError("The Module %s is not an Indicator", vIndicatorName.c_str());
-        }
-    }
-    return nullptr;
 }
 
 std::vector<Ltg::PluginModuleInfos> PluginManager::getPluginModulesInfos() const {
@@ -248,9 +234,11 @@ void PluginManager::m_displayLoadedPlugins() {
                     const auto& vers_space = std::string(max_vers_size - vers.size(), ' ');  // 32 is a space in ASCII
                     const auto& desc = plugin_instance_ptr->GetDescription();
                     LogVarLightInfo("Plugin loaded : %s%sv%s%s(%s)",  //
-                        name.c_str(), name_space.c_str(),             //
-                        vers.c_str(), vers_space.c_str(),             //
-                        desc.c_str());
+                                    name.c_str(),
+                                    name_space.c_str(),  //
+                                    vers.c_str(),
+                                    vers_space.c_str(),  //
+                                    desc.c_str());
                 }
             }
         }

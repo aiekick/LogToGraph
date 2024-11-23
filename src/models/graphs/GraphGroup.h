@@ -22,39 +22,37 @@ limitations under the License.
 #include <unordered_map>
 #include <Headers/Globals.h>
 
-class GraphGroup
-{
+class GraphGroup {
 public:
-	static GraphGroupPtr Create();
+    static GraphGroupPtr Create();
 
 private:
-	GraphGroupWeak m_This;
-	SignalSeriesWeakContainer m_SignalSeries;
-	SignalValueRange m_Range_Value = SignalValueRange(0.5, -0.5) * DBL_MAX;
-	std::string m_Name;
+    GraphGroupWeak m_This;
+    SignalSeriesWeakContainer m_SignalSeries;
+    SignalValueRange m_Range_Value = SignalValueRange(0.5, -0.5) * DBL_MAX;
+    std::string m_Name;
 
 public:
-	void Clear();
-	void AddSignalSerie(const SignalSerieWeak& vSerie);
-	void RemoveSignalSerie(const SignalSerieWeak& vSerie);
-	SignalSeriesWeakContainerRef GetSignalSeries();
-	SignalValueRangeConstRef GetSignalSeriesRange() const;
-	void SetName(const std::string& vName);
-	ImGuiLabel GetImGuiLabel();
+    void Clear();
+    void AddSignalSerie(const SignalSerieWeak& vSerie);
+    void RemoveSignalSerie(const SignalSerieWeak& vSerie);
+    SignalSeriesWeakContainerRef GetSignalSeries();
+    SignalValueRangeConstRef GetSignalSeriesRange() const;
+    void SetName(const std::string& vName);
+    ImGuiLabel GetImGuiLabel();
 
 private:
-	void ComputeRange();
+    void ComputeRange();
 
-public: // singleton
-	static std::shared_ptr<GraphGroup> Instance()
-	{
-		static auto _instance = std::make_shared<GraphGroup>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<GraphGroup> Instance() {
+        static auto _instance = std::make_shared<GraphGroup>();
+        return _instance;
+    }
 
 public:
-	GraphGroup() = default; // Prevent construction
-	GraphGroup(const GraphGroup&) = delete; // Prevent construction by copying
-	GraphGroup& operator =(const GraphGroup&) { return *this; }; // Prevent assignment
-    virtual ~GraphGroup() = default; // Prevent unwanted destruction};
+    GraphGroup() = default;                                      // Prevent construction
+    GraphGroup(const GraphGroup&) = delete;                      // Prevent construction by copying
+    GraphGroup& operator=(const GraphGroup&) { return *this; };  // Prevent assignment
+    virtual ~GraphGroup() = default;                             // Prevent unwanted destruction};
 };

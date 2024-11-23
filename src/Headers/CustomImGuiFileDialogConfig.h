@@ -35,22 +35,22 @@ limitations under the License.
 // define the space between path buttons
 // #define CUSTOM_PATH_SPACING 2
 
-//#define USE_THUMBNAILS
-// the thumbnail generation use the stb_image and stb_resize lib who need to define the implementation
-// btw if you already use them in your app, you can have compiler error due to "implemntation found in double"
-// so uncomment these line for prevent the creation of implementation of these libs again
-//  #define DONT_DEFINE_AGAIN__STB_IMAGE_IMPLEMENTATION
-//  #define DONT_DEFINE_AGAIN__STB_IMAGE_RESIZE_IMPLEMENTATION
-// #define IMGUI_RADIO_BUTTON RadioButton
-// #define DisplayMode_ThumbailsList_ImageHeight 32.0f
-// #define tableHeaderFileThumbnailsString "Thumbnails"
-// #define DisplayMode_FilesList_ButtonString "FL"
-// #define DisplayMode_FilesList_ButtonHelp "File List"
-// #define DisplayMode_ThumbailsList_ButtonString "TL"
-// #define DisplayMode_ThumbailsList_ButtonHelp "Thumbnails List"
-// todo : grid
-// #define DisplayMode_ThumbailsGrid_ButtonString "TG"
-// #define DisplayMode_ThumbailsGrid_ButtonHelp "Thumbnails Grid"
+// #define USE_THUMBNAILS
+//  the thumbnail generation use the stb_image and stb_resize lib who need to define the implementation
+//  btw if you already use them in your app, you can have compiler error due to "implemntation found in double"
+//  so uncomment these line for prevent the creation of implementation of these libs again
+//   #define DONT_DEFINE_AGAIN__STB_IMAGE_IMPLEMENTATION
+//   #define DONT_DEFINE_AGAIN__STB_IMAGE_RESIZE_IMPLEMENTATION
+//  #define IMGUI_RADIO_BUTTON RadioButton
+//  #define DisplayMode_ThumbailsList_ImageHeight 32.0f
+//  #define tableHeaderFileThumbnailsString "Thumbnails"
+//  #define DisplayMode_FilesList_ButtonString "FL"
+//  #define DisplayMode_FilesList_ButtonHelp "File List"
+//  #define DisplayMode_ThumbailsList_ButtonString "TL"
+//  #define DisplayMode_ThumbailsList_ButtonHelp "Thumbnails List"
+//  todo : grid
+//  #define DisplayMode_ThumbailsGrid_ButtonString "TG"
+//  #define DisplayMode_ThumbailsGrid_ButtonHelp "Thumbnails Grid"
 
 // #define USE_EXPLORATION_BY_KEYS
 //  this mapping by default is for GLFW but you can use another
@@ -168,7 +168,7 @@ limitations under the License.
 
 // a group for system devices (returned by IFileSystem), but you can also add yours
 // by ex if you would like to display a specific icon for some devices
- #define USE_PLACES_DEVICES
+#define USE_PLACES_DEVICES
 // #define PLACES_DEVICES_DEFAULT_OPEPEND true
 // #define placesDevicesGroupName "Devices"
 // #define placesDevicesDisplayOrder 10  // to the end

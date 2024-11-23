@@ -25,37 +25,34 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class LogPaneSecondView : public AbstractPane
-{
+class LogPaneSecondView : public AbstractPane {
 private:
-	ImGuiListClipper m_LogListClipper;
-	SignalTicksWeakContainer m_LogDatas;
-	std::vector<double> m_ValuesToHide; 
-	bool m_need_re_preparation = false;
+    ImGuiListClipper m_LogListClipper;
+    SignalTicksWeakContainer m_LogDatas;
+    std::vector<double> m_ValuesToHide;
+    bool m_need_re_preparation = false;
 
 public:
-	bool Init() override;
+    bool Init() override;
     void Unit() override;
     bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
 
-	void Clear();
-	void CheckItem(const SignalTickPtr& vSignalTick);
-	void PrepareLog();
+    void Clear();
+    void CheckItem(const SignalTickPtr& vSignalTick);
+    void PrepareLog();
 
-public: // singleton
-	static std::shared_ptr<LogPaneSecondView> Instance()
-	{
-		static auto _instance = std::make_shared<LogPaneSecondView>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<LogPaneSecondView> Instance() {
+        static auto _instance = std::make_shared<LogPaneSecondView>();
+        return _instance;
+    }
 
 public:
-	LogPaneSecondView() = default; // Prevent construction
-	LogPaneSecondView(const LogPaneSecondView&) = delete; // Prevent construction by copying
-	LogPaneSecondView& operator =(const LogPaneSecondView&) { return *this; }; // Prevent assignment
-    virtual ~LogPaneSecondView() = default; // Prevent unwanted destruction};
+    LogPaneSecondView() = default;                                             // Prevent construction
+    LogPaneSecondView(const LogPaneSecondView&) = delete;                      // Prevent construction by copying
+    LogPaneSecondView& operator=(const LogPaneSecondView&) { return *this; };  // Prevent assignment
+    virtual ~LogPaneSecondView() = default;                                    // Prevent unwanted destruction};
 
 private:
-	void DrawTable();
+    void DrawTable();
 };
-

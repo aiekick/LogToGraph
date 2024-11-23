@@ -26,120 +26,114 @@ limitations under the License.
 #include <Headers/Globals.h>
 #include <ezlibs/ezXmlConfig.hpp>
 
-struct SignalSetting
-{
-	bool visibility = false;
-	uint32_t color = 0U;
-	uint32_t group = 0U;
+struct SignalSetting {
+    bool visibility = false;
+    uint32_t color = 0U;
+    uint32_t group = 0U;
 };
 
-class LogEngine : public ez::xml::Config
-{
+class LogEngine : public ez::xml::Config {
 private:
-	// for searching, so no need the category
-	typedef std::map<SignalName, SignalSerieWeak> OrderedCategoryLessSignalDatasContainer;
+    // for searching, so no need the category
+    typedef std::map<SignalName, SignalSerieWeak> OrderedCategoryLessSignalDatasContainer;
 
 public:
     static std::string sConvertEpochToDateTimeString(const double& vTime);
 
 private:
-	// source file container
-	SourceFilesContainer m_SourceFiles;
+    // source file container
+    SourceFilesContainer m_SourceFiles;
 
-	// containers of ptr's
-	SignalSeriesContainer m_SignalSeries;
-	SignalTicksContainer m_SignalTicks;
-	SignalTagsContainer m_SignalTags;
+    // containers of ptr's
+    SignalSeriesContainer m_SignalSeries;
+    SignalTicksContainer m_SignalTicks;
+    SignalTagsContainer m_SignalTags;
 
-	// ticks container who are not datas, because created virtually
-	// like first and last ticks of some signals for being the same as global time
-	SignalTicksContainer m_VirtualTicks;
+    // ticks container who are not datas, because created virtually
+    // like first and last ticks of some signals for being the same as global time
+    SignalTicksContainer m_VirtualTicks;
 
-	// for display
-	SignalValueRange m_Range_ticks_time = SignalValueRange(0.5, -0.5) * DBL_MAX;
-	SignalEpochTime m_HoveredTime = 0.0;
-	SignalCategory m_CurrentCategoryLoaded;
+    // for display
+    SignalValueRange m_Range_ticks_time = SignalValueRange(0.5, -0.5) * DBL_MAX;
+    SignalEpochTime m_HoveredTime = 0.0;
+    SignalCategory m_CurrentCategoryLoaded;
 
-	int32_t m_VisibleCount = 0;
-	int32_t m_SignalsCount = 0;
+    int32_t m_VisibleCount = 0;
+    int32_t m_SignalsCount = 0;
 
-	// just for save signal settings
-	std::unordered_map<SignalName, std::unordered_map<SignalCategory, SignalSetting>> m_SignalSettings;
+    // just for save signal settings
+    std::unordered_map<SignalName, std::unordered_map<SignalCategory, SignalSetting>> m_SignalSettings;
 
-	// hovered preview ticks
-	SignalTicksWeakContainer m_PreviewTicks;
+    // hovered preview ticks
+    SignalTicksWeakContainer m_PreviewTicks;
 
-	// diff check
-	SignalTicksWeakContainer m_DiffFirstTicks; // first mark container
-	SignalTicksWeakContainer m_DiffSecondTicks; // second mark container
-	SignalDiffWeakContainer m_DiffResult; // diff result container
+    // diff check
+    SignalTicksWeakContainer m_DiffFirstTicks;   // first mark container
+    SignalTicksWeakContainer m_DiffSecondTicks;  // second mark container
+    SignalDiffWeakContainer m_DiffResult;        // diff result container
 
 public:
-	void Clear();
-	SourceFileWeak SetSourceFile(const SourceFileName& vSourceFileName);
-	void AddSignalTick(
-		const SourceFileWeak& vSourceFile, 
-		const SignalCategory& vCategory, 
-		const SignalName& vName, 
-		const SignalEpochTime& vDate, 
-		const SignalValue& vValue);
-	void AddSignalStatus(
-		const SourceFileWeak& vSourceFile, 
-		const SignalCategory& vCategory, 
-		const SignalName& vName, 
-		const SignalEpochTime& vDate, 
-		const SignalString& vString,
-		const SignalStatus& vStatus);
-	void AddSignalTag(
-		const SignalEpochTime& vSignalEpochTime,
-		const SignalTagColor& vSignalTagColor,
-		const SignalTagName& vSignalTagName,
-		const SignalTagHelp& vSignalTagHelp);
-	void Finalize();
+    void Clear();
+    SourceFileWeak SetSourceFile(const SourceFileName& vSourceFileName);
+    void AddSignalTick(const SourceFileWeak& vSourceFile,
+                       const SignalCategory& vCategory,
+                       const SignalName& vName,
+                       const SignalEpochTime& vDate,
+                       const SignalValue& vValue);
+    void AddSignalStatus(const SourceFileWeak& vSourceFile,
+                         const SignalCategory& vCategory,
+                         const SignalName& vName,
+                         const SignalEpochTime& vDate,
+                         const SignalString& vString,
+                         const SignalStatus& vStatus);
+    void AddSignalTag(const SignalEpochTime& vSignalEpochTime,
+                      const SignalTagColor& vSignalTagColor,
+                      const SignalTagName& vSignalTagName,
+                      const SignalTagHelp& vSignalTagHelp);
+    void Finalize();
 
-	// iter SignalDatasContainer
-	void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName);
-	void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool& vFlag);
-	bool isSignalShown(const SignalCategory& vCategory, const SignalName& vName, SignalColor* vOutColorPtr = nullptr);
+    // iter SignalDatasContainer
+    void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName);
+    void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool& vFlag);
+    bool isSignalShown(const SignalCategory& vCategory, const SignalName& vName, SignalColor* vOutColorPtr = nullptr);
 
-	SourceFilesContainerRef GetSourceFiles();
-	SignalValueRangeConstRef GetTicksTimeSerieRange() const;
-	SignalTicksContainerRef GetSignalTicks();
-	SignalTagsContainerRef GetSignalTags();
-	SignalSeriesContainerRef GetSignalSeries();
+    SourceFilesContainerRef GetSourceFiles();
+    SignalValueRangeConstRef GetTicksTimeSerieRange() const;
+    SignalTicksContainerRef GetSignalTicks();
+    SignalTagsContainerRef GetSignalTags();
+    SignalSeriesContainerRef GetSignalSeries();
 
-	void SetHoveredTime(const SignalEpochTime& vSignalEpochTime);
-	double GetHoveredTime() const;
+    void SetHoveredTime(const SignalEpochTime& vSignalEpochTime);
+    double GetHoveredTime() const;
 
-	void UpdateVisibleSignalsColoring();
+    void UpdateVisibleSignalsColoring();
 
-	SignalTicksWeakContainerRef GetPreviewTicks();
+    SignalTicksWeakContainerRef GetPreviewTicks();
 
-	void PrepareForSave();
+    void PrepareForSave();
     void PrepareAfterLoad();
-	const int32_t& GetVisibleCount() const;
-	void SetSignalSetting(const SignalCategory& vCategory, const SignalName& vName, const SignalSetting& vSignalSetting);
+    const int32_t& GetVisibleCount() const;
+    void SetSignalSetting(const SignalCategory& vCategory, const SignalName& vName, const SignalSetting& vSignalSetting);
 
     ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;
     bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
 
-	const int32_t& GetSignalsCount() const;
+    const int32_t& GetSignalsCount() const;
 
-	void SetFirstDiffMark(const SignalEpochTime& vSignalEpochTime);
-	void SetSecondDiffMark(const SignalEpochTime& vSignalEpochTime);
-	void ComputeDiffResult();
-	SignalDiffWeakContainerRef GetDiffResultTicks();
+    void SetFirstDiffMark(const SignalEpochTime& vSignalEpochTime);
+    void SetSecondDiffMark(const SignalEpochTime& vSignalEpochTime);
+    void ComputeDiffResult();
+    SignalDiffWeakContainerRef GetDiffResultTicks();
 
-public: // singleton
-	static std::shared_ptr<LogEngine> Instance()
-	{
-		static auto _instance = std::make_shared<LogEngine>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<LogEngine> Instance() {
+        static auto _instance = std::make_shared<LogEngine>();
+        return _instance;
+    }
 
 public:
-	LogEngine() = default; // Prevent construction
-	LogEngine(const LogEngine&) = delete; // Prevent construction by copying
-	LogEngine& operator =(const LogEngine&) { return *this; }; // Prevent assignment
-    virtual ~LogEngine() = default; // Prevent unwanted destruction};
+    LogEngine() = default;                                     // Prevent construction
+    LogEngine(const LogEngine&) = delete;                      // Prevent construction by copying
+    LogEngine& operator=(const LogEngine&) { return *this; };  // Prevent assignment
+    virtual ~LogEngine() = default;                            // Prevent unwanted destruction};
 };

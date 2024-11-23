@@ -22,29 +22,26 @@ limitations under the License.
 #include <ImGuiPack.h>
 
 class ProjectFile;
-class GraphPane : public AbstractPane
-{
+class GraphPane : public AbstractPane {
 private:
-	bool m_show_hide_x_axis = true;
-	bool m_show_hide_y_axis = false;
+    bool m_show_hide_x_axis = true;
+    bool m_show_hide_y_axis = false;
 
 public:
-	bool Init() override;
+    bool Init() override;
     void Unit() override;
     bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
-	void DoVirtualLayout() override;
+    void DoVirtualLayout() override;
 
-public: // singleton
-	static std::shared_ptr<GraphPane> Instance()
-	{
-		static auto _instance = std::make_shared<GraphPane>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<GraphPane> Instance() {
+        static auto _instance = std::make_shared<GraphPane>();
+        return _instance;
+    }
 
 public:
-	GraphPane() = default; // Prevent construction
-	GraphPane(const GraphPane&) = delete; // Prevent construction by copying
-	GraphPane& operator =(const GraphPane&) { return *this; }; // Prevent assignment
-    virtual ~GraphPane() = default; // Prevent unwanted destruction};
+    GraphPane() = default;                                     // Prevent construction
+    GraphPane(const GraphPane&) = delete;                      // Prevent construction by copying
+    GraphPane& operator=(const GraphPane&) { return *this; };  // Prevent assignment
+    virtual ~GraphPane() = default;                            // Prevent unwanted destruction};
 };
-

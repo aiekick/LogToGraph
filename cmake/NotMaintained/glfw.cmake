@@ -38,7 +38,7 @@ if(NOT glfw_POPULATED)
 	set(GLFW_INCLUDE_DIR ${glfw_SOURCE_DIR}/include)
 	set(GLFW_DEFINITIONS -DGLFW_INCLUDE_NONE -DGLFW3)
 	set(GLFW_LIBRARIES ${GLFW_LIBRARIES} glfw)
-	
+
 	add_definitions(${GLFW_DEFINITIONS})
 
 	include_directories(${GLFW_INCLUDE_DIR})

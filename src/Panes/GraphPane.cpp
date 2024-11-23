@@ -50,7 +50,7 @@ bool GraphPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGu
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-            if (ProjectFile::Instance()->IsLoaded()) {
+            if (ProjectFile::Instance()->IsProjectLoaded()) {
                 if (ImGui::BeginMenuBar()) {
                     GraphView::Instance()->DrawMenuBar();
 

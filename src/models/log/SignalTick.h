@@ -23,21 +23,20 @@ limitations under the License.
 #include <unordered_map>
 #include <Headers/Globals.h>
 
-class SignalTick
-{
+class SignalTick {
 public:
-	static SignalTickPtr Create();
+    static SignalTickPtr Create();
 
 private:
-	SignalTickWeak m_This;
+    SignalTickWeak m_This;
 
 public:
-	SignalEpochTime time_epoch = 0.0;
-	SignalDateTime time_date_time;
-	SignalCategory category;
-	SignalName name;
-	SignalValue value = 0.0;
-	SignalString string;
-	SignalStatus status;
-	SignalSerieWeak parent;
+    SignalEpochTime time_epoch = 0.0;
+    SignalDateTime time_date_time;
+    SignalCategory category;
+    SignalName name;
+    SignalValue value = 0.0;
+    SignalString string;
+    SignalStatus status;
+    SignalSerieWeak parent;
 };

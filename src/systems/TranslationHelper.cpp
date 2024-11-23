@@ -117,25 +117,18 @@ void TranslationHelper::DefineLanguageFR() {
 //// CONFIGURATION ////////////////////////////////////
 ///////////////////////////////////////////////////////
 
-std::string TranslationHelper::getXml(const std::string& vOffset, const std::string& vUserDatas) {
-    UNUSED(vUserDatas);
-
-    std::string str;
-
-    // the rest
-    str += vOffset + "<help_lang>" + ez::str::toStr((int)TranslationHelper::s_HelpLanguage) + "</help_lang>\n";
-
-    return str;
+ez::xml::Nodes TranslationHelper::getXmlNodes(const std::string& vUserDatas) {
+    ez::xml::Node node;
+    node.addChild("help_lang").setContent(ez::str::toStr((int)TranslationHelper::s_HelpLanguage));
+    return node.getChildren();
 }
 
 bool TranslationHelper::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
-    UNUSED(vUserDatas);
     const auto& strName = vNode.getName();
     const auto& strValue = vNode.getContent();
-    const auto& strParentName = vParent.getName();
-
-    if (strName == "help_lang")
+    // const auto& strParentName = vParent.getName();
+    if (strName == "help_lang") {
         DefineLanguage((LanguageEnum)ez::ivariant(strValue).GetI());
-
-    return true;  // continue for explore childs. need to return false if we want explore child ourselves
+    }
+    return false;
 }

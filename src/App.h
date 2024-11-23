@@ -8,7 +8,7 @@ public:
     int run();
 
 public:
-    App() = default;   // Prevent construction
+    App() = default;           // Prevent construction
     virtual ~App() = default;  // Prevent unwanted destruction
 
 private:
@@ -16,7 +16,5 @@ private:
 
 protected:
     App(const App&) = default;  // Prevent construction by copying
-    App& operator=(const App&) {
-        return *this;
-    };  // Prevent assignment
+    App& operator=(const App&) { return *this; };  // Prevent assignment
 };

@@ -13,14 +13,14 @@ CodePane::~CodePane() {
 }
 
 bool CodePane::Init() {
-    // for avoid a reallocation of the vector for each push/emplace 
-    // where the the language Type in each editor got corrupted 
+    // for avoid a reallocation of the vector for each push/emplace
+    // where the the language Type in each editor got corrupted
     // because passed by ref
     // 1000 editor is sufficient for our need
     m_CodeSheets.reserve(1000U);
 
 #ifdef _DEBUG
-/*    
+/*
     auto& sheet = m_CodeSheets.emplace_back();
     sheet.codeEditor.init();
     sheet.filepathName = "C:/Gamedev/gitea/CuiCuiTools/samples/datas/ReportTests/Result_VALGRIND_TOTO.xml";
@@ -47,14 +47,14 @@ bool CodePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGui
     ImGui::SetCurrentContext(vContextPtr);
     bool change = false;
     if (vOpened != nullptr && *vOpened) {
-        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus  | ImGuiWindowFlags_MenuBar;
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
         if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
                 flags |= ImGuiWindowFlags_NoResize;  // | ImGuiWindowFlags_NoTitleBar;
             else
-                flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus  | ImGuiWindowFlags_MenuBar;
+                flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
             if (ImGui::BeginTabBar("CodePane")) {
                 for (auto& sheet : m_CodeSheets) {
@@ -74,7 +74,7 @@ bool CodePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGui
     return change;
 }
 
-void CodePane::OpenFile(const std::string& vFilePathName,  size_t vErrorLine,  std::string vErrorMsg) {
+void CodePane::OpenFile(const std::string& vFilePathName, size_t vErrorLine, std::string vErrorMsg) {
     CodeSheet* existing_code_sheet_ptr = nullptr;
     for (auto& sheet : m_CodeSheets) {
         if (sheet.filepathName == vFilePathName) {
@@ -93,7 +93,7 @@ void CodePane::OpenFile(const std::string& vFilePathName,  size_t vErrorLine,  s
             type = TextEditor::LanguageDefinition::C();
         } else if (ps.ext == "lua") {
             type = TextEditor::LanguageDefinition::Lua();
-        } 
+        }
         if (existing_code_sheet_ptr != nullptr) {
             existing_code_sheet_ptr->wasModified = false;
             existing_code_sheet_ptr->opened = true;

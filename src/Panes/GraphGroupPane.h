@@ -24,27 +24,25 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class GraphGroupPane : public AbstractPane
-{
+class GraphGroupPane : public AbstractPane {
 private:
-	ImGuiListClipper m_FileListClipper;
+    ImGuiListClipper m_FileListClipper;
 
 public:
-	void Clear();
-	bool Init() override;
+    void Clear();
+    bool Init() override;
     void Unit() override;
     bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
 
-public: // singleton
-	static std::shared_ptr<GraphGroupPane> Instance()
-	{
-		static auto _instance = std::make_shared<GraphGroupPane>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<GraphGroupPane> Instance() {
+        static auto _instance = std::make_shared<GraphGroupPane>();
+        return _instance;
+    }
 
 public:
-	GraphGroupPane() = default; // Prevent construction
-	GraphGroupPane(const GraphGroupPane&) = delete; // Prevent construction by copying
-	GraphGroupPane& operator =(const GraphGroupPane&) { return *this; }; // Prevent assignment
-    virtual ~GraphGroupPane() = default; // Prevent unwanted destruction};
+    GraphGroupPane() = default;                                          // Prevent construction
+    GraphGroupPane(const GraphGroupPane&) = delete;                      // Prevent construction by copying
+    GraphGroupPane& operator=(const GraphGroupPane&) { return *this; };  // Prevent assignment
+    virtual ~GraphGroupPane() = default;                                 // Prevent unwanted destruction};
 };

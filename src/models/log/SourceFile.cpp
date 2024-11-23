@@ -20,53 +20,44 @@ limitations under the License.
 #include "SourceFile.h"
 #include <ezlibs/ezFile.hpp>
 
-SourceFilePtr SourceFile::Create()
-{
-	auto res = std::make_shared<SourceFile>();
-	res->m_This = res;
-	return res;
+SourceFilePtr SourceFile::Create() {
+    auto res = std::make_shared<SourceFile>();
+    res->m_This = res;
+    return res;
 }
 
-SourceFilePtr SourceFile::Create(const SourceFileName& vSourceFileName)
-{
-	auto res = std::make_shared<SourceFile>();
-	res->m_This = res;
-	res->SetSourceFilePathName(vSourceFileName);
-	return res;
+SourceFilePtr SourceFile::Create(const SourceFileName& vSourceFileName) {
+    auto res = std::make_shared<SourceFile>();
+    res->m_This = res;
+    res->SetSourceFilePathName(vSourceFileName);
+    return res;
 }
 
-void SourceFile::SetSourceFilePathName(const SourceFileName& vSourceFileName)
-{
-	m_SourceFileName = m_SourceFilePathName = vSourceFileName;
+void SourceFile::SetSourceFilePathName(const SourceFileName& vSourceFileName) {
+    m_SourceFileName = m_SourceFilePathName = vSourceFileName;
 
-	auto ps = ez::file::parsePathFileName(m_SourceFileName);
-	if (ps.isOk)
-	{
-		m_SourceFileName = ps.GetFPNE_WithPath("");
-	}
+    auto ps = ez::file::parsePathFileName(m_SourceFileName);
+    if (ps.isOk) {
+        m_SourceFileName = ps.GetFPNE_WithPath("");
+    }
 }
 
-SourceFileName SourceFile::GetSourceFilePathName() const
-{
-	return m_SourceFilePathName;
+SourceFileName SourceFile::GetSourceFilePathName() const {
+    return m_SourceFilePathName;
 }
 
-SourceFileName SourceFile::GetSourceFileName() const
-{
-	return m_SourceFileName;
+SourceFileName SourceFile::GetSourceFileName() const {
+    return m_SourceFileName;
 }
 
-ImGuiLabel SourceFile::GetImGuiLabel() const
-{
-	return m_SourceFileName.c_str();
+ImGuiLabel SourceFile::GetImGuiLabel() const {
+    return m_SourceFileName.c_str();
 }
 
-void SourceFile::SetEpochOffset(const EpochOffset& vEpohOffset)
-{
-	m_EpochOffset = vEpohOffset;
+void SourceFile::SetEpochOffset(const EpochOffset& vEpohOffset) {
+    m_EpochOffset = vEpohOffset;
 }
 
-EpochOffset SourceFile::GetEpochOffset() const
-{
-	return m_EpochOffset;
+EpochOffset SourceFile::GetEpochOffset() const {
+    return m_EpochOffset;
 }

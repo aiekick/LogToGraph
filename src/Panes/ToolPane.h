@@ -24,40 +24,38 @@ limitations under the License.
 #include <models/log/LogEngine.h>
 
 class ProjectFile;
-class ToolPane : public AbstractPane
-{
+class ToolPane : public AbstractPane {
 private:
-	ImGuiListClipper m_FileListClipper;
-	std::map<SignalName, SignalSerieWeak> m_SignalSeries;
-	char m_search_buffer[1024 + 1] = "";
-	int32_t m_CurrentLogEdited = -1;
+    ImGuiListClipper m_FileListClipper;
+    std::map<SignalName, SignalSerieWeak> m_SignalSeries;
+    char m_search_buffer[1024 + 1] = "";
+    int32_t m_CurrentLogEdited = -1;
 
 public:
-	void Clear();
-	bool Init() override;
+    void Clear();
+    bool Init() override;
     void Unit() override;
     bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
     bool DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vRect*/, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) override;
 
-	void UpdateTree();
+    void UpdateTree();
 
-public: // singleton
-	static std::shared_ptr<ToolPane> Instance()
-	{
-		static auto _instance = std::make_shared<ToolPane>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<ToolPane> Instance() {
+        static auto _instance = std::make_shared<ToolPane>();
+        return _instance;
+    }
 
 public:
-	ToolPane() = default; // Prevent construction
-	ToolPane(const ToolPane&) = delete; // Prevent construction by copying
-	ToolPane& operator =(const ToolPane&) { return *this; }; // Prevent assignment
-    virtual ~ToolPane() = default; // Prevent unwanted destruction};
+    ToolPane() = default;                                    // Prevent construction
+    ToolPane(const ToolPane&) = delete;                      // Prevent construction by copying
+    ToolPane& operator=(const ToolPane&) { return *this; };  // Prevent assignment
+    virtual ~ToolPane() = default;                           // Prevent unwanted destruction};
 
 private:
-	void DrawTable();
-	static void DisplayItem(const SignalSerieWeak& vDatasSerie);
-	void DrawTree();
-	void PrepareLogAfterSearch(const std::string& vSearchString);
-	static void HideAllGraphs();
+    void DrawTable();
+    static void DisplayItem(const SignalSerieWeak& vDatasSerie);
+    void DrawTree();
+    void PrepareLogAfterSearch(const std::string& vSearchString);
+    static void HideAllGraphs();
 };
