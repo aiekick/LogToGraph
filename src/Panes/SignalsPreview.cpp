@@ -32,12 +32,12 @@ limitations under the License.
 #include <Panes/CodePane.h>
 #include <Contrib/ImWidgets/ImWidgets.h>
 
-#include <Engine/Lua/LuaEngine.h>
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
+#include <models/lua/LuaEngine.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
 
-#include <Engine/Graphs/GraphView.h>
+#include <models/graphs/GraphView.h>
 
 static int SourcePane_WidgetId = 0;
 
@@ -138,7 +138,7 @@ void SignalsPreview::SetHoveredTime(const SignalEpochTime& vHoveredTime)
 								auto parent_ptr = last_ptr->parent.lock();
 								if (parent_ptr && parent_ptr->show)
 								{
-									parent_ptr->color_u32 = ImGui::GetColorU32(ct::toImVec4(GraphView::GetRainBow((int32_t)visible_idx, (int32_t)visible_count)));
+									parent_ptr->color_u32 = ImGui::GetColorU32(ez::toImVec4(GraphView::GetRainBow((int32_t)visible_idx, (int32_t)visible_count)));
 									parent_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(parent_ptr->color_u32);
 
 									++visible_idx;
@@ -171,8 +171,8 @@ int SignalsPreview::CalcSignalsButtonCountAndSize(
 	int count = ProjectFile::Instance()->m_SignalPreview_CountX;
 	float width = ProjectFile::Instance()->m_SignalPreview_SizeX;
 
-	count = (int)(aw / ct::maxi(width, 1.0f));
-	width = aw / (float)ct::maxi(count, 1);
+	count = (int)(aw / ez::maxi(width, 1.0f));
+	width = aw / (float)ez::maxi(count, 1);
 
 	ProjectFile::Instance()->m_SignalPreview_CountX = count;
 
@@ -268,7 +268,7 @@ void SignalsPreview::DrawTable()
 			const auto& signals_max_count_x = CalcSignalsButtonCountAndSize(cell_size, button_size);
 			if (signals_max_count_x)
 			{
-				const int& rowCount = (int)ct::ceil((double)signals_count / (double)signals_max_count_x);
+				const int& rowCount = (int)ez::ceil((double)signals_count / (double)signals_max_count_x);
 
 				uint32_t idx = 0U;
 				m_VirtualClipper.Begin(rowCount, cell_size.y);

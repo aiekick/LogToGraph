@@ -1,0 +1,11 @@
+include(FetchContent)
+
+include(cmake/NotMaintained/glad.cmake)
+include(cmake/NotMaintained/glfw.cmake)
+#include(cmake/NotMaintained/curl.cmake)
+include(cmake/NotMaintained/alphanum.cmake)
+include(cmake/NotMaintained/json.cmake)
+include(cmake/NotMaintained/sqlite3.cmake)
+include(cmake/NotMaintained/luajit.cmake)
+#include(cmake/NotMaintained/fmt.cmake)
+#include(cmake/NotMaintained/httplib.cmake)

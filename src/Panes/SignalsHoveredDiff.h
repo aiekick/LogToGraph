@@ -17,7 +17,7 @@ limitations under the License.
 #pragma once
 
 #include <Panes/Abstract/AbstractPane.h>
-#include <Engine/Log/LogEngine.h>
+#include <models/log/LogEngine.h>
 #include <Headers/Globals.h>
 #include <imgui/imgui.h>
 #include <stdint.h>

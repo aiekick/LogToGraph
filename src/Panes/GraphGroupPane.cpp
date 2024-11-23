@@ -31,12 +31,12 @@ limitations under the License.
 #include <Panes/LogPane.h>
 #include <Panes/CodePane.h>
 
-#include <Engine/Lua/LuaEngine.h>
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
+#include <models/lua/LuaEngine.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
 
-#include <Engine/Graphs/GraphView.h>
+#include <models/graphs/GraphView.h>
 
 static int SourcePane_WidgetId = 0;
 

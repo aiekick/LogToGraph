@@ -25,10 +25,10 @@ limitations under the License.
 #include <Project/ProjectFile.h>
 #include <Panes/Manager/LayoutManager.h>
 #include <cinttypes> // printf zu
-#include <Engine/Graphs/GraphView.h>
-#include <Engine/Graphs/GraphGroup.h>
+#include <models/graphs/GraphView.h>
+#include <models/graphs/GraphGroup.h>
 #include <imgui/imgui_internal.h>
-#include <Engine/Log/LogEngine.h>
+#include <models/log/LogEngine.h>
 
 static int GeneratorPaneWidgetId = 0;
 

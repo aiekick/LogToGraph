@@ -29,10 +29,10 @@ limitations under the License.
 #include <cinttypes> // printf zu
 #include <Panes/CodePane.h>
 
-#include <Engine/Lua/LuaEngine.h>
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
+#include <models/lua/LuaEngine.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
 
 static int SourcePane_WidgetId = 0;
 
@@ -107,8 +107,8 @@ int SignalsHoveredList::CalcSignalsButtonCountAndSize(
 
 	float width = ProjectFile::Instance()->m_SignalPreview_SizeX;
 
-	int count = (int)(aw / ct::maxi(width, 1.0f));
-	width = aw / (float)ct::maxi(count, 1);
+	int count = (int)(aw / ez::maxi(width, 1.0f));
+	width = aw / (float)ez::maxi(count, 1);
 
 	ProjectFile::Instance()->m_SignalPreview_CountX = count;
 
@@ -184,7 +184,7 @@ void SignalsHoveredList::DrawTable()
 							
 							if (ImGui::TableNextColumn()) // time
 							{
-								ImGui::Selectable(ct::toStr("%f", infos_ptr->time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+								ImGui::Selectable(ez::str::toStr("%f", infos_ptr->time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
 							}
 							if (ImGui::TableNextColumn()) // date time
 							{
@@ -208,11 +208,11 @@ void SignalsHoveredList::DrawTable()
 								{
 									if (infos_ptr->status == LuaEngine::sc_START_ZONE)
 									{
-										ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", infos_ptr->string.c_str());
+										ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", infos_ptr->string.c_str());
 									}
 									else if (infos_ptr->status == LuaEngine::sc_END_ZONE)
 									{
-										ImGui::Text("%s " ICON_NDP_ARROW_LEFT, infos_ptr->string.c_str());
+										ImGui::Text("%s " ICON_FONT_ARROW_LEFT, infos_ptr->string.c_str());
 									}
 									else
 									{

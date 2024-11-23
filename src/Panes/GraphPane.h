@@ -24,7 +24,7 @@ limitations under the License.
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 
 class ProjectFile;
-class GraphPane : public AbstractPane, public conf::ConfigAbstract
+class GraphPane : public AbstractPane, public ez::xml::Config
 {
 private:
 	bool m_show_hide_x_axis = true;

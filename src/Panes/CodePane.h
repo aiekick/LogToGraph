@@ -18,14 +18,14 @@ limitations under the License.
 
 #include <string>
 #include <imgui/imgui.h>
-#include <Engine/Log/LogEngine.h>
+#include <models/log/LogEngine.h>
 #include <ctools/ConfigAbstract.h>
 #include <Panes/Abstract/AbstractPane.h>
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 #include <ImGuiColorTextEdit/TextEditor.h>
 
 class ProjectFile;
-class CodePane : public AbstractPane, public conf::ConfigAbstract
+class CodePane : public AbstractPane, public ez::xml::Config
 {
 private:
 	TextEditor m_CodeEditor;

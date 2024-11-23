@@ -33,7 +33,7 @@ limitations under the License.
 
 #include <implot/implot.h>
 
-#include <Engine/Lua/LuaEngine.h>
+#include <models/lua/LuaEngine.h>
 
 #define SHOW_CONSOLE
 
@@ -62,8 +62,8 @@ static void glfw_window_close_callback(GLFWwindow* window)
 
 int main(int, char**argv)
 {	
-    FileHelper::Instance()->SetAppPath(std::string(argv[0]));
-    FileHelper::Instance()->SetCurDirectory(FileHelper::Instance()->GetAppPath());
+    ez::file::SetAppPath(std::string(argv[0]));
+    ez::file::SetCurDirectory(ez::file::GetAppPath());
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())

@@ -1,0 +1,71 @@
+FetchContent_Declare(
+	fmt 
+	GIT_REPOSITORY	https://github.com/fmtlib/fmt
+	GIT_TAG			10.2.1
+	SOURCE_DIR		${CMAKE_CURRENT_SOURCE_DIR}/build/_deps/fmt
+	GIT_PROGRESS	true
+	GIT_SHALLOW		true
+)
+
+FetchContent_GetProperties(fmt)
+if(NOT fmt_POPULATED)
+	FetchContent_Populate(fmt)
+
+	if(USE_SHARED_LIBS)
+		set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+		set(LLVM_USE_CRT_DEBUG MDd CACHE STRING "" FORCE)
+		set(LLVM_USE_CRT_MINSIZEREL MD CACHE STRING "" FORCE)
+		set(LLVM_USE_CRT_RELEASE MD CACHE STRING "" FORCE)
+		set(LLVM_USE_CRT_RELWITHDEBINFO MD CACHE STRING "" FORCE)
+		set(USE_MSVC_RUNTIME_LIBRARY_DLL ON CACHE BOOL "" FORCE)
+	else()
+		set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+		set(LLVM_USE_CRT_DEBUG MTd CACHE STRING "" FORCE)
+		set(LLVM_USE_CRT_MINSIZEREL MT CACHE STRING "" FORCE)
+		set(LLVM_USE_CRT_RELEASE MT CACHE STRING "" FORCE)
+		set(LLVM_USE_CRT_RELWITHDEBINFO MT CACHE STRING "" FORCE)
+		set(USE_MSVC_RUNTIME_LIBRARY_DLL OFF CACHE BOOL "" FORCE)
+	endif()
+	
+	if(NOT CMAKE_DEBUG_POSTFIX)
+	  set(CMAKE_DEBUG_POSTFIX _debug)
+	endif()
+	if(NOT CMAKE_RELEASE_POSTFIX)
+	  set(CMAKE_RELEASE_POSTFIX)
+	endif()
+	if(NOT CMAKE_MINSIZEREL_POSTFIX)
+	  set(CMAKE_MINSIZEREL_POSTFIX _minsizerel)
+	endif()
+	if(NOT CMAKE_RELWITHDEBINFO_POSTFIX)
+	  set(CMAKE_RELWITHDEBINFO_POSTFIX _reldeb)
+	endif()
+	
+	set(FMT_DOC OFF CACHE BOOL "" FORCE)
+	set(FMT_TEST OFF CACHE BOOL "" FORCE)
+	set(FMT_INSTALL OFF CACHE BOOL "" FORCE)
+	set(FMT_INSTALL OFF CACHE BOOL "" FORCE)
+		
+	##EXCLUDE_FROM_ALL reject install for this target
+	add_subdirectory(${fmt_SOURCE_DIR} EXCLUDE_FROM_ALL)	
+
+	if (BUILD_SHARED_LIBS)
+		set_target_properties(fmt PROPERTIES POSITION_INDEPENDENT_CODE ON)
+	endif()
+
+	if(USE_SHARED_LIBS)
+		set_target_properties(fmt PROPERTIES FOLDER 3rdparty/Shared)
+		set_target_properties(fmt PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${FINAL_BIN_DIR}")
+		set_target_properties(fmt PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${FINAL_BIN_DIR}")
+		set_target_properties(fmt PROPERTIES RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${FINAL_BIN_DIR}")
+		set_target_properties(fmt PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${FINAL_BIN_DIR}")
+	else()
+		set_target_properties(fmt PROPERTIES FOLDER 3rdparty/Static)
+	endif()
+	
+	if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+		target_compile_options(fmt PRIVATE -Wno-everything) # disable all warnings, since im not maintaining this lib
+	endif()
+	
+	set(FMT_INCLUDE_DIR ${fmt_SOURCE_DIR})
+	set(FMT_LIBRARIES fmt)
+endif()

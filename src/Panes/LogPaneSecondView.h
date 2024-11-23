@@ -24,7 +24,7 @@ limitations under the License.
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 
 class ProjectFile;
-class LogPaneSecondView : public AbstractPane, public conf::ConfigAbstract
+class LogPaneSecondView : public AbstractPane, public ez::xml::Config
 {
 private:
 	ImGuiListClipper m_LogListClipper;

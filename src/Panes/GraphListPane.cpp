@@ -32,11 +32,11 @@ limitations under the License.
 #include <Panes/CodePane.h>
 #include <implot/implot_internal.h>
 
-#include <Engine/Lua/LuaEngine.h>
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
-#include <Engine/Graphs/GraphView.h>
+#include <models/lua/LuaEngine.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
+#include <models/graphs/GraphView.h>
 
 static int SourcePane_WidgetId = 0;
 
@@ -227,7 +227,7 @@ void GraphListPane::DrawTree()
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 		if (ImGui::InputText("##GraphListPane_Search", m_search_buffer, 1024))
 		{
-			search_string = ct::toLower(m_search_buffer);
+			search_string = ez::toLower(m_search_buffer);
 			PrepareLog(search_string);
 		}
 		ImGui::PopItemWidth();

@@ -28,10 +28,10 @@ limitations under the License.
 #include <cinttypes> // printf zu
 #include <Panes/CodePane.h>
 
-#include <Engine/Lua/LuaEngine.h>
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
+#include <models/lua/LuaEngine.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
 
 static int SourcePane_WidgetId = 0;
 static GraphColor s_DefaultGraphColors;
@@ -232,11 +232,11 @@ void SignalsHoveredDiff::DrawTable()
 								{
 									if (diff_first_mark_ptr->status == LuaEngine::sc_START_ZONE)
 									{
-										ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", diff_first_mark_ptr->string.c_str());
+										ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", diff_first_mark_ptr->string.c_str());
 									}
 									else if (diff_first_mark_ptr->status == LuaEngine::sc_END_ZONE)
 									{
-										ImGui::Text("%s " ICON_NDP_ARROW_LEFT, diff_first_mark_ptr->string.c_str());
+										ImGui::Text("%s " ICON_FONT_ARROW_LEFT, diff_first_mark_ptr->string.c_str());
 									}
 									else
 									{
@@ -255,11 +255,11 @@ void SignalsHoveredDiff::DrawTable()
 								{
 									if (diff_second_mark_ptr->status == LuaEngine::sc_START_ZONE)
 									{
-										ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", diff_second_mark_ptr->string.c_str());
+										ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", diff_second_mark_ptr->string.c_str());
 									}
 									else if (diff_second_mark_ptr->status == LuaEngine::sc_END_ZONE)
 									{
-										ImGui::Text(ICON_NDP_CARET_LEFT " %s", diff_second_mark_ptr->string.c_str());
+										ImGui::Text(ICON_FONT_CARET_LEFT " %s", diff_second_mark_ptr->string.c_str());
 									}
 									else
 									{

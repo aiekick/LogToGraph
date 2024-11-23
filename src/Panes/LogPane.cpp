@@ -31,12 +31,12 @@ limitations under the License.
 #include <Contrib/ImWidgets/ImWidgets.h>
 #include <cinttypes> // printf zu
 
-#include <Engine/Log/LogEngine.h>
-#include <Engine/Log/SignalSerie.h>
-#include <Engine/Log/SignalTick.h>
-#include <Engine/Lua/LuaEngine.h>
+#include <models/log/LogEngine.h>
+#include <models/log/SignalSerie.h>
+#include <models/log/SignalTick.h>
+#include <models/lua/LuaEngine.h>
 #include <Panes/GraphListPane.h>
-#include <Engine/Graphs/GraphView.h>
+#include <models/graphs/GraphView.h>
 
 static int GeneratorPaneWidgetId = 0;
 
@@ -280,7 +280,7 @@ void LogPane::DrawTable()
 
 					if (ImGui::TableNextColumn()) // time
 					{
-						ImGui::Selectable(ct::toStr("%f", infos_ptr->time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
+						ImGui::Selectable(ez::str::toStr("%f", infos_ptr->time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
 						CheckItem(infos_ptr);
 					}
 					if (ImGui::TableNextColumn()) // date time
@@ -308,11 +308,11 @@ void LogPane::DrawTable()
 						{
 							if (infos_ptr->status == LuaEngine::sc_START_ZONE)
 							{
-								ImGui::Text(ICON_NDP_ARROW_RIGHT " %s", infos_ptr->string.c_str());
+								ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", infos_ptr->string.c_str());
 							}
 							else if (infos_ptr->status == LuaEngine::sc_END_ZONE)
 							{
-								ImGui::Text("%s " ICON_NDP_ARROW_LEFT, infos_ptr->string.c_str());
+								ImGui::Text("%s " ICON_FONT_ARROW_LEFT, infos_ptr->string.c_str());
 							}
 							else
 							{
@@ -351,10 +351,10 @@ void LogPane::PrepareLog()
 	if (ProjectFile::Instance()->m_HideSomeValues)
 	{
 		m_ValuesToHide.clear();
-		auto arr = ct::splitStringToVector(ProjectFile::Instance()->m_ValuesToHide, ",");
+		auto arr = ez::splitStringToVector(ProjectFile::Instance()->m_ValuesToHide, ",");
 		for (const auto& a : arr)
 		{
-			m_ValuesToHide.push_back(ct::dvariant(a).GetD());
+			m_ValuesToHide.push_back(ez::dvariant(a).GetD());
 		}
 	}
 

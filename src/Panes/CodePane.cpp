@@ -28,7 +28,7 @@ limitations under the License.
 #include <imgui/imgui_internal.h>
 #include <Panes/Manager/LayoutManager.h>
 #include <Contrib/ImWidgets/ImWidgets.h>
-#include <Engine/Lua/LuaEngine.h>
+#include <models/lua/LuaEngine.h>
 
 #include <cinttypes> // printf zu
 
@@ -99,7 +99,7 @@ void CodePane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std
 		if (ImGuiFileDialog::Instance()->IsOk())
 		{
 			ProjectFile::Instance()->m_CodeFilePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-			SetCode(FileHelper::Instance()->LoadFileToString(ProjectFile::Instance()->m_CodeFilePathName));
+			SetCode(ez::file::LoadFileToString(ProjectFile::Instance()->m_CodeFilePathName));
 		}
 
 		ImGuiFileDialog::Instance()->Close();
@@ -112,7 +112,7 @@ void CodePane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std
 		if (ImGuiFileDialog::Instance()->IsOk())
 		{
 			ProjectFile::Instance()->m_CodeFilePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-			FileHelper::Instance()->SaveStringToFile(GetCode(), ProjectFile::Instance()->m_CodeFilePathName);
+			ez::file::SaveStringToFile(GetCode(), ProjectFile::Instance()->m_CodeFilePathName);
 		}
 
 		ImGuiFileDialog::Instance()->Close();
@@ -126,7 +126,7 @@ int CodePane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetI
 
 void CodePane::SetCodeFile(const std::string& vFile)
 {
-	SetCode(FileHelper::Instance()->LoadFileToString(vFile));
+	SetCode(ez::file::LoadFileToString(vFile));
 }
 
 void CodePane::SetCode(const std::string& vCode)
@@ -174,13 +174,13 @@ void CodePane::DrawEditor()
 		if (ImGui::MenuItem("Save", "Save Lua Script"))
 		{
 			if (ProjectFile::Instance()->m_CodeFilePathName.empty() || 
-				!FileHelper::Instance()->IsFileExist(ProjectFile::Instance()->m_CodeFilePathName))
+				!ez::file::IsFileExist(ProjectFile::Instance()->m_CodeFilePathName))
 			{
 				ImGuiFileDialog::Instance()->OpenDialog("SaveLuaScript", "Save Lua Script", ".lua", "");
 			}
 			else
 			{
-				FileHelper::Instance()->SaveStringToFile(GetCode(), ImGuiFileDialog::Instance()->GetFilePathName());
+				ez::file::SaveStringToFile(GetCode(), ImGuiFileDialog::Instance()->GetFilePathName());
 			}
 		}
 
@@ -215,7 +215,7 @@ void CodePane::ExecCode()
 	std::string errors;
 	LuaEngine::Instance()->ExecScriptCode(GetCode(), errors);
 
-	auto arr = ct::splitStringToVector(errors, '\n');
+	auto arr = ez::splitStringToVector(errors, '\n');
 	for (auto a : arr)
 	{
 		LogVarLightError("%s", a.c_str());
