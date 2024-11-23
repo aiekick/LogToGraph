@@ -18,8 +18,8 @@ public:
 
     bool Draw();
 
-    ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;
-    bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
+    ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") final;
+    bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) final;
 
 private:
     void m_DrawCategoryPanes();

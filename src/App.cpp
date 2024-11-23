@@ -22,14 +22,11 @@
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-App::App(int vArgc, char** vArgv) : ez::App(vArgc, vArgv) {
-
-}
+App::App(int vArgc, char** vArgv) : ez::App(vArgc, vArgv) {}
 
 int App::run() {
-
     printf("-----------\n");
-    printf("[[ Strocker Beta %s ]]\n", Strocker_BuildId);
+    printf("[[ %s Beta %s ]]\n", LogToGraph_Prefix, LogToGraph_BuildId);
 
     m_InitMessaging();
 

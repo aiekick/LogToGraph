@@ -25,37 +25,34 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class LogPane : public AbstractPane
-{
+class LogPane : public AbstractPane {
 private:
-	ImGuiListClipper m_LogListClipper;
-	SignalTicksWeakContainer m_LogDatas;
-	std::vector<double> m_ValuesToHide; 
-	bool m_need_re_preparation = false;
+    ImGuiListClipper m_LogListClipper;
+    SignalTicksWeakContainer m_LogDatas;
+    std::vector<double> m_ValuesToHide;
+    bool m_need_re_preparation = false;
 
 public:
-	bool Init() override;
+    bool Init() override;
     void Unit() override;
     bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
 
-	void Clear();
-	void CheckItem(SignalTickPtr vSignalTick);
-	void PrepareLog();
+    void Clear();
+    void CheckItem(SignalTickPtr vSignalTick);
+    void PrepareLog();
 
-public: // singleton
-	static std::shared_ptr<LogPane> Instance()
-	{
-		static auto _instance = std::make_shared<LogPane>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<LogPane> Instance() {
+        static auto _instance = std::make_shared<LogPane>();
+        return _instance;
+    }
 
 public:
-	LogPane() = default; // Prevent construction
-	LogPane(const LogPane&) = delete; // Prevent construction by copying
-	LogPane& operator =(const LogPane&) { return *this; }; // Prevent assignment
-    virtual ~LogPane() = default; // Prevent unwanted destruction};
+    LogPane() = default;                                   // Prevent construction
+    LogPane(const LogPane&) = delete;                      // Prevent construction by copying
+    LogPane& operator=(const LogPane&) { return *this; };  // Prevent assignment
+    virtual ~LogPane() = default;                          // Prevent unwanted destruction};
 
 private:
-	void DrawTable();
+    void DrawTable();
 };
-

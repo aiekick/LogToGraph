@@ -19,49 +19,43 @@ limitations under the License.
 #include <EzLibs/EzXmlConfig.hpp>
 #include <string>
 
-enum class LanguageEnum
-{
-	FR = 0,
-	EN
-};
+enum class LanguageEnum { FR = 0, EN };
 
-class TranslationHelper : public ez::xml::Config
-{
+class TranslationHelper : public ez::xml::Config {
 public:
-	static LanguageEnum s_HelpLanguage;
+    static LanguageEnum s_HelpLanguage;
 
-public: // labels
-	static const char* layout_menu_name;
-	static const char* layout_menu_help;
+public:  // labels
+    static const char* layout_menu_name;
+    static const char* layout_menu_help;
 
-	static const char* mainframe_menubar_project;
+    static const char* mainframe_menubar_project;
     static const char* mainframe_menubar_project_open;
     static const char* mainframe_menubar_project_reload;
     static const char* mainframe_menubar_project_close;
-	static const char* mainframe_menubar_settings;
+    static const char* mainframe_menubar_settings;
 
 public:
-	void DefineLanguage(LanguageEnum vLanguage, bool vForce = false);
-	float DrawMenu();
+    void DefineLanguage(LanguageEnum vLanguage, bool vForce = false);
+    float DrawMenu();
 
 private:
-	void DefineLanguageEN();
-	void DefineLanguageFR();
+    void DefineLanguageEN();
+    void DefineLanguageFR();
 
-public: // configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
-	bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
+public:  // configuration
+    ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") final;
+    bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) final;
 
 public:
-	static TranslationHelper* Instance()
-	{
-		static TranslationHelper _instance;
-		return &_instance;
-	}
+    static TranslationHelper* Instance() {
+        static TranslationHelper _instance;
+        return &_instance;
+    }
 
 protected:
-	TranslationHelper(); // Prevent construction
-	TranslationHelper(const TranslationHelper&) {}; // Prevent construction by copying
-	TranslationHelper& operator =(const TranslationHelper&) { return *this; }; // Prevent assignment
-	~TranslationHelper() = default; // Prevent unwanted destruction
+    TranslationHelper();                                                       // Prevent construction
+    TranslationHelper(const TranslationHelper&) {};                            // Prevent construction by copying
+    TranslationHelper& operator=(const TranslationHelper&) { return *this; };  // Prevent assignment
+    ~TranslationHelper() = default;                                            // Prevent unwanted destruction
 };

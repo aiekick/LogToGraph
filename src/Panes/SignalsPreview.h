@@ -25,35 +25,33 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class SignalsPreview : public AbstractPane
-{
+class SignalsPreview : public AbstractPane {
 private:
-	ImGuiListClipper m_VirtualClipper;
-	std::vector<SignalTickWeak> m_PreviewTicks;
+    ImGuiListClipper m_VirtualClipper;
+    std::vector<SignalTickWeak> m_PreviewTicks;
 
 public:
-	bool Init() override;
+    bool Init() override;
     void Unit() override;
     bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
 
-	void Clear();
-	void SetHoveredTime(const SignalEpochTime& vHoveredTime);
+    void Clear();
+    void SetHoveredTime(const SignalEpochTime& vHoveredTime);
 
 private:
-	void DrawTable();
-	int CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize, ImVec2& vOutButtonSize);
-	int DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, ImVec2 vGlyphSize);
+    void DrawTable();
+    int CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize, ImVec2& vOutButtonSize);
+    int DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, ImVec2 vGlyphSize);
 
-public: // singleton
-	static std::shared_ptr<SignalsPreview> Instance()
-	{
-		static auto _instance = std::make_shared<SignalsPreview>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<SignalsPreview> Instance() {
+        static auto _instance = std::make_shared<SignalsPreview>();
+        return _instance;
+    }
 
 public:
-	SignalsPreview() = default; // Prevent construction
-	SignalsPreview(const SignalsPreview&) = delete; // Prevent construction by copying
-	SignalsPreview& operator =(const SignalsPreview&) { return *this; }; // Prevent assignment
-    virtual ~SignalsPreview() = default; // Prevent unwanted destruction};
+    SignalsPreview() = default;                                          // Prevent construction
+    SignalsPreview(const SignalsPreview&) = delete;                      // Prevent construction by copying
+    SignalsPreview& operator=(const SignalsPreview&) { return *this; };  // Prevent assignment
+    virtual ~SignalsPreview() = default;                                 // Prevent unwanted destruction};
 };

@@ -25,32 +25,30 @@ limitations under the License.
 #include <map>
 
 class ProjectFile;
-class SignalsHoveredMap : public AbstractPane
-{
+class SignalsHoveredMap : public AbstractPane {
 private:
-	ImGuiListClipper m_VirtualClipper;
+    ImGuiListClipper m_VirtualClipper;
 
 public:
-	void Clear();
-	bool Init() override;
+    void Clear();
+    bool Init() override;
     void Unit() override;
     bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
 
 private:
-	void DrawTable();
-	static int CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize, ImVec2& vOutButtonSize);
-	static int DrawSignalButton(int& vWidgetPushId, const SignalTickPtr& vPtr, ImVec2 vGlyphSize);
+    void DrawTable();
+    static int CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize, ImVec2& vOutButtonSize);
+    static int DrawSignalButton(int& vWidgetPushId, const SignalTickPtr& vPtr, ImVec2 vGlyphSize);
 
-public: // singleton
-	static std::shared_ptr<SignalsHoveredMap> Instance()
-	{
-		static auto _instance = std::make_shared<SignalsHoveredMap>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<SignalsHoveredMap> Instance() {
+        static auto _instance = std::make_shared<SignalsHoveredMap>();
+        return _instance;
+    }
 
 public:
-	SignalsHoveredMap() = default; // Prevent construction
-	SignalsHoveredMap(const SignalsHoveredMap&) = delete; // Prevent construction by copying
-	SignalsHoveredMap& operator =(const SignalsHoveredMap&) { return *this; }; // Prevent assignment
-    virtual ~SignalsHoveredMap() = default; // Prevent unwanted destruction};
+    SignalsHoveredMap() = default;                                             // Prevent construction
+    SignalsHoveredMap(const SignalsHoveredMap&) = delete;                      // Prevent construction by copying
+    SignalsHoveredMap& operator=(const SignalsHoveredMap&) { return *this; };  // Prevent assignment
+    virtual ~SignalsHoveredMap() = default;                                    // Prevent unwanted destruction};
 };

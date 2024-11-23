@@ -20,7 +20,7 @@ limitations under the License.
 #include "GraphGroupPane.h"
 #include <Project/ProjectFile.h>
 
-#include <cinttypes> // printf zu
+#include <cinttypes>  // printf zu
 #include <panes/LogPane.h>
 #include <panes/CodePane.h>
 
@@ -37,20 +37,13 @@ static int SourcePane_WidgetId = 0;
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-void GraphGroupPane::Clear()
-{
+void GraphGroupPane::Clear() {}
 
+bool GraphGroupPane::Init() {
+    return true;
 }
 
-bool GraphGroupPane::Init()
-{
-	return true;
-}
-
-void GraphGroupPane::Unit()
-{
-
-}
+void GraphGroupPane::Unit() {}
 
 bool GraphGroupPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
     ImGui::SetCurrentContext(vContextPtr);
@@ -59,22 +52,19 @@ bool GraphGroupPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened,
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
         if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
-			auto win = ImGui::GetCurrentWindowRead();
-			if (win->Viewport->Idx != 0)
-				flags |= ImGuiWindowFlags_NoResize;
-			else
-				flags =	ImGuiWindowFlags_NoCollapse |
-				ImGuiWindowFlags_NoBringToFrontOnFocus |
-				ImGuiWindowFlags_MenuBar;
+            auto win = ImGui::GetCurrentWindowRead();
+            if (win->Viewport->Idx != 0)
+                flags |= ImGuiWindowFlags_NoResize;
+            else
+                flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-			if (ProjectFile::Instance()->IsLoaded())
-			{
-				GraphView::Instance()->DrawGraphGroupTable();
-			}
-		}
+            if (ProjectFile::Instance()->IsProjectLoaded()) {
+                GraphView::Instance()->DrawGraphGroupTable();
+            }
+        }
 
-		ImGui::End();
-	}
+        ImGui::End();
+    }
 
-	return change;
+    return change;
 }

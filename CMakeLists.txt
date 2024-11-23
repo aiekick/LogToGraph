@@ -86,7 +86,7 @@ add_definitions(-DIMGUI_USER_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImGui
 add_definitions(-DCUSTOM_IMWIDGETS_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImWidgetsConfig.h")
 add_definitions(-DCUSTOM_IN_APP_GPU_PROFILER_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomInAppGpuProfiler.h")
 add_definitions(-DCUSTOM_IMGUIFILEDIALOG_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImGuiFileDialogConfig.h")
-add_definitions(-DCUSTOM_STROCKER_BACKEND_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomStrockerBackendConfig.h")
+add_definitions(-DCUSTOM_LOG_TO_GRAPH_BACKEND_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomStrockerBackendConfig.h")
 
 include(cmake/3rdparty.cmake)
 
@@ -103,7 +103,7 @@ add_definitions(-DPLUGIN_NAME_PREFIX="${PLUGIN_NAME_PREFIX}")
 ##### SEARCH FOR PLUGINS ##################################
 ###########################################################
 
-set(LOADED_STROCKER_PLUGINS) ### musty be fillerd by each pluigns in CMakeLists.txt with plugin name
+set(LOADED_LOG_TO_GRAPH_PLUGINS) ### musty be fillerd by each pluigns in CMakeLists.txt with plugin name
 set(PLUGINS_DIRECTORY ${CMAKE_SOURCE_DIR}/plugins)
 file(GLOB SUBDIRS RELATIVE ${PLUGINS_DIRECTORY} ${PLUGINS_DIRECTORY}/*)
 FOREACH(SUBDIR ${SUBDIRS})
@@ -147,6 +147,10 @@ file(GLOB IMGUI_IMPL_SOURCES
 		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/misc/freetype/imgui_freetype.h)
 source_group(src\\ImGuiImpl FILES ${IMGUI_IMPL_SOURCES})
 
+if (MSVC)
+	set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_SOURCE_DIR}/res/appicon.rc")
+endif()
+
 add_executable(${PROJECT}
 	${SRC_SOURCES}
 	${MAIN_SOURCES}
@@ -154,12 +158,13 @@ add_executable(${PROJECT}
 	${EZ_LIBS_SOURCES}
 	${IMGUI_IMPL_SOURCES}
 	${PROJECT_CMAKE_FILES}
+	${APP_ICON_RESOURCE_WINDOWS}
 )
 
 if (USE_SHARED_LIBS)
 	target_compile_definitions(${PROJECT} PRIVATE BUILD_IMGUI_PACK_SHARED_LIBS)	
 	target_compile_definitions(${PROJECT} PRIVATE BUILD_IN_APP_GPU_PROFILER_SHARED_LIBS)
-	target_compile_definitions(${PROJECT} PRIVATE BUILD_STROCKER_BRIDGE_SHARED_LIBS)
+	target_compile_definitions(${PROJECT} PRIVATE BUILD_LOG_TO_GRAPH_BRIDGE_SHARED_LIBS)
 endif()
 
 set_target_properties(${PROJECT} PROPERTIES OUTPUT_NAME "${PROJECT}_${CMAKE_SYSTEM_NAME}_${ARCH}")
@@ -170,7 +175,7 @@ set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}")
 install(TARGETS ${PROJECT} DESTINATION ${CMAKE_INSTALL_PREFIX})
 
 include_directories(
-	${STROCKER_BRIDGE_INCLUDE_DIRS}
+	${LOG_TO_GRAPH_BRIDGE_INCLUDE_DIRS}
 	${IN_APP_GPU_PROFILER_INCLUDE_DIR}
 	${CMAKE_SOURCE_DIR}/3rdparty
 	${IMGUIPACK_INCLUDE_DIRS}
@@ -188,23 +193,23 @@ include_directories(
 )
 
 target_link_libraries(${PROJECT}
-	${STROCKER_BRIDGE_LIBRARIES}
 	${IN_APP_GPU_PROFILER_LIBRARIES}
 	${IMGUIPACK_LIBRARIES}
-	${TINYXML2_LIBRARIES}
 	${SQLITE3_LIBRARIES}
+	${LUA_JIT_LIBRARIES}
 	${OPENGL_LIBRARIES}
-	${CTOOLS_LIBRARIES}
 	${GLFW_LIBRARIES}
 	${GLAD_LIBRARIES}
-	${CURL_LIBRARIES}
-	${FMT_LIBRARIES}
 )
 
 # define for let Strocker detext what is the config of a plugin 
 target_compile_definitions(${PROJECT} PRIVATE -DPLUGIN_RUNTIME_CONFIG=$<$<CONFIG:Debug>:"_Debug">$<$<CONFIG:Release>:"_Release">$<$<CONFIG:MinSizeRel>:"_MinSizeRel">$<$<CONFIG:RelWithDebInfo>:"_RelWithDebInfo">)
-target_compile_definitions(${PROJECT} PRIVATE -DPROJECT_EXT=".stro")
-target_compile_definitions(${PROJECT} PRIVATE -DPROJECT_EXT_DOT_LESS="stro")
+target_compile_definitions(${PROJECT} PRIVATE -DPROJECT_EXT=".ltg")
+target_compile_definitions(${PROJECT} PRIVATE -DPROJECT_EXT_DOT_LESS="ltg")
+
+if (WIN32)
+	target_compile_definitions(${PROJECT} PRIVATE -DGLFW_EXPOSE_NATIVE_WIN32)
+endif()
 
 set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${FINAL_BIN_DIR}")
 set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${FINAL_BIN_DIR}")
@@ -215,7 +220,7 @@ set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBI
 ############## FORCE BUILD OF PLUGINS ##################
 ########################################################
 
-FOREACH(PLUGIN ${LOADED_STROCKER_PLUGINS})
+FOREACH(PLUGIN ${LOADED_LOG_TO_GRAPH_PLUGINS})
 	add_dependencies(${PROJECT} ${PLUGIN})
 ENDFOREACH()
 

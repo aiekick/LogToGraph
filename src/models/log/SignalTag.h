@@ -23,18 +23,17 @@ limitations under the License.
 #include <unordered_map>
 #include <Headers/Globals.h>
 
-class SignalTag
-{
+class SignalTag {
 public:
-	static SignalTagPtr Create();
+    static SignalTagPtr Create();
 
 private:
-	SignalTagWeak m_This;
+    SignalTagWeak m_This;
 
 public:
-	SignalEpochTime time_epoch = 0.0;
-	SignalDateTime time_date_time;
-	SignalTagColor color;
-	SignalTagName name;
-	SignalTagHelp help;
+    SignalEpochTime time_epoch = 0.0;
+    SignalDateTime time_date_time;
+    SignalTagColor color;
+    SignalTagName name;
+    SignalTagHelp help;
 };

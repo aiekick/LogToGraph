@@ -32,19 +32,10 @@
 #include <panes/SignalsHoveredDiff.h>
 #include <panes/SignalsHoveredList.h>
 #include <panes/SignalsHoveredMap.h>
-#include <EzLibs/EzFile.hpp>
-#include <ezlibs/ezImGui.hpp>
-
-#include "ProjectFile.h"
 
 #include <Panes/GraphPane.h>
 #include <LayoutManager.h>
-#include <core/managers/PluginManager.h>
-#include <Models/DataBrokers.h>
-#include <Models/ChartingModules.h>
-#include <Models/IndicatorModules.h>
 #include <Systems/SettingsDialog.h>
-#include <core/models/DataBase.h>
 
 #include <EzLibs/EzFile.hpp>
 
@@ -70,20 +61,19 @@ void ProjectFile::Clear() {
     Messaging::Instance()->Clear();
 }
 
-void ProjectFile::ClearDatas()
-{
-	LuaEngine::Instance()->Clear();
-	LogEngine::Instance()->Clear();
-	GraphView::Instance()->Clear();
-	GraphGroup::Instance()->Clear();
-	ToolPane::Instance()->Clear();
-	LogPane::Instance()->Clear();
-	LogPaneSecondView::Instance()->Clear();
-	GraphListPane::Instance()->Clear();
-	GraphGroupPane::Instance()->Clear();
-	SignalsHoveredDiff::Instance()->Clear();
-	SignalsHoveredList::Instance()->Clear();
-	SignalsHoveredMap::Instance()->Clear();
+void ProjectFile::ClearDatas() {
+    LuaEngine::Instance()->Clear();
+    LogEngine::Instance()->Clear();
+    GraphView::Instance()->Clear();
+    GraphGroup::Instance()->Clear();
+    ToolPane::Instance()->Clear();
+    LogPane::Instance()->Clear();
+    LogPaneSecondView::Instance()->Clear();
+    GraphListPane::Instance()->Clear();
+    GraphGroupPane::Instance()->Clear();
+    SignalsHoveredDiff::Instance()->Clear();
+    SignalsHoveredList::Instance()->Clear();
+    SignalsHoveredMap::Instance()->Clear();
 }
 
 void ProjectFile::New() {
@@ -128,7 +118,7 @@ bool ProjectFile::LoadAs(const std::string& vFilePathName) {
                     if (ps.isOk) {
                         m_ProjectFileName = ps.name;
                         m_ProjectFilePath = ps.path;
-                        CodePane::Instance()->SetCodeFile(m_CodeFilePathName);
+                        CodePane::Instance()->OpenFile(m_CodeFilePathName);
                     }
                     m_IsLoaded = true;
                     SetProjectChange(false);
@@ -153,6 +143,7 @@ bool ProjectFile::Save() {
         return false;
     }
 
+    LogEngine::Instance()->PrepareForSave();
     if (DataBase::Instance()->OpenDBFile(m_ProjectFilePathName)) {
         auto xml_settings = ez::xml::Node::escapeXml(SaveConfigString("", "config"));
         if (DataBase::Instance()->SetSettingsXMLDatas(xml_settings)) {
@@ -212,43 +203,40 @@ std::string ProjectFile::GetProjectFilepathName() const {
     return m_ProjectFilePathName;
 }
 
-ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& vUserDatas = "") 
-{
+ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     ez::xml::Node node;
 
-	std::string str;
-
-	node.setName("project");
+    node.setName("project");
     node.addChilds(LayoutManager::Instance()->getXmlNodes("project"));
     node.addChilds(LuaEngine::Instance()->getXmlNodes("project"));
-    //node.addChilds(LogEngine::Instance()->getSignalVisibilty( "project"));
+    node.addChilds(LogEngine::Instance()->getXmlNodes("project"));
     node.addChild("graph_bar_colors").setContent(m_GraphColors.graphBarColor);
     node.addChild("graph_bar_colors").setContent(m_GraphColors.graphBarColor);
     node.addChild("graph_current_time_colors").setContent(m_GraphColors.graphHoveredTimeColor);
     node.addChild("graph_mouse_current_time_colors").setContent(m_GraphColors.graphMouseHoveredTimeColor);
     node.addChild("graph_diff_first_mark_color").setContent(m_GraphColors.graphFirstDiffMarkColor);
     node.addChild("graph_diff_second_mark_color").setContent(m_GraphColors.graphSecondDiffMarkColor);
-    node.addChild("selection_collapsing>").setContent(m_CollapseLogSelection);
-    node.addChild("auto_colorize>").setContent(m_AutoColorize);
-    node.addChild("search_string>").setContent(m_SearchString);
-    node.addChild("all_graphs_signals_search_string>").setContent(m_AllGraphSignalsSearchString);
-    node.addChild("values_to_hide>").setContent(m_ValuesToHide);
-    node.addChild("hide_some_values>").setContent(m_HideSomeValues);
-    node.addChild("signals_preview_count_x>").setContent(m_SignalPreview_CountX);
-	node.addChild("signals_preview_size_x>").setContent(m_SignalPreview_SizeX);
-	node.addChild("graph_diff_first_mark>").setContent(m_DiffFirstMark);
-	node.addChild("graph_diff_second_mark>").setContent(m_DiffSecondMark);
-	node.addChild("graph_synchronize>").setContent(m_SyncGraphs);
-	node.addChild("graph_sync_limits>").setContent(m_SyncGraphsLimits);
-    node.addChild("code_file_path_name>").setContent(m_CodeFilePathName);
-    node.addChild("curve_radius_detection>").setContent(m_CurveRadiusDetection);
-    node.addChild("selected_curve_display_thickness>").setContent(m_SelectedCurveDisplayThickNess);
-    node.addChild("default_curve_display_thickness>").setContent(m_DefaultCurveDisplayThickNess);
-    node.addChild("use_predefined_zero_value>").setContent(m_UsePredefinedZeroValue);
-    node.addChild("predefined_zero_value>").setContent(m_PredefinedZeroValue);
-	node.addChild("last_log_file_path>").setContent(m_LastLogFilePath);
+    node.addChild("selection_collapsing").setContent(m_CollapseLogSelection);
+    node.addChild("auto_colorize").setContent(m_AutoColorize);
+    node.addChild("search_string").setContent(m_SearchString);
+    node.addChild("all_graphs_signals_search_string").setContent(m_AllGraphSignalsSearchString);
+    node.addChild("values_to_hide").setContent(m_ValuesToHide);
+    node.addChild("hide_some_values").setContent(m_HideSomeValues);
+    node.addChild("signals_preview_count_x").setContent(m_SignalPreview_CountX);
+    node.addChild("signals_preview_size_x").setContent(m_SignalPreview_SizeX);
+    node.addChild("graph_diff_first_mark").setContent(m_DiffFirstMark);
+    node.addChild("graph_diff_second_mark").setContent(m_DiffSecondMark);
+    node.addChild("graph_synchronize").setContent(m_SyncGraphs);
+    node.addChild("graph_sync_limits").setContent(m_SyncGraphsLimits);
+    node.addChild("code_file_path_name").setContent(m_CodeFilePathName);
+    node.addChild("curve_radius_detection").setContent(m_CurveRadiusDetection);
+    node.addChild("selected_curve_display_thickness").setContent(m_SelectedCurveDisplayThickNess);
+    node.addChild("default_curve_display_thickness").setContent(m_DefaultCurveDisplayThickNess);
+    node.addChild("use_predefined_zero_value").setContent(m_UsePredefinedZeroValue);
+    node.addChild("predefined_zero_value").setContent(m_PredefinedZeroValue);
+    node.addChild("last_log_file_path").setContent(m_LastLogFilePath);
 
-	return {node};
+    return {node};
 }
 
 bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
@@ -256,113 +244,65 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
     const auto& strValue = vNode.getContent();
     const auto& strParentName = vParent.getName();
 
-	if (strParentName == "project")
-	{
-		if (strName == "graph_bar_colors")
-		{
-            m_GraphColors.graphBarColor = ez::fvariant(strValue).GetV4());
-		}
-		else if (strName == "graph_current_time_colors")
-		{
-            m_GraphColors.graphHoveredTimeColor = ez::fvariant(strValue).GetV4());
-		}
-		else if (strName == "graph_mouse_current_time_colors")
-		{
-            m_GraphColors.graphMouseHoveredTimeColor = ez::fvariant(strValue).GetV4());
-		}
-		else if (strName == "graph_diff_first_mark_color")
-		{
-            m_GraphColors.graphFirstDiffMarkColor = ez::fvariant(strValue).GetV4());
-		}
-		else if (strName == "graph_diff_second_mark_color")
-		{
-            m_GraphColors.graphSecondDiffMarkColor = ez::fvariant(strValue).GetV4());
-		}
-		else if (strName == "selection_collapsing")
-		{
-			m_CollapseLogSelection = ez::ivariant(strValue).GetB();
-		}
-		else if (strName == "auto_colorize")
-		{
-			m_AutoColorize = ez::ivariant(strValue).GetB();
-		}
-		else if (strName == "search_string")
-		{
-			m_SearchString = strValue;
-		}
-		else if (strName == "all_graphs_signals_search_string")
-		{
-			m_AllGraphSignalsSearchString = strValue;
-		}
-		else if (strName == "values_to_hide")
-		{
-			m_ValuesToHide = strValue;
-		}
-		else if (strName == "hide_some_values")
-		{
-			m_HideSomeValues = ez::ivariant(strValue).GetB();
-		}
-		else if (strName == "signals_preview_count_x")
-		{
-			m_SignalPreview_CountX = ez::uvariant(strValue).GetU();
-		}
-		else if (strName == "signals_preview_size_x")
-		{
-			m_SignalPreview_SizeX = ez::fvariant(strValue).GetF();
-		}
-		else if (strName == "graph_diff_first_mark")
-		{
-			m_DiffFirstMark = ez::fvariant(strValue).GetD();
-		}
-		else if (strName == "graph_diff_second_mark")
-		{
-			m_DiffSecondMark = ez::fvariant(strValue).GetD();
-		}
-		else if (strName == "graph_synchronize")
-		{
-			m_SyncGraphs = ez::ivariant(strValue).GetB();
-		}
-		else if (strName == "graph_sync_limits")
-		{
-			auto v4 = ez::dvariant(strValue).GetV4();
-			m_SyncGraphsLimits.X.Min = v4.x;
-			m_SyncGraphsLimits.X.Max = v4.y;
-			m_SyncGraphsLimits.Y.Min = v4.z;
-			m_SyncGraphsLimits.Y.Max = v4.w;
-		}
-		else if (strName == "code_file_path_name")
-		{
-			m_CodeFilePathName = strValue;
-		}
-		else if (strName == "curve_radius_detection")
-		{
-			m_CurveRadiusDetection = ez::dvariant(strValue).GetD();
-		}
-		else if (strName == "selected_curve_display_thickness")
-		{
-			m_SelectedCurveDisplayThickNess = ez::dvariant(strValue).GetD();
-		}
-		else if (strName == "default_curve_display_thickness")
-		{
-			m_DefaultCurveDisplayThickNess = ez::dvariant(strValue).GetD();
-		}
-		else if (strName == "use_predefined_zero_value")
-		{
-			m_UsePredefinedZeroValue = ez::ivariant(strValue).GetB();
-		}
-		else if (strName == "predefined_zero_value")
-		{
-			m_PredefinedZeroValue = ez::dvariant(strValue).GetD();
-		}
-		else if (strName == "last_log_file_path")
-		{
-			m_LastLogFilePath = strValue;
-		}
-	}
-	
-	LayoutManager::Instance()->setFromXmlNodes(vElem, vParent, "project");
-	LuaEngine::Instance()->setFromXmlNodes(vElem, vParent, "project");
-	LogEngine::Instance()->setSignalVisibilty(vElem, vParent, "project");
+    if (strParentName == "project") {
+        if (strName == "graph_bar_colors") {
+            m_GraphColors.graphBarColor = ez::fvariant(strValue).GetV4();
+        } else if (strName == "graph_current_time_colors") {
+            m_GraphColors.graphHoveredTimeColor = ez::fvariant(strValue).GetV4();
+        } else if (strName == "graph_mouse_current_time_colors") {
+            m_GraphColors.graphMouseHoveredTimeColor = ez::fvariant(strValue).GetV4();
+        } else if (strName == "graph_diff_first_mark_color") {
+            m_GraphColors.graphFirstDiffMarkColor = ez::fvariant(strValue).GetV4();
+        } else if (strName == "graph_diff_second_mark_color") {
+            m_GraphColors.graphSecondDiffMarkColor = ez::fvariant(strValue).GetV4();
+        } else if (strName == "selection_collapsing") {
+            m_CollapseLogSelection = ez::ivariant(strValue).GetB();
+        } else if (strName == "auto_colorize") {
+            m_AutoColorize = ez::ivariant(strValue).GetB();
+        } else if (strName == "search_string") {
+            m_SearchString = strValue;
+        } else if (strName == "all_graphs_signals_search_string") {
+            m_AllGraphSignalsSearchString = strValue;
+        } else if (strName == "values_to_hide") {
+            m_ValuesToHide = strValue;
+        } else if (strName == "hide_some_values") {
+            m_HideSomeValues = ez::ivariant(strValue).GetB();
+        } else if (strName == "signals_preview_count_x") {
+            m_SignalPreview_CountX = ez::uvariant(strValue).GetU();
+        } else if (strName == "signals_preview_size_x") {
+            m_SignalPreview_SizeX = ez::fvariant(strValue).GetF();
+        } else if (strName == "graph_diff_first_mark") {
+            m_DiffFirstMark = ez::fvariant(strValue).GetD();
+        } else if (strName == "graph_diff_second_mark") {
+            m_DiffSecondMark = ez::fvariant(strValue).GetD();
+        } else if (strName == "graph_synchronize") {
+            m_SyncGraphs = ez::ivariant(strValue).GetB();
+        } else if (strName == "graph_sync_limits") {
+            auto v4 = ez::dvariant(strValue).GetV4();
+            m_SyncGraphsLimits.X.Min = v4.x;
+            m_SyncGraphsLimits.X.Max = v4.y;
+            m_SyncGraphsLimits.Y.Min = v4.z;
+            m_SyncGraphsLimits.Y.Max = v4.w;
+        } else if (strName == "code_file_path_name") {
+            m_CodeFilePathName = strValue;
+        } else if (strName == "curve_radius_detection") {
+            m_CurveRadiusDetection = ez::dvariant(strValue).GetD();
+        } else if (strName == "selected_curve_display_thickness") {
+            m_SelectedCurveDisplayThickNess = ez::dvariant(strValue).GetD();
+        } else if (strName == "default_curve_display_thickness") {
+            m_DefaultCurveDisplayThickNess = ez::dvariant(strValue).GetD();
+        } else if (strName == "use_predefined_zero_value") {
+            m_UsePredefinedZeroValue = ez::ivariant(strValue).GetB();
+        } else if (strName == "predefined_zero_value") {
+            m_PredefinedZeroValue = ez::dvariant(strValue).GetD();
+        } else if (strName == "last_log_file_path") {
+            m_LastLogFilePath = strValue;
+        }
+    }
 
-	return true;
+    LayoutManager::Instance()->setFromXmlNodes(vNode, vParent, "project");
+    LuaEngine::Instance()->setFromXmlNodes(vNode, vParent, "project");
+    LogEngine::Instance()->setFromXmlNodes(vNode, vParent, "project");
+
+    return true;
 }

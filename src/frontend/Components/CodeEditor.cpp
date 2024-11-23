@@ -12,8 +12,7 @@ bool CodeEditor::init() {
     return true;
 }
 
-void CodeEditor::unit() {
-}
+void CodeEditor::unit() {}
 
 void CodeEditor::OnImGui() {
     bool isFocused = ImGui::IsWindowFocused();
@@ -32,7 +31,7 @@ void CodeEditor::OnImGui() {
             }
             /*if (this->hasAssociatedFile && ImGui::MenuItem("Show in file explorer"))
                 Utils::ShowInFileExplorer(this->m_RelatedFile);
-            if (this->hasAssociatedFile && this->onShowInFolderViewCallback != nullptr && this->createdFromFolderView > -1 && 
+            if (this->hasAssociatedFile && this->onShowInFolderViewCallback != nullptr && this->createdFromFolderView > -1 &&
                 ImGui::MenuItem("Show in folder view")){
                 this->onShowInFolderViewCallback(this->m_RelatedFile, this->createdFromFolderView);
             }
@@ -146,9 +145,12 @@ void CodeEditor::OnImGui() {
 
         int line, column;
         m_Editor.GetCursorPosition(line, column);
-        ImGui::Text(
-            "%6d/%-6d %6d lines | %s | %s", line + 1, column + 1, m_Editor.GetLineCount(), 
-            m_Editor.IsOverwriteEnabled() ? "Ovr" : "Ins", m_Editor.GetLanguageDefinitionName());
+        ImGui::Text("%6d/%-6d %6d lines | %s | %s",
+                    line + 1,
+                    column + 1,
+                    m_Editor.GetLineCount(),
+                    m_Editor.IsOverwriteEnabled() ? "Ovr" : "Ins",
+                    m_Editor.GetLanguageDefinitionName());
 
         ImGui::EndMenuBar();
     }
@@ -252,7 +254,7 @@ void CodeEditor::SetCode(const std::string& vCode, const TextEditor::LanguageDef
     m_Type = vType;
     m_Editor.SetLanguageDefinition(m_Type);
     m_Editor.SetText(vCode);
-    //m_Editor.Render("CodeEditor");
+    // m_Editor.Render("CodeEditor");
 }
 
 void CodeEditor::ClearErrorMarkers() {

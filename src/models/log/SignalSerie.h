@@ -23,39 +23,38 @@ limitations under the License.
 #include <unordered_map>
 #include <Headers/Globals.h>
 
-class SignalSerie
-{
+class SignalSerie {
 public:
-	static SignalSeriePtr Create();
-
-public:
-	SignalSerieWeak m_This;
-	SourceFileWeak m_SourceFileParent;
-	size_t count_base_records = 0U; // nombre d'enregistrements. on peut pas utiliser datas_values
-	std::string low_case_name_for_search;
-	SignalValueRange range_value = SignalValueRange(0.5, -0.5) * DBL_MAX;
-	GraphGroupPtr graph_groupd_ptr = nullptr;
-	std::vector<SignalTickWeak> datas_values;
-	SignalCategory category;
-	SignalName name;
-	bool is_zone = false;
-
-	uint32_t color_u32 = ImGui::GetColorU32(ImVec4(0, 0, 0, 1));
-	ImVec4 color_v4 = ImVec4(0,0,0,1);
-
-	// for measuring / annotation
-	bool hovered_by_mouse = false;
-	std::vector<GraphAnnotationWeak> m_GraphAnnotations;
-	bool show_hide_temporary = true; // jsut hidden temporarily but always shown
-
-public: // to save
-	bool show = false; // signal must be shown on graph screen
+    static SignalSeriePtr Create();
 
 public:
-	void InsertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount = false);
-	void AddTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount = false);
+    SignalSerieWeak m_This;
+    SourceFileWeak m_SourceFileParent;
+    size_t count_base_records = 0U;  // nombre d'enregistrements. on peut pas utiliser datas_values
+    std::string low_case_name_for_search;
+    SignalValueRange range_value = SignalValueRange(0.5, -0.5) * DBL_MAX;
+    GraphGroupPtr graph_groupd_ptr = nullptr;
+    std::vector<SignalTickWeak> datas_values;
+    SignalCategory category;
+    SignalName name;
+    bool is_zone = false;
 
-	void AddGraphAnnotation(GraphAnnotationWeak vGraphAnnotation);
+    uint32_t color_u32 = ImGui::GetColorU32(ImVec4(0, 0, 0, 1));
+    ImVec4 color_v4 = ImVec4(0, 0, 0, 1);
 
-	void DrawAnnotations();
+    // for measuring / annotation
+    bool hovered_by_mouse = false;
+    std::vector<GraphAnnotationWeak> m_GraphAnnotations;
+    bool show_hide_temporary = true;  // jsut hidden temporarily but always shown
+
+public:                 // to save
+    bool show = false;  // signal must be shown on graph screen
+
+public:
+    void InsertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount = false);
+    void AddTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount = false);
+
+    void AddGraphAnnotation(GraphAnnotationWeak vGraphAnnotation);
+
+    void DrawAnnotations();
 };

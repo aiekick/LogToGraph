@@ -34,8 +34,7 @@ bool ProfilerPane::Init() {
     return true;
 }
 
-void ProfilerPane::Unit() {
-}
+void ProfilerPane::Unit() {}
 
 bool ProfilerPane::DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened, ImGuiContext* vContextPtr, void* vUserDatas) {
     iagp::InAppGpuProfiler::Instance()->sIsActive = false;

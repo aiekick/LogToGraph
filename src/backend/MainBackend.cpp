@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 
 #include <headers/LogToGraphBuild.h>
 
@@ -10,6 +11,8 @@
 #include <3rdparty/imgui_docking/backends/imgui_impl_glfw.h>
 
 #include <EzLibs/EzFile.hpp>
+
+#include <models/lua/LuaEngine.h>
 
 #include <cstdio>     // printf, fprintf
 #include <chrono>     // timer
@@ -130,6 +133,7 @@ void MainBackend::SaveAsProject(const std::string& vFilePathName) {
 void MainBackend::PostRenderingActions() {
     if (m_NeedToNewProject) {
         ProjectFile::Instance()->Clear();
+        ProjectFile::Instance()->ClearDatas();
         ProjectFile::Instance()->New(m_ProjectFileToLoad);
         m_ProjectFileToLoad.clear();
         m_NeedToNewProject = false;
@@ -151,6 +155,7 @@ void MainBackend::PostRenderingActions() {
 
     if (m_NeedToCloseProject) {
         ProjectFile::Instance()->Clear();
+        ProjectFile::Instance()->ClearDatas();
         m_NeedToCloseProject = false;
     }
 }
@@ -235,6 +240,11 @@ void MainBackend::m_MainLoop() {
     ImVec2 pos, size;
     while (!glfwWindowShouldClose(m_MainWindowPtr)) {
         {
+#ifndef _DEBUG
+            if (!LuaEngine::Instance()->IsJoinable()) {  // for not blocking threading progress bar animation
+                glfwWaitEventsTimeout(1.0);
+            }
+#endif
             IAGPNewFrame("GPU Frame", "GPU Frame");  // a main Zone is always needed
 
             ProjectFile::Instance()->NewFrame();
@@ -260,6 +270,8 @@ void MainBackend::m_MainLoop() {
             }
 
             MainFrontend::Instance()->Display(m_CurrentFrame, pos, size);
+
+            LuaEngine::Instance()->FinishIfRequired();
 
             ImGui::Render();
 
@@ -347,7 +359,7 @@ bool MainBackend::m_InitWindow() {
     glfwWindowHint(GLFW_SAMPLES, 4);
 
     // Create window with graphics context
-    m_MainWindowPtr = glfwCreateWindow(1280, 720, "MarketAnalyzer", nullptr, nullptr);
+    m_MainWindowPtr = glfwCreateWindow(INITIAL_WIDTH, INITIAL_HEIGHT, "MarketAnalyzer", nullptr, nullptr);
     if (m_MainWindowPtr == nullptr) {
         std::cout << "Fail to create the window" << std::endl;
         return false;
@@ -442,17 +454,36 @@ void MainBackend::m_InitPlugins(const std::string& vAppPath) {
     }
 }
 
-void MainBackend::m_InitModels() {}
+void MainBackend::m_InitModels() {
+    LuaEngine::Instance()->Init();
+}
 
-void MainBackend::m_UnitModels() {}
+void MainBackend::m_UnitModels() {
+    ProjectFile::Instance()->Clear();
+    ProjectFile::Instance()->ClearDatas();
+    LuaEngine::Instance()->Unit();
+}
 
 void MainBackend::m_UnitPlugins() {
     PluginManager::Instance()->unloadPlugins();
 }
 
-void MainBackend::m_InitSystems() {}
+void MainBackend::m_InitSystems() {
+    m_SetEmbeddedIconApp("IDI_ICON1");
+    // m_AppIconID = ExtractEmbeddedIcon("IDI_ICON1");
+    m_BigAppIconID = m_ExtractEmbeddedImage("IDB_BMP1");
+}
 
-void MainBackend::m_UnitSystems() {}
+void MainBackend::m_UnitSystems() {
+    if (m_AppIconID) {
+        glDeleteTextures(GL_TEXTURE_2D, &m_AppIconID);
+        m_AppIconID = 0U;
+    }
+    if (m_BigAppIconID) {
+        glDeleteTextures(GL_TEXTURE_2D, &m_BigAppIconID);
+        m_BigAppIconID = 0U;
+    }
+}
 
 void MainBackend::m_InitPanes() {
     if (LayoutManager::Instance()->InitPanes()) {
@@ -480,4 +511,135 @@ void MainBackend::m_UnitImGui() {
 
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
+}
+
+void MainBackend::m_SetEmbeddedIconApp(const char* vEmbeddedIconID) {
+#if WIN32
+    auto icon_h_inst = LoadIconA(GetModuleHandle(NULL), vEmbeddedIconID);
+    SetClassLongPtrA(glfwGetWin32Window(m_MainWindowPtr), GCLP_HICON, (LONG_PTR)icon_h_inst);
+#else
+    (void)vEmbeddedIconID;
+#endif
+}
+
+GLuint MainBackend::m_ExtractEmbeddedIcon(const char* vEmbeddedIconID) {
+#if WIN32
+    // embedded icon to opengl texture
+
+    auto icon_h_inst = LoadIconA(GetModuleHandle(NULL), vEmbeddedIconID);
+
+    ICONINFO app_icon_info;
+    if (GetIconInfo(icon_h_inst, &app_icon_info)) {
+        HDC hdc = GetDC(0);
+
+        BITMAPINFO MyBMInfo = {0};
+        MyBMInfo.bmiHeader.biSize = sizeof(MyBMInfo.bmiHeader);
+        if (GetDIBits(hdc, app_icon_info.hbmColor, 0, 0, NULL, &MyBMInfo, DIB_RGB_COLORS)) {
+            uint8_t* bytes = new uint8_t[MyBMInfo.bmiHeader.biSizeImage];
+
+            MyBMInfo.bmiHeader.biCompression = BI_RGB;
+            if (GetDIBits(hdc, app_icon_info.hbmColor, 0, MyBMInfo.bmiHeader.biHeight, (LPVOID)bytes, &MyBMInfo, DIB_RGB_COLORS)) {
+                uint8_t R, G, B;
+
+                int index, i;
+
+                // swap BGR to RGB
+                for (i = 0; i < MyBMInfo.bmiHeader.biWidth * MyBMInfo.bmiHeader.biHeight; i++) {
+                    index = i * 4;
+
+                    B = bytes[index];
+                    G = bytes[index + 1];
+                    R = bytes[index + 2];
+
+                    bytes[index] = R;
+                    bytes[index + 1] = G;
+                    bytes[index + 2] = B;
+                }
+
+                // create texture from loaded bmp image
+
+                glEnable(GL_TEXTURE_2D);
+
+                GLuint texID = 0;
+                glGenTextures(1, &texID);
+
+                glBindTexture(GL_TEXTURE_2D, texID);
+
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+                glTexImage2D(GL_TEXTURE_2D, 0, 4, MyBMInfo.bmiHeader.biWidth, MyBMInfo.bmiHeader.biHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+                glFinish();
+
+                glBindTexture(GL_TEXTURE_2D, 0);
+
+                glDisable(GL_TEXTURE_2D);
+
+                return texID;
+            }
+        }
+    }
+#else
+    (void)vEmbeddedIconID;
+#endif
+
+    return 0;
+}
+
+GLuint MainBackend::m_ExtractEmbeddedImage(const char* vEmbeddedImageID) {
+#if WIN32
+    // embedded icon to opengl texture
+
+    auto hBitmap = LoadImageA(GetModuleHandle(NULL), vEmbeddedImageID, IMAGE_BITMAP, 0, 0, LR_COPYFROMRESOURCE | LR_CREATEDIBSECTION);
+
+    BITMAP bm;
+    if (GetObjectA(hBitmap, sizeof(BITMAP), &bm)) {
+        uint8_t* bytes = (uint8_t*)bm.bmBits;
+        uint8_t R, G, B;
+
+        int index, i;
+
+        // swap BGR to RGB
+        for (i = 0; i < bm.bmWidth * bm.bmHeight; i++) {
+            index = i * 3;
+
+            B = bytes[index];
+            G = bytes[index + 1];
+            R = bytes[index + 2];
+
+            bytes[index] = R;
+            bytes[index + 1] = G;
+            bytes[index + 2] = B;
+        }
+
+        // create texture from loaded bmp image
+
+        glEnable(GL_TEXTURE_2D);
+
+        GLuint texID = 0;
+        glGenTextures(1, &texID);
+
+        glBindTexture(GL_TEXTURE_2D, texID);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bm.bmWidth, bm.bmHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, bytes);
+        glFinish();
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        glDisable(GL_TEXTURE_2D);
+
+        return texID;
+    }
+#else
+    (void)vEmbeddedImageID;
+#endif
+
+    return 0;
 }

@@ -98,4 +98,3 @@ typedef std::list<GraphGroupPtr>& GraphGroupsRef;
 class GraphAnnotation;
 typedef std::shared_ptr<GraphAnnotation> GraphAnnotationPtr;
 typedef std::weak_ptr<GraphAnnotation> GraphAnnotationWeak;
-

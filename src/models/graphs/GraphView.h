@@ -23,61 +23,59 @@ limitations under the License.
 #include <unordered_map>
 #include <Headers/Globals.h>
 
-class GraphView
-{
+class GraphView {
 public:
-	// https://www.shadertoy.com/view/ld3fzf
-	static ez::fvec4 GetRainBow(const int32_t& vIdx, const int32_t& vCount);
+    // https://www.shadertoy.com/view/ld3fzf
+    static ez::fvec4 GetRainBow(const int32_t& vIdx, const int32_t& vCount);
 
 private:
-	GraphGroups m_GraphGroups;
-	SignalValueRange m_Range_Value = SignalValueRange(0.5, -0.5) * DBL_MAX;
-	bool m_show_hide_x_axis = true;
-	bool m_show_hide_y_axis = false;
-	bool m_need_show_hide_x_axis = false;
-	bool m_need_show_hide_y_axis = false; 
-	int32_t m_GraphsCount = 0;
-	GraphAnnotationPtr m_CurrentAnnotationPtr = nullptr;
+    GraphGroups m_GraphGroups;
+    SignalValueRange m_Range_Value = SignalValueRange(0.5, -0.5) * DBL_MAX;
+    bool m_show_hide_x_axis = true;
+    bool m_show_hide_y_axis = false;
+    bool m_need_show_hide_x_axis = false;
+    bool m_need_show_hide_y_axis = false;
+    int32_t m_GraphsCount = 0;
+    GraphAnnotationPtr m_CurrentAnnotationPtr = nullptr;
 
 public:
-	void Clear();
-	void AddSerieToGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vToGroupPtr);
-	void AddSerieToDefaultGroup(const SignalSerieWeak& vSignalSerie);
-	void RemoveSerieFromGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vToGroupPtr);
-	void MoveSerieFromGroupToGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vFromGroupPtr, const GraphGroupPtr& vToGroupPtr);
-	GraphGroupsRef GetGraphGroups();
+    void Clear();
+    void AddSerieToGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vToGroupPtr);
+    void AddSerieToDefaultGroup(const SignalSerieWeak& vSignalSerie);
+    void RemoveSerieFromGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vToGroupPtr);
+    void MoveSerieFromGroupToGroup(const SignalSerieWeak& vSignalSerie, const GraphGroupPtr& vFromGroupPtr, const GraphGroupPtr& vToGroupPtr);
+    GraphGroupsRef GetGraphGroups();
 
-	void ComputeGraphsCount();
-	int32_t GetGraphCount() const;
+    void ComputeGraphsCount();
+    int32_t GetGraphCount() const;
 
-	void AddSerieToGroupID(const SignalSerieWeak& vSignalSerie, const size_t& vToGroupID);
-	size_t GetGroupID(const GraphGroupPtr& vToGroupPtr) const;
+    void AddSerieToGroupID(const SignalSerieWeak& vSignalSerie, const size_t& vToGroupID);
+    size_t GetGroupID(const GraphGroupPtr& vToGroupPtr) const;
 
-	void DrawGraphGroupTable();
-	void DrawMenuBar();
-	void DrawAloneGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph);
-	void DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph);
+    void DrawGraphGroupTable();
+    void DrawMenuBar();
+    void DrawAloneGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph);
+    void DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImVec2& vSize, bool& vFirstGraph);
 
 private:
-	GraphGroupPtr prGetGroupAt(const size_t& vIdx);
-	void RemoveEmptyGroups();
+    GraphGroupPtr prGetGroupAt(const size_t& vIdx);
+    void RemoveEmptyGroups();
 
-	void prEraseGroupAt(const size_t& vIdx);
-	void prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool& vFirstGraph);
+    void prEraseGroupAt(const size_t& vIdx);
+    void prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool& vFirstGraph);
 
-	bool prBeginPlot(const std::string& vLabel, ez::dvec2 vRangeValue, const ImVec2& vSize, const bool& vFirstGraph) const;
-	static void prEndPlot(const bool& vFirstGraph);
+    bool prBeginPlot(const std::string& vLabel, ez::dvec2 vRangeValue, const ImVec2& vSize, const bool& vFirstGraph) const;
+    static void prEndPlot(const bool& vFirstGraph);
 
-public: // singleton
-	static std::shared_ptr<GraphView> Instance()
-	{
-		static auto _instance = std::make_shared<GraphView>();
-		return _instance;
-	}
+public:  // singleton
+    static std::shared_ptr<GraphView> Instance() {
+        static auto _instance = std::make_shared<GraphView>();
+        return _instance;
+    }
 
 public:
-	GraphView(); // Prevent construction
-	GraphView(const GraphView&) = delete; // Prevent construction by copying
-	GraphView& operator =(const GraphView&) { return *this; }; // Prevent assignment
-    virtual ~GraphView() = default; // Prevent unwanted destruction};
+    GraphView();                                               // Prevent construction
+    GraphView(const GraphView&) = delete;                      // Prevent construction by copying
+    GraphView& operator=(const GraphView&) { return *this; };  // Prevent assignment
+    virtual ~GraphView() = default;                            // Prevent unwanted destruction};
 };
