@@ -22,20 +22,19 @@ limitations under the License.
 #include <iostream>
 #include <functional>
 
-#include <ctools/Logger.h>
-#include <ctools/FileHelper.h>
-#include <Helper/Messaging.h>
 #include <models/log/LogEngine.h>
 #include <models/graphs/GraphView.h>
-#include <Panes/GraphListPane.h>
-#include <Panes/LogPaneSecondView.h>
+#include <panes/GraphListPane.h>
+#include <panes/LogPaneSecondView.h>
 #include <lua.hpp>
 
-#include <models/databaseB/DBEngine.h>
+#include <models/database/DataBase.h>
 #include <Project/ProjectFile.h>
 
-#include <Panes/ToolPane.h>
-#include <Panes/LogPane.h>
+#include <panes/ToolPane.h>
+#include <panes/LogPane.h>
+
+#include <ezlibs/ezFile.hpp>
 
 ///////////////////////////////////////////////////
 /// STATIC ////////////////////////////////////////
@@ -237,7 +236,7 @@ static int Lua_void_AddSignalValue_category_name_date_value(lua_State* L)
     }
     else
     {
-        DBEngine::Instance()->AddSignalTick((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_value);
+        DataBase::Instance()->AddSignalTick((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_value);
     }
 
     return 0; // return 0 item
@@ -264,7 +263,7 @@ static int Lua_void_AddSignalTag_date_color_name_help(lua_State* L)
         auto color = ImVec4(
             (float)arg_2_color_r, (float)arg_3_color_g,
             (float)arg_4_color_b, (float)arg_5_color_a);
-        DBEngine::Instance()->AddSignalTag(arg_1_date, color, arg_6_name, arg_7_help);
+        DataBase::Instance()->AddSignalTag(arg_1_date, color, arg_6_name, arg_7_help);
     }
 
     return 0; // return 0 item
@@ -285,7 +284,7 @@ static int Lua_void_AddSignalStartZone_category_name_date_string(lua_State* L)
     }
     else
     {
-        DBEngine::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, LuaEngine::sc_START_ZONE);
+        DataBase::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, LuaEngine::sc_START_ZONE);
     }
 
     return 0; // return 0 item
@@ -306,7 +305,7 @@ static int Lua_void_AddSignalEndZone_category_name_date_string(lua_State* L)
     }
     else
     {
-        DBEngine::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, LuaEngine::sc_END_ZONE);
+        DataBase::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, LuaEngine::sc_END_ZONE);
     }
 
     return 0; // return 0 item
@@ -327,7 +326,7 @@ static int Lua_void_AddSignalStatus_category_name_date_string(lua_State* L)
     }
     else
     {
-        DBEngine::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, "");
+        DataBase::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, "");
     }
 
     return 0; // return 0 item
@@ -446,26 +445,26 @@ void LuaEngine::sLuAnalyse(
     {
         if (!luaFilePathName.empty())
         {
-            if (ez::file::IsFileExist(luaFilePathName))
+            if (ez::file::isFileExist(luaFilePathName))
             {
                 LogEngine::Instance()->Clear();
                 GraphView::Instance()->Clear();
 
-                DBEngine::Instance()->OpenDBFile(ProjectFile::Instance()->m_ProjectFilePathName);
-                DBEngine::Instance()->ClearDataTables();
+                DataBase::Instance()->OpenDBFile(ProjectFile::Instance()->m_ProjectFilePathName);
+                DataBase::Instance()->ClearDataTables();
 
                 for (const auto& source_file : source_files_ref)
                 {
                     if (!source_file.second.empty() &&
-                        ez::file::IsFileExist(source_file.second))
+                        ez::file::isFileExist(source_file.second))
                     {
-                        auto file_string = ez::file::LoadFileToString(source_file.second);
+                        auto file_string = ez::file::loadFileToString(source_file.second);
                         if (!file_string.empty())
                         {
                             try
                             {
-                                source_file_id = DBEngine::Instance()->AddSourceFile(source_file.second);
-                                DBEngine::Instance()->BeginTransaction();
+                                source_file_id = DataBase::Instance()->AddSourceFile(source_file.second);
+                                DataBase::Instance()->BeginTransaction();
 
                                 // interpret lua script
                                 if (luaL_dofile(_luaState, luaFilePathName.c_str()) != LUA_OK)
@@ -485,7 +484,7 @@ void LuaEngine::sLuAnalyse(
                                         lua_Function_To_Call_End_File = LuaEngine::Instance()->GetFunctionForEndFile();
                                     }
 
-                                    auto file_lines = ez::splitStringToVector(file_string, '\n');
+                                    auto file_lines = ez::str::splitStringToVector(file_string, '\n');
                                     lua_Row_Count = (int32_t)file_lines.size();
 
                                     LuaEngine::Instance()->SetRowCount(lua_Row_Count);
@@ -536,13 +535,13 @@ void LuaEngine::sLuAnalyse(
                                     }
                                 }
 
-                                DBEngine::Instance()->CommitTransaction();
+                                DataBase::Instance()->CommitTransaction();
                             }
                             catch (std::exception& e)
                             {
                                 LogVarLightError("%s", e.what());
 
-                                DBEngine::Instance()->RollbackTransaction();
+                                DataBase::Instance()->RollbackTransaction();
                             }
                         }
                     }
@@ -551,7 +550,7 @@ void LuaEngine::sLuAnalyse(
                 // retrieve datas from database
                 LogEngine::Instance()->Finalize();
 
-                DBEngine::Instance()->CloseDBFile();
+                DataBase::Instance()->CloseDBFile();
             }
         }
 
@@ -568,7 +567,7 @@ void LuaEngine::sSetLuaBufferVarContent(lua_State* vLuaState, const std::string&
         auto _cont = vContent;
         if (_cont.find('\"') != std::string::npos)
         {
-            ez::replaceString(_cont, "\"", "\\\"");
+            ez::str::replaceString(_cont, "\"", "\\\"");
         }
         const string str = vVarName + " = \"" + _cont + "\"";
         luaL_dostring(vLuaState, str.c_str());
@@ -798,38 +797,23 @@ bool LuaEngine::FinishIfRequired()
 //// CONFIGURATION ////////////////////////////////////
 ///////////////////////////////////////////////////////
 
-std::string LuaEngine::getXml(const std::string& vOffset, const std::string& vUserDatas)
-{
-    UNUSED(vUserDatas);
-
-    std::string str;
-
-    str += vOffset + "<lua_file>" + m_LuaFilePathName + "</lua_file>\n";
-    str += vOffset + "<log_files>\n";
+ez::xml::Nodes LuaEngine::getXmlNodes(const std::string& /*vUserDatas*/) {
+    ez::xml::Node node("root");
+    node.addChild("lua_file").setContent(m_LuaFilePathName);
+    auto& childNode = node.addChild("log_files");
     auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
     for (const auto& source_file : container_ref)
     {
-        str += vOffset + "\t<log_file>" + escapeXmlCode(source_file.second) + "</log_file>\n";
+        childNode.addChild("log_file").setContent(ez::xml::Node::escapeXml(source_file.second));
     }
-    str += vOffset + "</log_files>\n";
-
-    return str;
+    return node.getChildren();
 }
 
-bool LuaEngine::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas)
-{
-    UNUSED(vUserDatas);
-
+bool LuaEngine::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& /*vUserDatas*/) {
     // The value of this child identifies the name of this element
-    std::string strName;
-    std::string strValue;
-    std::string strParentName;
-
-    strName = vElem->Value();
-    if (vElem->GetText())
-        strValue = vElem->GetText();
-    if (vParent != 0)
-        strParentName = vParent->Value();
+    const auto& strName = vNode.getName();
+    const auto& strValue = vNode.getContent();
+    const auto& strParentName = vParent.getName();
 
     if (strName == "lua_file")
     {
@@ -840,7 +824,7 @@ bool LuaEngine::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vP
     {
         if (strName == "log_file")
         {
-            LuaEngine::Instance()->AddSourceFilePathName(unEscapeXmlCode(strValue));
+            LuaEngine::Instance()->AddSourceFilePathName(ez::xml::Node::unEscapeXml(strValue));
         }
     }
 

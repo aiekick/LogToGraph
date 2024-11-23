@@ -19,12 +19,6 @@ limitations under the License.
 
 #include "GraphView.h"
 
-#include <implot/implot_internal.h>
-
-#include <Contrib/ImWidgets/ImWidgets.h>
-
-#include <imgui/imgui_internal.h>
-
 #include <models/log/LogEngine.h>
 #include <models/log/SignalSerie.h>
 #include <models/log/SignalTick.h>
@@ -34,9 +28,8 @@ limitations under the License.
 #include <Project/ProjectFile.h>
 
 #include <models/graphs/GraphGroup.h>
-#include <Panes/Manager/LayoutManager.h>
 
-#include <Panes/LogPane.h>
+#include <panes/LogPane.h>
 
 #include <models/graphs/GraphAnnotation.h>
 #include <models/graphs/GraphAnnotationModel.h>
@@ -253,7 +246,7 @@ void GraphView::DrawGraphGroupTable()
 					{
 						if (ProjectFile::Instance()->m_AutoColorize)
 						{
-							datas_ptr->color_u32 = ImGui::GetColorU32(ez::toImVec4(GetRainBow(visible_idx, visible_count)));
+							datas_ptr->color_u32 = ImGui::GetColorU32(GetRainBow(visible_idx, visible_count));
 							datas_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(datas_ptr->color_u32);
 						}
 
@@ -480,7 +473,7 @@ bool GraphView::prBeginPlot(const std::string& vLabel, ez::dvec2 vRangeValue, co
 		}
 
 		double y_offset = (vRangeValue.y - vRangeValue.x) * 0.1;
-		if (IS_DOUBLE_EQUAL(y_offset, 0.0))
+		if (ez::isEqual(y_offset, 0.0))
 		{
 			y_offset = 0.5;
 		}
@@ -757,7 +750,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 											if (m_CurrentAnnotationPtr->GetParentSignalSerie().lock() == datas_ptr)
 											{
 												m_CurrentAnnotationPtr->SetEndPoint(ImPlot::PixelsToPlot(
-													ez::toImVec2(projected_point)));
+													projected_point));
 												m_CurrentAnnotationPtr = nullptr; // remove the "draw to mouse point" of the current annotation 
 											}
 										}
@@ -765,7 +758,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 										{
 											m_CurrentAnnotationPtr =
 												GraphAnnotationModel::Instance()->NewGraphAnnotation(
-													ImPlot::PixelsToPlot(ez::toImVec2(projected_point)));
+													ImPlot::PixelsToPlot(projected_point));
 											m_CurrentAnnotationPtr->SetSignalSerieParent(datas_ptr);
 											datas_ptr->AddGraphAnnotation(m_CurrentAnnotationPtr);
 										}
@@ -793,8 +786,8 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 										const auto p_max = ImVec2(p_min.x + ImGui::GetContentRegionAvail().x + spacing_R,
 											p_min.y + (ImGui::GetFrameHeight() - spacing_D));
 										ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, _color);
-										const bool pushed = ImGui::PushStyleColorWithContrast(_color, ImGuiCol_Text,
-											ImGui::CustomStyle::Instance()->puContrastedTextColor, ImGui::CustomStyle::Instance()->puContrastRatio);
+										const bool pushed = ImGui::PushStyleColorWithContrast1(_color, ImGuiCol_Text,
+											ImGui::CustomStyle::puContrastedTextColor, ImGui::CustomStyle::puContrastRatio);
 										ImGui::Text("%s : %f", name_str.c_str(), last_value);
 										if (pushed)
 											ImGui::PopStyleColor();
@@ -809,8 +802,8 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 											const auto p_max = ImVec2(p_min.x + ImGui::GetContentRegionAvail().x + spacing_R,
 												p_min.y + (ImGui::GetFrameHeight() - spacing_D) * 2.0f);
 											ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, _color);
-											const bool pushed = ImGui::PushStyleColorWithContrast(_color, ImGuiCol_Text,
-												ImGui::CustomStyle::Instance()->puContrastedTextColor, ImGui::CustomStyle::Instance()->puContrastRatio);
+											const bool pushed = ImGui::PushStyleColorWithContrast1(_color, ImGuiCol_Text,
+												ImGui::CustomStyle::puContrastedTextColor, ImGui::CustomStyle::puContrastRatio);
 											ImGui::Text("%s : %s\nElapsed time : %s", name_str.c_str(), last_string.c_str(), _human_readbale_elapsed_time.c_str());
 											if (pushed)
 												ImGui::PopStyleColor();
@@ -1022,7 +1015,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 															if (m_CurrentAnnotationPtr->GetParentSignalSerie().lock() == datas_ptr)
 															{
 																m_CurrentAnnotationPtr->SetEndPoint(ImPlot::PixelsToPlot(
-																	ez::toImVec2(projected_point)));
+																	projected_point));
 																m_CurrentAnnotationPtr = nullptr; // remove the "draw to mouse point" of the current annotation 
 															}
 														}
@@ -1030,7 +1023,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 														{
 															m_CurrentAnnotationPtr =
 																GraphAnnotationModel::Instance()->NewGraphAnnotation(
-																	ImPlot::PixelsToPlot(ez::toImVec2(projected_point)));
+																	ImPlot::PixelsToPlot(projected_point));
 															m_CurrentAnnotationPtr->SetSignalSerieParent(datas_ptr);
 															datas_ptr->AddGraphAnnotation(m_CurrentAnnotationPtr);
 														}
@@ -1058,8 +1051,8 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 														const auto p_max = ImVec2(p_min.x + ImGui::GetContentRegionAvail().x + spacing_R,
 															p_min.y + (ImGui::GetFrameHeight() - spacing_D));
 														ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, _color);
-														const bool pushed = ImGui::PushStyleColorWithContrast(_color, ImGuiCol_Text,
-															ImGui::CustomStyle::Instance()->puContrastedTextColor, ImGui::CustomStyle::Instance()->puContrastRatio);
+														const bool pushed = ImGui::PushStyleColorWithContrast1(_color, ImGuiCol_Text,
+															ImGui::CustomStyle::puContrastedTextColor, ImGui::CustomStyle::puContrastRatio);
 														ImGui::Text("%s : %f", name_str.c_str(), last_value);
 														if (pushed)
 															ImGui::PopStyleColor();
@@ -1076,8 +1069,8 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 																const auto p_max = ImVec2(p_min.x + ImGui::GetContentRegionAvail().x + spacing_R,
 																	p_min.y + (ImGui::GetFrameHeight() - spacing_D) * 2.0f);
 																ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, _color);
-																const bool pushed = ImGui::PushStyleColorWithContrast(_color, ImGuiCol_Text,
-																	ImGui::CustomStyle::Instance()->puContrastedTextColor, ImGui::CustomStyle::Instance()->puContrastRatio);
+																const bool pushed = ImGui::PushStyleColorWithContrast1(_color, ImGuiCol_Text,
+																	ImGui::CustomStyle::puContrastedTextColor, ImGui::CustomStyle::puContrastRatio);
 																ImGui::Text("%s : %s\nElapsed time : %s", name_str.c_str(), last_string.c_str(), _human_readbale_elapsed_time.c_str());
 																if (pushed)
 																	ImGui::PopStyleColor();
@@ -1089,8 +1082,8 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 																const auto p_max = ImVec2(p_min.x + ImGui::GetContentRegionAvail().x + spacing_R,
 																	p_min.y + (ImGui::GetFrameHeight() - spacing_D));
 																ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, _color);
-																const bool pushed = ImGui::PushStyleColorWithContrast(_color, ImGuiCol_Text,
-																	ImGui::CustomStyle::Instance()->puContrastedTextColor, ImGui::CustomStyle::Instance()->puContrastRatio);
+																const bool pushed = ImGui::PushStyleColorWithContrast1(_color, ImGuiCol_Text,
+																	ImGui::CustomStyle::puContrastedTextColor, ImGui::CustomStyle::puContrastRatio);
 																ImGui::Text("%s : %s", name_str.c_str(), last_string.c_str());
 																if (pushed)
 																	ImGui::PopStyleColor();

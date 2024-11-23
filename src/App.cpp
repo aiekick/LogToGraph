@@ -3,10 +3,10 @@
 
 #include "App.h"
 
-#include <headers/StrockerBuild.h>
+#include <headers/LogToGraphBuild.h>
 #include <Backend/MainBackend.h>
 
-#include <ezlibs/ezLog.hpp>
+#include <EzLibs/EzLog.hpp>
 
 // messaging
 #define MESSAGING_CODE_INFOS 0

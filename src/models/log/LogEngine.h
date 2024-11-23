@@ -21,10 +21,10 @@ limitations under the License.
 #include <vector>
 #include <memory>
 #include <string>
+#include <stdint.h>
 #include <unordered_map>
-#include <ctools/cTools.h>
 #include <Headers/Globals.h>
-#include <tinyxml2/tinyxml2.h>
+#include <ezlibs/ezXmlConfig.hpp>
 
 struct SignalSetting
 {
@@ -33,7 +33,7 @@ struct SignalSetting
 	uint32_t group = 0U;
 };
 
-class LogEngine
+class LogEngine : public ez::xml::Config
 {
 private:
 	// for searching, so no need the category
@@ -52,7 +52,7 @@ private:
 	SignalTagsContainer m_SignalTags;
 
 	// ticks container who are not datas, because created virtually
-	// like first and last ticks of some sinalg for being the same as global time
+	// like first and last ticks of some signals for being the same as global time
 	SignalTicksContainer m_VirtualTicks;
 
 	// for display
@@ -116,11 +116,12 @@ public:
 	SignalTicksWeakContainerRef GetPreviewTicks();
 
 	void PrepareForSave();
-	void PrepareAfterLoad();
-	bool setSignalVisibilty(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/);
-	std::string getSignalVisibilty(const std::string& vOffset, const std::string& /*vUserDatas*/);
+    void PrepareAfterLoad();
 	const int32_t& GetVisibleCount() const;
 	void SetSignalSetting(const SignalCategory& vCategory, const SignalName& vName, const SignalSetting& vSignalSetting);
+
+    ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;
+    bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
 
 	const int32_t& GetSignalsCount() const;
 

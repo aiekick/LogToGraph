@@ -17,29 +17,35 @@ limitations under the License.
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <ezlibs/ezTools.hpp>
+#include <Headers/Globals.h>
 
 #include "MainFrontend.h"
-
-#include <ImGuiPack.h>
 
 #include <Backend/MainBackend.h>
 
 #include <Project/ProjectFile.h>
 
-#include <core/managers/PluginManager.h>
+#include <systems/PluginManager.h>
 
-#include <Panes/ConsolePane.h>
-#include <Panes/ProfilerPane.h>
-#include <Panes/CodePane.h>
-#include <Panes/GraphPane.h>
-#include <Panes/ViewPane.h>
-#include <Panes/BrokerPane.h>
-#include <Panes/ChartsPane.h>
+#include <panes/ConsolePane.h>
+#include <panes/ProfilerPane.h>
+#include <panes/CodePane.h>
+#include <panes/LogPane.h>
+#include <panes/CodePane.h>
+#include <panes/ToolPane.h>
+#include <panes/GraphPane.h>
+#include <panes/ConsolePane.h>
+#include <panes/GraphGroupPane.h>
+#include <panes/SignalsHoveredDiff.h>
+#include <panes/SignalsHoveredList.h>
+#include <panes/SignalsHoveredMap.h>
+#include <panes/LogPaneSecondView.h>
+#include <panes/GraphListPane.h>
+#include <panes/AnnotationPane.h>
 
-#include <Systems/SettingsDialog.h>
+#include <systems/SettingsDialog.h>
 
-#include <Helpers/TranslationHelper.h>
+#include <systems/TranslationHelper.h>
 
 // panes
 #define DEBUG_PANE_ICON ICON_SDFM_BUG
@@ -80,12 +86,21 @@ bool MainFrontend::init() {
     LayoutManager::Instance()->SetPaneDisposalRatio("BOTTOM", 0.25f);
 
     LayoutManager::Instance()->AddPane(CodePane::Instance(), "Debug Pane", "", "RIGHT", 0.25f, false, false);
-    LayoutManager::Instance()->AddPane(ViewPane::Instance(), "Scene View Pane", "", "RIGHT/BOTTOM", 0.25f, false, false);
     LayoutManager::Instance()->AddPane(GraphPane::Instance(), "Graph Pane", "", "CENTRAL", 0.0f, false, false);
-    LayoutManager::Instance()->AddPane(ChartsPane::Instance(), "Charts Pane", "", "CENTRAL", 0.0f, true, false);
-    LayoutManager::Instance()->AddPane(BrokerPane::Instance(), "Broker Pane", "", "LEFT", 0.25f, true, true);
     LayoutManager::Instance()->AddPane(ConsolePane::Instance(), "Console Pane", "", "BOTTOM", 0.3f, false, false);
     LayoutManager::Instance()->AddPane(ProfilerPane::Instance(), "Profiler Pane", "", "BOTTOM", 0.3f, false, false);
+
+    LayoutManager::Instance()->AddPane(ToolPane::Instance(), "Tool", "", "LEFT", 0.25f, true, true);
+    LayoutManager::Instance()->AddPane(LogPane::Instance(), "Logs", "", "RIGHT", 0.25f, true, false);
+    LayoutManager::Instance()->AddPane(LogPaneSecondView::Instance(), "Logs Second View", "", "RIGHT", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(GraphPane::Instance(), "Graphs", "", "CENTRAL", 0.25f, true, false);
+    LayoutManager::Instance()->AddPane(GraphListPane::Instance(), "All Graph Signals", "", "CENTRAL", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(GraphGroupPane::Instance(), "Graph Groups", "", "RIGHT", 0.25f, true, false);
+    LayoutManager::Instance()->AddPane(SignalsHoveredList::Instance(), "Signals Hovered List", "", "RIGHT", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(SignalsHoveredDiff::Instance(), "Signals Hovered Diff", "", "RIGHT", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(ConsolePane::Instance(), "Console", "", "BOTTOM", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(CodePane::Instance(), "Code", "", "RIGHT", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(AnnotationPane::Instance(), "Annotations", "", "RIGHT", 0.25f, false, false);
 
     // InitPänes is done in m_InitPanes, because a specific order is needed
 
@@ -412,20 +427,6 @@ void MainFrontend::Action_Menu_OpenProject() {
     m_ActionSystem.Add([this]() { return Display_OpenProjectDialog(); });
 }
 
-void MainFrontend::Action_Menu_ImportPrices(const ImportTypeEnum& vType) {
-    m_ActionSystem.Clear();
-    m_ActionSystem.Add([this,vType]() {
-        CloseUnSavedDialog();
-        IGFD::FileDialogConfig config;
-        config.countSelectionMax = 0;
-        config.flags = ImGuiFileDialogFlags_Modal;
-        config.userDatas = IGFD::UserDatas(vType);
-        ImGuiFileDialog::Instance()->OpenDialog("ImportPrices", "Import Prices from File", ".csv", config);
-        return true;
-    });
-    m_ActionSystem.Add([this]() { return Display_OpenProjectDialog(); });
-}
-
 void MainFrontend::Action_Menu_ReOpenProject() {
     /*
     re open project :
@@ -714,36 +715,28 @@ bool MainFrontend::m_build() {
 //// CONFIGURATION ////////////////////////////////////
 ///////////////////////////////////////////////////////
 
-std::string MainFrontend::getXml(const std::string& vOffset, const std::string& vUserDatas) {
-    UNUSED(vUserDatas);
-
-    std::string str;
-
-    str += ImGuiThemeHelper::Instance()->getXml(vOffset);
-    str += LayoutManager::Instance()->getXml(vOffset, "app");
-#ifdef USE_PLACES_FEATURE
-    str += vOffset + "<places>" + ImGuiFileDialog::Instance()->SerializePlaces() + "</places>\n";
-#endif
-    str += vOffset + "<showaboutdialog>" + (m_ShowAboutDialog ? "true" : "false") + "</showaboutdialog>\n";
-    str += vOffset + "<showimgui>" + (m_ShowImGui ? "true" : "false") + "</showimgui>\n";
-    str += vOffset + "<showmetric>" + (m_ShowMetric ? "true" : "false") + "</showmetric>\n";
-
-    return str;
+ez::xml::Nodes MainFrontend::getXmlNodes(const std::string& /*vUserDatas*/) {
+    ez::xml::Node node("root");
+    node.addChilds(ImGuiThemeHelper::Instance()->getXmlNodes());
+    node.addChilds(LayoutManager::Instance()->getXmlNodes("app"));
+    node.addChild("places").setContent(ImGuiFileDialog::Instance()->SerializePlaces());
+    node.addChild("showaboutdialog").setContent(m_ShowAboutDialog ? " true " : " false ");
+    node.addChild("showimgui").setContent(m_ShowImGui ? "true" : "false");
+    node.addChild("showmetric").setContent(m_ShowMetric ? "true" : "false");
+    return node.getChildren();
 }
 
-bool MainFrontend::setFromXml(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
+bool MainFrontend::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
     UNUSED(vUserDatas);
     const auto& strName = vNode.getName();
     const auto& strValue = vNode.getContent();
     // const auto& strParentName = vParent.getName();
 
-    ImGuiThemeHelper::Instance()->setFromXml(vNode, vParent, "app");
-    LayoutManager::Instance()->setFromXml(vNode, vParent, "app");
+    ImGuiThemeHelper::Instance()->setFromXmlNodes(vNode, vParent, "app");
+    LayoutManager::Instance()->setFromXmlNodes(vNode, vParent, "app");
 
     if (strName == "places") {
-#ifdef USE_PLACES_FEATURE
         ImGuiFileDialog::Instance()->DeserializePlaces(strValue);
-#endif
     } else if (strName == "showaboutdialog") {
         m_ShowAboutDialog = ez::ivariant(strValue).GetB();
     } else if (strName == "showimgui") {

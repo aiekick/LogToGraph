@@ -12,7 +12,7 @@
 #include <IDLLoader/Unix/DLLoader.h>
 #endif
 
-#include <apis/StrockerPluginApi.h>
+#include <apis/LtgPluginApi.h>
 
 #if defined(__WIN32__) || defined(WIN32) || defined(_WIN32) || defined(__WIN64__) || defined(WIN64) || defined(_WIN64) || defined(_MSC_VER)
 #if defined(Core_EXPORTS)
@@ -33,12 +33,12 @@ typedef std::shared_ptr<PluginInstance> PluginInstancePtr;
 enum class PluginReturnMsg { LOADING_SUCCEED = 1, LOADING_FAILED = 0, NOT_A_PLUGIN = -1 };
 
 struct PluginInterface;
-typedef std::shared_ptr<Sto::PluginInterface> PluginInterfacePtr;
-typedef std::weak_ptr<Sto::PluginInterface> PluginInterfaceWeak;
+typedef std::shared_ptr<Ltg::PluginInterface> PluginInterfacePtr;
+typedef std::weak_ptr<Ltg::PluginInterface> PluginInterfaceWeak;
 
 class STROCKER_CORE_API PluginInstance {
 private:
-    dlloader::DLLoader<Sto::PluginInterface> m_Loader;
+    dlloader::DLLoader<Ltg::PluginInterface> m_Loader;
     PluginInterfacePtr m_PluginInstance = nullptr;
     std::string m_Name;
 
@@ -52,22 +52,22 @@ public:
     PluginInterfaceWeak get() const;
 };
 
-class STROCKER_CORE_API PluginManager : public Sto::PluginBridge {
+class STROCKER_CORE_API PluginManager : public Ltg::PluginBridge {
 private:
     std::map<std::string, PluginInstancePtr> m_Plugins;
 
 public:
-    void loadPlugins(const std::string& vAppPath, const std::set<Sto::PluginModuleType> vTypesToLoad = {});
+    void loadPlugins(const std::string& vAppPath, const std::set<Ltg::PluginModuleType> vTypesToLoad = {});
     void unloadPlugins();
-    std::vector<Sto::PluginModuleInfos> getPluginModulesInfos() const;
-    Sto::PluginModulePtr createPluginModule(const std::string& vPluginNodeName);
-    std::vector<Sto::PluginPaneConfig> getPluginPanes() const;
-    std::vector<Sto::PluginSettingsConfig> getPluginSettings() const;
+    std::vector<Ltg::PluginModuleInfos> getPluginModulesInfos() const;
+    Ltg::PluginModulePtr createPluginModule(const std::string& vPluginNodeName);
+    std::vector<Ltg::PluginPaneConfig> getPluginPanes() const;
+    std::vector<Ltg::PluginSettingsConfig> getPluginSettings() const;
 
-    Sto::IndicatorComputingPtr getIndicatorPtr(const std::string& vIndicatorName); // called from a plugin for acces an indicator
+    Ltg::IndicatorComputingPtr getIndicatorPtr(const std::string& vIndicatorName); // called from a plugin for acces an indicator
 
 private:
-    void m_loadPlugin(const std::filesystem::directory_entry& vEntry, const std::set<Sto::PluginModuleType> vTypesToLoad);
+    void m_loadPlugin(const std::filesystem::directory_entry& vEntry, const std::set<Ltg::PluginModuleType> vTypesToLoad);
     void m_displayLoadedPlugins();
 
 public:

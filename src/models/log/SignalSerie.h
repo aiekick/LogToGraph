@@ -21,10 +21,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <ctools/cTools.h>
 #include <Headers/Globals.h>
-#include <tinyxml2/tinyxml2.h>
-#include <ctools/ConfigAbstract.h>
 
 class SignalSerie
 {
@@ -55,8 +52,6 @@ public: // to save
 	bool show = false; // signal must be shown on graph screen
 
 public:
-	SignalSerie();
-    virtual ~SignalSerie();
 	void InsertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount = false);
 	void AddTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount = false);
 

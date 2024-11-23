@@ -17,12 +17,11 @@ limitations under the License.
 #pragma once
 
 #include <ImGuiPack.h>
+#include <ezlibs/ezXmlConfig.hpp>
 
 #include <Systems/FrameActionSystem.h>
 
 #include <Backend/MainBackend.h>
-
-#include <Models/DataBrokers.h>
 
 #include <functional>
 #include <string>
@@ -152,7 +151,6 @@ public:  // actions
     // via menu
     void Action_Menu_NewProject();
     void Action_Menu_OpenProject();
-    void Action_Menu_ImportPrices(const ImportTypeEnum& vType);
     void Action_Menu_ReOpenProject();
     void Action_Menu_SaveProject();
     void Action_Menu_SaveAsProject();
@@ -173,8 +171,8 @@ private:  // actions
     bool Display_SaveProjectDialog();
 
 public:  // configuration
-    std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-    bool setFromXml(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
+    ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;
+    bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
 
 private:
     bool m_build();

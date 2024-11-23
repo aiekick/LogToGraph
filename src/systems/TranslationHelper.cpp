@@ -128,7 +128,7 @@ std::string TranslationHelper::getXml(const std::string& vOffset, const std::str
     return str;
 }
 
-bool TranslationHelper::setFromXml(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
+bool TranslationHelper::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
     UNUSED(vUserDatas);
     const auto& strName = vNode.getName();
     const auto& strValue = vNode.getContent();

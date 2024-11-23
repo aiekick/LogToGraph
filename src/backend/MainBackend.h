@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ImGuiPack.h>
-#include <ezlibs/ezTools.hpp>
-#include <ezlibs/ezXmlConfig.hpp>
+#include <EzLibs/EzTools.hpp>
+#include <EzLibs/EzXmlConfig.hpp>
 
 #include <string>
 #include <memory>
@@ -38,9 +38,7 @@ private:
     std::set<std::string> m_PathsToTrack;
 
 public:  // getters
-    ImRect GetDisplayRect() {
-        return m_DisplayRect;
-    }
+    ImRect GetDisplayRect() { return m_DisplayRect; }
 
 public:
     virtual ~MainBackend();
@@ -71,8 +69,8 @@ public:
     int GetMouseButton(int vButton);
 
 public:  // configuration
-    std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-    bool setFromXml(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
+    ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") final;
+    bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) final;
 
     void SetConsoleVisibility(const bool& vFlag);
     void SwitchConsoleVisibility();

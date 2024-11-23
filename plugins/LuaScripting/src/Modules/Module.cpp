@@ -3,8 +3,8 @@
 
 #include <ImGuiPack.h>
 
-#include <ezlibs/ezFile.hpp>
-#include <ezlibs/ezTime.hpp>
+#include <EzLibs/EzFile.hpp>
+#include <EzLibs/EzTime.hpp>
 
 #include <chrono>
 #include <ctime>

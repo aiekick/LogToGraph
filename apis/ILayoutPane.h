@@ -44,6 +44,8 @@ public:
     // if for any reason the pane must be hidden temporary, the user can control this here
     virtual bool CanBeDisplayed() = 0;
 
+    virtual void DoVirtualLayout() {}
+
 public:
     void SetName(const LayoutPaneName& vName) {
         paneName = vName;

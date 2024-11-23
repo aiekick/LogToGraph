@@ -18,13 +18,9 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "LogPaneSecondView.h"
-#include <ctools/cTools.h>
-#include <Panes/ToolPane.h>
-#include <Panes/GraphListPane.h>
+#include <panes/ToolPane.h>
+#include <panes/GraphListPane.h>
 #include <Project/ProjectFile.h>
-#include <imgui/imgui_internal.h>
-#include <Panes/Manager/LayoutManager.h>
-#include <Contrib/ImWidgets/ImWidgets.h>
 #include <cinttypes> // printf zu
 
 #include <models/log/LogEngine.h>
@@ -48,19 +44,12 @@ void LogPaneSecondView::Unit()
 
 }
 
-int LogPaneSecondView::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/, PaneFlag& vInOutPaneShown)
-{
-	GeneratorPaneWidgetId = vWidgetId;
-
-	if (vInOutPaneShown & m_PaneFlag)
-	{
-		static ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoBringToFrontOnFocus |
-			ImGuiWindowFlags_MenuBar;
-		if (ImGui::Begin<PaneFlag>(m_PaneName,
-			&vInOutPaneShown , m_PaneFlag, flags))
-		{
+bool LogPaneSecondView::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
+    ImGui::SetCurrentContext(vContextPtr);
+    bool change = false;
+    if (vOpened != nullptr && *vOpened) {
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
+        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
 			auto win = ImGui::GetCurrentWindowRead();
 			if (win->Viewport->Idx != 0)
@@ -82,39 +71,6 @@ int LogPaneSecondView::DrawPanes(const uint32_t& /*vCurrentFrame*/, const int& v
 	}
 
 	return GeneratorPaneWidgetId;
-}
-
-void LogPaneSecondView::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const std::string& /*vvUserDatas*/)
-{
-
-}
-
-int LogPaneSecondView::DrawWidgets(const uint32_t& /*vCurrentFrame*/, const int& vWidgetId, const std::string& /*vvUserDatas*/)
-{
-	return vWidgetId;
-}
-
-std::string LogPaneSecondView::getXml(const std::string& /*vOffset*/, const std::string& /*vUserDatas*/)
-{
-	std::string str;
-
-	return str;
-}
-
-bool LogPaneSecondView::setFromXml(tinyxml2::XMLElement* /*vElem*/, tinyxml2::XMLElement* /*vParent*/, const std::string& /*vUserDatas*/)
-{
-	/*// The value of this child identifies the name of this element
-	std::string strName;
-	std::string strValue;
-	std::string strParentName;
-
-	strName = vElem->Value();
-	if (vElem->GetText())
-		strValue = vElem->GetText();
-	if (vParent != nullptr)
-		strParentName = vParent->Value();*/
-
-	return true;
 }
 
 void LogPaneSecondView::Clear()
@@ -260,9 +216,9 @@ void LogPaneSecondView::DrawTable()
 						ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
 						ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
 						count_color_push = 3;
-						if (ImGui::PushStyleColorWithContrast(ImGuiCol_Header, ImGuiCol_Text,
-							ImGui::CustomStyle::Instance()->puContrastedTextColor,
-							ImGui::CustomStyle::Instance()->puContrastRatio))
+						if (ImGui::PushStyleColorWithContrast1(ImGuiCol_Header, ImGuiCol_Text,
+							ImGui::CustomStyle::puContrastedTextColor,
+							ImGui::CustomStyle::puContrastRatio))
 						{
 							count_color_push = 4;
 						}
@@ -345,7 +301,7 @@ void LogPaneSecondView::PrepareLog()
 	if (ProjectFile::Instance()->m_HideSomeValues)
 	{
 		m_ValuesToHide.clear();
-		auto arr = ez::splitStringToVector(ProjectFile::Instance()->m_ValuesToHide, ",");
+		auto arr = ez::str::splitStringToVector(ProjectFile::Instance()->m_ValuesToHide, ",");
 		for (const auto& a : arr)
 		{
 			m_ValuesToHide.push_back(ez::dvariant(a).GetD());
@@ -370,7 +326,7 @@ void LogPaneSecondView::PrepareLog()
 
 				for (const auto& a : m_ValuesToHide)
 				{
-					if (IS_DOUBLE_EQUAL(a, infos_ptr->value))
+					if (ez::isEqual(a, infos_ptr->value))
 					{
 						found = true;
 						break;

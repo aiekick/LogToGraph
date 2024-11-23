@@ -20,7 +20,7 @@ limitations under the License.
 #include "GraphGroup.h"
 
 #include <models/log/SignalSerie.h>
-#include <Panes/Manager/LayoutManager.h>
+#include <Headers/Globals.h>
 
 GraphGroupPtr GraphGroup::Create()
 {

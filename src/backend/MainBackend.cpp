@@ -3,13 +3,13 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include <headers/StrockerBuild.h>
+#include <headers/LogToGraphBuild.h>
 
 #define IMGUI_IMPL_API
 #include <3rdparty/imgui_docking/backends/imgui_impl_opengl3.h>
 #include <3rdparty/imgui_docking/backends/imgui_impl_glfw.h>
 
-#include <ezlibs/ezFile.hpp>
+#include <EzLibs/EzFile.hpp>
 
 #include <cstdio>     // printf, fprintf
 #include <chrono>     // timer
@@ -20,30 +20,23 @@
 #include <stdexcept>  // std::exception
 
 #include <Backend/MainBackend.h>
-#include <core/managers/PluginManager.h>
+#include <systems/PluginManager.h>
 #include <Project/ProjectFile.h>
 
 #include <LayoutManager.h>
 
-#include <Graph/Manager/NodeManager.h>
-
 #include <ImGuiPack.h>
-#include <InAppGpuProfiler/iagp.h>
+#include <iagp/iagp.h>
 
 #include <Frontend/MainFrontend.h>
 
-#include <Panes/ConsolePane.h>
-
-#include <core/models/DataBase.h>
-#include <Models/DataBrokers.h>
-#include <Models/ChartingModules.h>
-#include <Models/IndicatorModules.h>
+#include <panes/ConsolePane.h>
 
 #include <Systems/SettingsDialog.h>
 
 // we include the cpp just for embedded fonts
 #include <Res/fontIcons.cpp>
-#include <Res/Roboto_Medium.cpp> 
+#include <Res/Roboto_Medium.cpp>
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -179,23 +172,23 @@ void MainBackend::setAppTitle(const std::string& vFilePathName) {
     auto ps = ez::file::parsePathFileName(vFilePathName);
     if (ps.isOk) {
         char bufTitle[1024];
-        snprintf(bufTitle, 1023, "Strocker Beta %s - Project : %s.lum", Strocker_BuildId, ps.name.c_str());
+        snprintf(bufTitle, 1023, "Strocker Beta %s - Project : %s.lum", LogToGraph_BuildId, ps.name.c_str());
         glfwSetWindowTitle(m_MainWindowPtr, bufTitle);
     } else {
         char bufTitle[1024];
-        snprintf(bufTitle, 1023, "Strocker Beta %s", Strocker_BuildId);
+        snprintf(bufTitle, 1023, "Strocker Beta %s", LogToGraph_BuildId);
         glfwSetWindowTitle(m_MainWindowPtr, bufTitle);
     }
 }
 
 ez::dvec2 MainBackend::GetMousePos() {
-        ez::dvec2 mp;
+    ez::dvec2 mp;
     glfwGetCursorPos(m_MainWindowPtr, &mp.x, &mp.y);
-        return mp;
+    return mp;
 }
 
 int MainBackend::GetMouseButton(int vButton) {
-        return glfwGetMouseButton(m_MainWindowPtr, vButton);
+    return glfwGetMouseButton(m_MainWindowPtr, vButton);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -247,7 +240,7 @@ void MainBackend::m_MainLoop() {
             ProjectFile::Instance()->NewFrame();
 
             // maintain active, prevent user change via imgui dialog
-            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
+            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;    // Enable Docking
             ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;  // Disable Viewport
 
             glfwPollEvents();
@@ -286,8 +279,8 @@ void MainBackend::m_MainLoop() {
             }
             glfwMakeContextCurrent(backup_current_context);
 
-#ifdef USE_THUMBNAILS            
-			ImGuiFileDialog::Instance()->ManageGPUThumbnails();
+#ifdef USE_THUMBNAILS
+            ImGuiFileDialog::Instance()->ManageGPUThumbnails();
 #endif
 
             glfwSwapBuffers(m_MainWindowPtr);
@@ -304,9 +297,7 @@ void MainBackend::m_MainLoop() {
     }
 }
 
-void MainBackend::m_Update() {
-
-}
+void MainBackend::m_Update() {}
 
 void MainBackend::m_IncFrame() {
     ++m_CurrentFrame;
@@ -316,30 +307,26 @@ void MainBackend::m_IncFrame() {
 //// CONFIGURATION ////////////////////////////////////
 ///////////////////////////////////////////////////////
 
-std::string MainBackend::getXml(const std::string& vOffset, const std::string& vUserDatas) {
-    UNUSED(vUserDatas);
-
-    std::string str;
-
-    str += MainFrontend::Instance()->getXml(vOffset, vUserDatas);
-    str += SettingsDialog::Instance()->getXml(vOffset, vUserDatas);
-    str += vOffset + "<project>" + ProjectFile::Instance()->GetProjectFilepathName() + "</project>\n";
-
-    return str;
+ez::xml::Nodes MainBackend::getXmlNodes(const std::string& vUserDatas) {
+    ez::xml::Node node("root");
+    node.addChilds(MainFrontend::Instance()->getXmlNodes(vUserDatas));
+    node.addChilds(SettingsDialog::Instance()->getXmlNodes(vUserDatas));
+    node.addChild("project").setContent(ProjectFile::Instance()->GetProjectFilepathName());
+    return node.getChildren();
 }
 
-bool MainBackend::setFromXml(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
+bool MainBackend::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
     UNUSED(vUserDatas);
     const auto& strName = vNode.getName();
     const auto& strValue = vNode.getContent();
-    //const auto& strParentName = vParent.getName();
+    // const auto& strParentName = vParent.getName();
 
-    MainFrontend::Instance()->setFromXml(vNode, vParent, vUserDatas);
-    SettingsDialog::Instance()->setFromXml(vNode, vParent, vUserDatas);
+    MainFrontend::Instance()->setFromXmlNodes(vNode, vParent, vUserDatas);
+    SettingsDialog::Instance()->setFromXmlNodes(vNode, vParent, vUserDatas);
 
     if (strName == "project") {
         NeedToLoadProject(strValue);
-    } 
+    }
 
     return true;
 }
@@ -412,23 +399,21 @@ bool MainBackend::m_InitImGui() {
             }
         }
         {  // icon font
-            static const ImWchar icons_ranges[] = {ICON_MIN_STRO, ICON_MIN_STRO, 0};
+            static const ImWchar icons_ranges[] = {ICON_MIN_FONT, ICON_MIN_FONT, 0};
             ImFontConfig icons_config;
             icons_config.MergeMode = true;
             icons_config.PixelSnapH = true;
-            if (ImGui::GetIO().Fonts->AddFontFromMemoryCompressedBase85TTF(FONT_ICON_BUFFER_NAME_STRO, 15.0f, &icons_config, icons_ranges) == nullptr) {
+            if (ImGui::GetIO().Fonts->AddFontFromMemoryCompressedBase85TTF(FONT_ICON_BUFFER_NAME, 15.0f, &icons_config, icons_ranges) == nullptr) {
                 assert(0);  // failed to load font
             }
         }
-    }    
+    }
 
     // Setup Platform/Renderer bindings
     if (ImGui_ImplGlfw_InitForOpenGL(m_MainWindowPtr, true) &&  //
         ImGui_ImplOpenGL3_Init(m_GlslVersion)) {
-
         // ui init
-        if (MainFrontend::Instance()->init() &&  //
-            NodeManager::Instance()->init()) {
+        if (MainFrontend::Instance()->init()) {
             iagp::InAppGpuProfiler::Instance()->Clear();
             return true;
         }
@@ -449,7 +434,7 @@ void MainBackend::m_InitPlugins(const std::string& vAppPath) {
                 pluginPane.disposalRatio,
                 pluginPane.openedDefault,
                 pluginPane.focusedDefault);
-            auto plugin_ptr = std::dynamic_pointer_cast<Sto::PluginPane>(pluginPane.pane.lock());
+            auto plugin_ptr = std::dynamic_pointer_cast<Ltg::PluginPane>(pluginPane.pane.lock());
             if (plugin_ptr != nullptr) {
                 plugin_ptr->SetProjectInstance(ProjectFile::Instance());
             }
@@ -457,28 +442,17 @@ void MainBackend::m_InitPlugins(const std::string& vAppPath) {
     }
 }
 
-void MainBackend::m_InitModels() {
-    DataBrokers::Instance()->init();
-    ChartingModules::Instance()->init();
-    IndicatorModules::Instance()->init();
-}
+void MainBackend::m_InitModels() {}
 
-void MainBackend::m_UnitModels() {
-    DataBrokers::Instance()->unit();
-    ChartingModules::Instance()->unit();
-    IndicatorModules::Instance()->unit();
-}
+void MainBackend::m_UnitModels() {}
 
 void MainBackend::m_UnitPlugins() {
     PluginManager::Instance()->unloadPlugins();
 }
 
-void MainBackend::m_InitSystems() {
-    
-}
+void MainBackend::m_InitSystems() {}
 
-void MainBackend::m_UnitSystems() {
-}
+void MainBackend::m_UnitSystems() {}
 
 void MainBackend::m_InitPanes() {
     if (LayoutManager::Instance()->InitPanes()) {
@@ -487,8 +461,7 @@ void MainBackend::m_InitPanes() {
     }
 }
 
-void MainBackend::m_UnitPanes() {
-}
+void MainBackend::m_UnitPanes() {}
 
 void MainBackend::m_InitSettings() {
     SettingsDialog::Instance()->init();
@@ -499,7 +472,6 @@ void MainBackend::m_UnitSettings() {
 }
 
 void MainBackend::m_UnitImGui() {
-    NodeManager::Instance()->unit();
     MainFrontend::Instance()->unit();
     iagp::InAppGpuProfiler::Instance()->Clear();
 
@@ -509,4 +481,3 @@ void MainBackend::m_UnitImGui() {
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
 }
-

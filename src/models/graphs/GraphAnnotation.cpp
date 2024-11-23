@@ -19,11 +19,8 @@ limitations under the License.
 
 #include "GraphAnnotation.h"
 
-#include <imgui/imgui_internal.h>
 #include <models/log/SignalSerie.h>
-#include <Panes/Manager/LayoutManager.h>
 #include <Project/ProjectFile.h>
-#include <implot/implot.h>
 #include <chrono>
 
 //////////////////////////////////////////////////////
@@ -51,14 +48,14 @@ static inline double ImpDistance(ImPlotPoint A, ImPlotPoint B) { double dx = A.x
 
 bool GraphAnnotation::sIsMouseHoverLine(const ez::dvec2& vMousePos, const double& vRadius, const ez::dvec2& vStart, const ez::dvec2& vEnd, ez::dvec2& vOutLinePoint)
 {
-	const auto mp = ImPlot::PixelsToPlot(ez::toImVec2(vMousePos));
-	const auto st = ImPlot::PixelsToPlot(ez::toImVec2(vStart));
-	const auto en = ImPlot::PixelsToPlot(ez::toImVec2(vEnd));
+	const auto mp = ImPlot::PixelsToPlot(vMousePos);
+	const auto st = ImPlot::PixelsToPlot(vStart);
+	const auto en = ImPlot::PixelsToPlot(vEnd);
 
 	const auto a = mp - st;
 	const auto b = en - st;
 	const auto dot_b = s_dot(b, b);
-	if (IS_DOUBLE_EQUAL(dot_b, 0.0))
+	if (ez::isEqual(dot_b, 0.0))
 		return false;
 
 	//projected point on infinite line
@@ -92,7 +89,7 @@ bool GraphAnnotation::sIsMouseHoverLine2P(const ImVec2& vMousePos, const double&
 	const auto PA = P - A;
 
 	const auto id = ImpDot(BA, BA);
-	if (IS_DOUBLE_EQUAL(id, 0.0))
+	if (ez::isEqual(id, 0.0))
 		return false;
 
 	const auto H = ez::clamp(ImpDot(PA, PA) / id, 0.0, 1.0);

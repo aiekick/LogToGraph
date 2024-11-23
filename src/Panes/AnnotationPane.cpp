@@ -18,7 +18,7 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "AnnotationPane.h"
-#include <ezlibs/ezLog.hpp>
+#include <EzLibs/EzLog.hpp>
 
 #include <Project/ProjectFile.h>
 #include <cinttypes> // printf zu
@@ -26,8 +26,8 @@ limitations under the License.
 #include <models/graphs/GraphAnnotation.h>
 #include <models/log/SignalSerie.h>
 #include <models/log/LogEngine.h>
-#include <Panes/ToolPane.h>
-#include <Panes/GraphListPane.h>
+#include <panes/ToolPane.h>
+#include <panes/GraphListPane.h>
 #include <res/fontIcons.h>
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -71,21 +71,6 @@ bool AnnotationPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened,
 		ImGui::End();
 	}
 	return change;
-}
-
-bool AnnotationPane::DrawOverlays(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vRect*/, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-	ImGui::SetCurrentContext(vContextPtr);
-	return false;
-}
-
-bool AnnotationPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vMaxRect*/, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-	ImGui::SetCurrentContext(vContextPtr);
-	return false;
-}
-
-bool AnnotationPane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-	ImGui::SetCurrentContext(vContextPtr);
-	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////

@@ -23,7 +23,7 @@ limitations under the License.
 #include <string>
 #include <functional>
 #include <Headers/Globals.h>
-#include <ctools/ConfigAbstract.h>
+#include <ezlibs/ezXmlConfig.hpp>
 
 struct lua_State;
 class LuaEngine : public ez::xml::Config
@@ -112,8 +112,8 @@ public:
 	bool FinishIfRequired();
 
 public: // configuration
-	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
-	bool setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& vUserDatas) override;
+    ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;
+    bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
 
 public: // singleton
 	static std::shared_ptr<LuaEngine> Instance()

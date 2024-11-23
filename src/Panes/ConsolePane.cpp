@@ -37,25 +37,9 @@ bool ConsolePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, Im
             if (ImGui::BeginMenuBar()) {
                 ImGui::EndMenuBar();
             }
-                Messaging::Instance()->DrawConsolePane();
+            Messaging::Instance()->DrawConsolePane();
         }
-
         ImGui::End();
     }
     return change;
-}
-
-bool ConsolePane::DrawOverlays(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vRect*/, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
-    return false;
-}
-
-bool ConsolePane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vMaxRect*/, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
-    return false;
-}
-
-bool ConsolePane::DrawWidgets(const uint32_t& /*vCurrentFrame*/, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
-    return false;
 }

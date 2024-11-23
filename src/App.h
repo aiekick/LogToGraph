@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ezlibs/ezApp.hpp>
+#include <EzLibs/EzApp.hpp>
 
 class App : ez::App {
 public:

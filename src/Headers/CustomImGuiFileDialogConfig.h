@@ -149,7 +149,7 @@ limitations under the License.
 // #define defaultSortOrderDate true
 // #define defaultSortOrderThumbnails true
 
-//#define USE_PLACES_FEATURE
+#define USE_PLACES_FEATURE
 #define PLACES_PANE_DEFAULT_SHOWN true
 #define placesPaneWith 200.0f.0f
 // #define IMGUI_TOGGLE_BUTTON ToggleButton

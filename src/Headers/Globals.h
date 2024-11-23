@@ -10,8 +10,8 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <ImGuiPack/ImGuiPack.h>
-#include <ezlibs/ezMath.hpp>
+#include <ImGuiPack.h>
+#include <ezlibs/ezTools.hpp>
 
 typedef const char* ImGuiLabel;
 

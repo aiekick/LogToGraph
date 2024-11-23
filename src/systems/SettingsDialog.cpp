@@ -123,9 +123,9 @@ std::string SettingsDialog::getXml(const std::string& vOffset, const std::string
         auto ptr = cat.second.lock();
         if (ptr != nullptr) {
             if (vUserDatas == "app") {
-                str += ptr->GetXmlSettings(vOffset + "\t", Sto::ISettingsType::APP);
+                str += ptr->GetXmlSettings(vOffset + "\t", Ltg::ISettingsType::APP);
             } else if (vUserDatas == "project") {
-                str += ptr->GetXmlSettings(vOffset + "\t", Sto::ISettingsType::PROJECT);
+                str += ptr->GetXmlSettings(vOffset + "\t", Ltg::ISettingsType::PROJECT);
             } else {
                 EZ_TOOLS_DEBUG_BREAK; // ERROR
             }
@@ -137,7 +137,7 @@ std::string SettingsDialog::getXml(const std::string& vOffset, const std::string
     return str;
 }
 
-bool SettingsDialog::setFromXml(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
+bool SettingsDialog::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
     UNUSED(vUserDatas);
     const auto& strName = vNode.getName();
     const auto& strValue = vNode.getContent();
@@ -147,10 +147,10 @@ bool SettingsDialog::setFromXml(const ez::xml::Node& vNode, const ez::xml::Node&
         auto ptr = cat.second.lock();
         if (ptr != nullptr) {
             if (vUserDatas == "app") {
-                ptr->SetXmlSettings(strName, strParentName, strValue, Sto::ISettingsType::APP);
+                ptr->SetXmlSettings(strName, strParentName, strValue, Ltg::ISettingsType::APP);
                 RecursParsingConfigChilds(vNode, vUserDatas);
             } else if (vUserDatas == "project") {
-                ptr->SetXmlSettings(strName, strParentName, strValue, Sto::ISettingsType::PROJECT);
+                ptr->SetXmlSettings(strName, strParentName, strValue, Ltg::ISettingsType::PROJECT);
                 RecursParsingConfigChilds(vNode, vUserDatas);
             } else {
                 EZ_TOOLS_DEBUG_BREAK;  // ERROR

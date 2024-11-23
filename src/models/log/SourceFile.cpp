@@ -18,8 +18,7 @@ limitations under the License.
 */
 
 #include "SourceFile.h"
-
-#include <ctools/FileHelper.h>
+#include <ezlibs/ezFile.hpp>
 
 SourceFilePtr SourceFile::Create()
 {
@@ -35,10 +34,6 @@ SourceFilePtr SourceFile::Create(const SourceFileName& vSourceFileName)
 	res->SetSourceFilePathName(vSourceFileName);
 	return res;
 }
-
-SourceFile::SourceFile() = default;
-
-SourceFile::~SourceFile() = default;
 
 void SourceFile::SetSourceFilePathName(const SourceFileName& vSourceFileName)
 {
@@ -74,27 +69,4 @@ void SourceFile::SetEpochOffset(const EpochOffset& vEpohOffset)
 EpochOffset SourceFile::GetEpochOffset() const
 {
 	return m_EpochOffset;
-}
-
-std::string SourceFile::getXml(const std::string& /*vOffset*/, const std::string& /*vUserDatas*/)
-{
-	std::string str;
-
-	return str;
-}
-
-bool SourceFile::setFromXml(tinyxml2::XMLElement* vElem, tinyxml2::XMLElement* vParent, const std::string& /*vUserDatas*/)
-{
-	// The value of this child identifies the name of this element
-	std::string strName;
-	std::string strValue;
-	std::string strParentName;
-
-	strName = vElem->Value();
-	if (vElem->GetText())
-		strValue = vElem->GetText();
-	if (vParent != nullptr)
-		strParentName = vParent->Value();
-
-	return true;
 }

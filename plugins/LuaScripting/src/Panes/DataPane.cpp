@@ -5,7 +5,7 @@
 #include <ImGuiPack.h>
 #include <cinttypes>  // printf zu
 
-#include <ezlibs/ezStr.hpp>
+#include <EzLibs/EzStr.hpp>
 
 DataPane::DataPane() = default;
 DataPane::~DataPane() {

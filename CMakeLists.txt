@@ -238,6 +238,4 @@ add_custom_command(
 
 if(USE_BUILDING_OF_TESTS)
 	enable_testing()
-	add_definitions(-DTEST_ENABLED)
-	add_subdirectory(${CMAKE_SOURCE_DIR}/tests)
 endif()

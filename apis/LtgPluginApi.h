@@ -26,7 +26,7 @@ limitations under the License.
 
 #include "ILayoutPane.h"
 
-namespace Sto {
+namespace Ltg {
 
 class ProjectInterface {
 public:
@@ -214,7 +214,7 @@ public:
     virtual bool newFrame() = 0;
     virtual bool needUpdate() = 0;
     virtual const char* getLabel() = 0;
-    virtual bool draw(const Sto::Prices& vPrices) = 0;
+    virtual bool draw(const Ltg::Prices& vPrices) = 0;
     virtual bool drawSettings(const IndicatorSettingsType& vType) = 0;
 };
 
@@ -318,7 +318,7 @@ struct PluginInterface {
     virtual std::string GetContact() const = 0;
     virtual std::string GetDescription() const = 0;
     virtual std::vector<PluginModuleInfos> GetModulesInfos() const = 0;
-    virtual PluginModulePtr CreateModule(const std::string& vPluginModuleName, Sto::PluginBridge* vBridgePtr) = 0;
+    virtual PluginModulePtr CreateModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) = 0;
     virtual std::vector<PluginPaneConfig> GetPanes() const = 0;
     virtual std::vector<PluginSettingsConfig> GetSettings() const = 0;
 };

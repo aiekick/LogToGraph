@@ -20,12 +20,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <implot/implot.h>
-#include <ctools/cTools.h>
 #include <Headers/Globals.h>
-#include <tinyxml2/tinyxml2.h>
-#include <ctools/ConfigAbstract.h>
-#include <Panes/Abstract/AbstractPane.h>
 
 /*
 sera rattaché a chaque graph, groupé ou seuls

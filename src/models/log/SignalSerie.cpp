@@ -18,7 +18,6 @@ limitations under the License.
 */
 
 #include "SignalSerie.h"
-#include <ctools/cTools.h>
 #include <models/log/SignalTick.h>
 #include <models/graphs/GraphAnnotation.h>
 
@@ -28,10 +27,6 @@ SignalSeriePtr SignalSerie::Create()
 	res->m_This = res;
 	return res;
 }
-
-SignalSerie::SignalSerie() = default;
-
-SignalSerie::~SignalSerie() = default;
 
 void SignalSerie::InsertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount)
 {

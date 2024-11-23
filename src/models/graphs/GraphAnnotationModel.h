@@ -18,9 +18,8 @@ limitations under the License.
 
 #include <memory>
 #include <vector>
-#include <ctools/cTools.h>
 #include <Headers/Globals.h>
-#include <implot/implot.h>
+#include <ImGuiPack.h>
 
 class GraphAnnotationModel
 {

@@ -1,7 +1,7 @@
 #include <core/managers/PluginManager.h>
 
-#include <ezlibs/ezFile.hpp>
-#include <ezlibs/ezMath.hpp>
+#include <EzLibs/EzFile.hpp>
+#include <EzLibs/EzMath.hpp>
 
 namespace fs = std::filesystem;
 
@@ -18,7 +18,7 @@ PluginInstance::~PluginInstance() {
 
 PluginReturnMsg PluginInstance::init(const std::string& vName, const std::string& vFilePathName) {
     m_Name = vName;
-    m_Loader = dlloader::DLLoader<Sto::PluginInterface>(vFilePathName);
+    m_Loader = dlloader::DLLoader<Ltg::PluginInterface>(vFilePathName);
     m_Loader.DLOpenLib();
     m_PluginInstance = m_Loader.DLGetInstance();
     if (m_Loader.IsAPlugin()) {
@@ -68,7 +68,7 @@ void PluginManager::unloadPlugins() {
     m_Plugins.clear();
 }
 
-void PluginManager::loadPlugins(const std::string& vAppPath, const std::set<Sto::PluginModuleType> vTypesToLoad) {
+void PluginManager::loadPlugins(const std::string& vAppPath, const std::set<Ltg::PluginModuleType> vTypesToLoad) {
     printf("-----------\n");
     LogVarLightInfo("Availables Plugins :\n");
     auto plugin_directory = std::filesystem::path(vAppPath).append("plugins");
@@ -84,10 +84,10 @@ void PluginManager::loadPlugins(const std::string& vAppPath, const std::set<Sto:
     printf("-----------\n");
 }
 
-Sto::IndicatorComputingPtr PluginManager::getIndicatorPtr(const std::string& vIndicatorName) {
+Ltg::IndicatorComputingPtr PluginManager::getIndicatorPtr(const std::string& vIndicatorName) {
     auto ptr = createPluginModule(vIndicatorName);
     if (ptr != nullptr) {
-        auto indicatorPtr = std::dynamic_pointer_cast<Sto::IndicatorComputing>(ptr);
+        auto indicatorPtr = std::dynamic_pointer_cast<Ltg::IndicatorComputing>(ptr);
         if (indicatorPtr != nullptr) {
             return indicatorPtr; // the plugin will retain the pointer, he must free it
         } else {
@@ -97,8 +97,8 @@ Sto::IndicatorComputingPtr PluginManager::getIndicatorPtr(const std::string& vIn
     return nullptr;
 }
 
-std::vector<Sto::PluginModuleInfos> PluginManager::getPluginModulesInfos() const {
-    std::vector<Sto::PluginModuleInfos> res;
+std::vector<Ltg::PluginModuleInfos> PluginManager::getPluginModulesInfos() const {
+    std::vector<Ltg::PluginModuleInfos> res;
 
     for (auto plugin : m_Plugins) {
         if (plugin.second) {
@@ -115,7 +115,7 @@ std::vector<Sto::PluginModuleInfos> PluginManager::getPluginModulesInfos() const
     return res;
 }
 
-Sto::PluginModulePtr PluginManager::createPluginModule(const std::string& vPluginNodeName) {
+Ltg::PluginModulePtr PluginManager::createPluginModule(const std::string& vPluginNodeName) {
     if (!vPluginNodeName.empty()) {
         for (auto plugin : m_Plugins) {
             if (plugin.second) {
@@ -132,8 +132,8 @@ Sto::PluginModulePtr PluginManager::createPluginModule(const std::string& vPlugi
     return nullptr;
 }
 
-std::vector<Sto::PluginPaneConfig> PluginManager::getPluginPanes() const {
-    std::vector<Sto::PluginPaneConfig> pluginsPanes;
+std::vector<Ltg::PluginPaneConfig> PluginManager::getPluginPanes() const {
+    std::vector<Ltg::PluginPaneConfig> pluginsPanes;
     for (auto plugin : m_Plugins) {
         if (plugin.second) {
             auto pluginInstancePtr = plugin.second->get().lock();
@@ -148,8 +148,8 @@ std::vector<Sto::PluginPaneConfig> PluginManager::getPluginPanes() const {
     return pluginsPanes;
 }
 
-std::vector<Sto::PluginSettingsConfig> PluginManager::getPluginSettings() const {
-    std::vector<Sto::PluginSettingsConfig> pluginSettings;
+std::vector<Ltg::PluginSettingsConfig> PluginManager::getPluginSettings() const {
+    std::vector<Ltg::PluginSettingsConfig> pluginSettings;
     for (auto plugin : m_Plugins) {
         if (plugin.second) {
             auto pluginInstancePtr = plugin.second->get().lock();
@@ -168,7 +168,7 @@ std::vector<Sto::PluginSettingsConfig> PluginManager::getPluginSettings() const 
 //// PRIVATE /////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
-void PluginManager::m_loadPlugin(const fs::directory_entry& vEntry, const std::set<Sto::PluginModuleType> vTypesToLoad) {
+void PluginManager::m_loadPlugin(const fs::directory_entry& vEntry, const std::set<Ltg::PluginModuleType> vTypesToLoad) {
     if (vEntry.is_directory()) {
         const auto dir_iter = std::filesystem::directory_iterator(vEntry);
         for (const auto& file : dir_iter) {

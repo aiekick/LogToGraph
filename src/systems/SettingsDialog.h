@@ -1,13 +1,13 @@
 #pragma once
 
-#include <ezlibs/ezXmlConfig.hpp>
-#include <apis/StrockerPluginApi.h>
+#include <EzLibs/EzXmlConfig.hpp>
+#include <apis/LtgPluginApi.h>
 
 class SettingsDialog : public ez::xml::Config {
 public:
-    std::map<Sto::SettingsCategoryPath, Sto::ISettingsWeak> m_SettingsPerCategoryPath;
+    std::map<Ltg::SettingsCategoryPath, Ltg::ISettingsWeak> m_SettingsPerCategoryPath;
     bool m_ShowDialog = false;
-    Sto::SettingsCategoryPath m_SelectedCategoryPath;
+    Ltg::SettingsCategoryPath m_SelectedCategoryPath;
 
 public:
     bool init();
@@ -18,8 +18,8 @@ public:
 
     bool Draw();
 
-    std::string getXml(const std::string& vOffset, const std::string& vUserDatas = "") override;
-    bool setFromXml(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
+    ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;
+    bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
 
 private:
     void m_DrawCategoryPanes();

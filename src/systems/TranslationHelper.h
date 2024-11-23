@@ -16,7 +16,7 @@ limitations under the License.
 
 #pragma once
 
-#include <ezlibs/ezXmlConfig.hpp>
+#include <EzLibs/EzXmlConfig.hpp>
 #include <string>
 
 enum class LanguageEnum
@@ -50,7 +50,7 @@ private:
 
 public: // configuration
 	std::string getXml(const std::string& vOffset, const std::string& vUserDatas) override;
-	bool setFromXml(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
+	bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
 
 public:
 	static TranslationHelper* Instance()
