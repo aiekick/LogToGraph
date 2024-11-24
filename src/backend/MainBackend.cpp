@@ -353,7 +353,7 @@ bool MainBackend::m_InitWindow() {
         return false;
 
     // GL 3.0 + GLSL 130
-    m_GlslVersion = "#version 130";
+    m_glslVersion = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_SAMPLES, 4);
@@ -423,7 +423,7 @@ bool MainBackend::m_InitImGui() {
 
     // Setup Platform/Renderer bindings
     if (ImGui_ImplGlfw_InitForOpenGL(m_MainWindowPtr, true) &&  //
-        ImGui_ImplOpenGL3_Init(m_GlslVersion)) {
+        ImGui_ImplOpenGL3_Init(m_glslVersion)) {
         // ui init
         if (MainFrontend::Instance()->init()) {
             iagp::InAppGpuProfiler::Instance()->Clear();

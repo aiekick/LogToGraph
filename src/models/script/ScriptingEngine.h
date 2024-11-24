@@ -34,7 +34,7 @@ public:
     static std::atomic<double> s_progress;
     static std::atomic<double> s_generationTime;
 
-private:  // script objects
+private:                                       // script objects
     std::string m_scriptDescription;           // infos about script file
     std::string m_rowBufferContent;            // content of the buffer row
     std::string m_scriptFuncToCallForEachRow;  // the function to call for each lines
@@ -46,8 +46,8 @@ private:  // Misc
     SourceFilePathName m_scriptFilePathName;
     std::vector<SourceFilePathName> m_sourceFilePathNames;
     typedef std::string ScriptingModuleName;
-    std::vector<ScriptingModuleName> m_scriptingModuleNames;
     std::map<ScriptingModuleName, Ltg::ScriptingModulePtr> m_scriptingModules;
+    ImWidgets::QuickStringCombo m_scriptingModuleCombo;
 
 private:  // thread
     std::thread m_WorkerThread;
@@ -96,12 +96,11 @@ public:
     void Join();
     bool FinishIfRequired();
 
+    bool drawMenu();
+    bool isValidScriptingSelected() const;
+
 private:
     void m_run(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime);
-    bool m_compileScript(const std::string& vFilePathName);
-    bool m_callScriptInit();
-    bool m_callScriptExec(const std::string& vRow);
-    bool m_callScriptEnd();
     void m_getAvailableScriptingModules();
 
 public:  // configuration
@@ -115,8 +114,8 @@ public:  // singleton
     }
 
 public:
-    ScriptingEngine() = default;                                     // Prevent construction
+    ScriptingEngine() = default;                                           // Prevent construction
     ScriptingEngine(const ScriptingEngine&) = delete;                      // Prevent construction by copying
     ScriptingEngine& operator=(const ScriptingEngine&) { return *this; };  // Prevent assignment
-    virtual ~ScriptingEngine() = default;                            // Prevent unwanted destruction};
+    virtual ~ScriptingEngine() = default;                                  // Prevent unwanted destruction};
 };

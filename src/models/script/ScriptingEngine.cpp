@@ -68,86 +68,76 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
 
     const int64_t firstTimeMark = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
+    Ltg::ScriptingModulePtr scriptingPtr = nullptr;
+
     s_workerThread_Mutex.lock();
 
+    const auto selectedScripting = m_scriptingModuleCombo.getText();
+    if (m_scriptingModules.find(selectedScripting) != m_scriptingModules.end()) {
+        scriptingPtr = m_scriptingModules.at(selectedScripting);
+    }
     const auto scriptFilePathName = m_scriptFilePathName;
     const auto sourceFilePathNames = m_sourceFilePathNames;
 
     s_workerThread_Mutex.unlock();
 
-    std::string lua_Current_Buffer_Row_Var_Name;    // current line of buffer
-    std::string lua_Function_To_Call_For_Each_Row;  // the function to call for each lines
-    std::string lua_Function_To_Call_End_File;      // the fucntion to call for the end of the file
-    int32_t lua_Row_Index = 0;                      // the current line pos read from file
-    int32_t lua_Row_Count = 0;                      // the current line pos read from file
+    int32_t rowIndex = 0;  // the current line pos read from file
+    int32_t rowCount = 0;  // the current line pos read from file
 
     if (!scriptFilePathName.empty()) {
         if (ez::file::isFileExist(scriptFilePathName)) {
-            LogEngine::Instance()->Clear();
-            GraphView::Instance()->Clear();
-            DataBase::Instance()->OpenDBFile(ProjectFile::Instance()->m_ProjectFilePathName);
-            DataBase::Instance()->ClearDataTables();
-            for (const auto& source_file : sourceFilePathNames) {
-                if (!source_file.empty() && ez::file::isFileExist(source_file)) {
-                    auto file_string = ez::file::loadFileToString(source_file);
-                    if (!file_string.empty()) {
-                        try {
-                            source_file_id = DataBase::Instance()->AddSourceFile(source_file);
-                            DataBase::Instance()->BeginTransaction();
-                            if (!m_compileScript(scriptFilePathName)) {
-                                LogVarLightError("Fail to compile script \"%s\"", scriptFilePathName.c_str());
-                            } else {
-                                if (m_callScriptInit()) {
-                                    auto file_lines = ez::str::splitStringToVector(file_string, '\n');
-                                    lua_Row_Count = (int32_t)file_lines.size();
-                                    SetRowCount(lua_Row_Count);
-                                    lua_Row_Index = 0U;
-                                    for (auto lua_Current_Buffer_Row_Content : file_lines) {
-                                        if (!vWorking) {
-                                            break;
+            if (scriptingPtr->load()) {
+                LogEngine::Instance()->Clear();
+                GraphView::Instance()->Clear();
+                DataBase::Instance()->OpenDBFile(ProjectFile::Instance()->m_ProjectFilePathName);
+                DataBase::Instance()->ClearDataTables();
+                for (const auto& sourceFilePathName : sourceFilePathNames) {
+                    if (!sourceFilePathName.empty() && ez::file::isFileExist(sourceFilePathName)) {
+                        const auto fileContent = ez::file::loadFileToString(sourceFilePathName);
+                        if (!fileContent.empty()) {
+                            try {
+                                source_file_id = DataBase::Instance()->AddSourceFile(sourceFilePathName);
+                                DataBase::Instance()->BeginTransaction();
+                                Ltg::ErrorContainer errorContainer;
+                                if (!scriptingPtr->compileScript(scriptFilePathName, errorContainer)) {
+                                    LogVarLightError("Fail to compile script \"%s\"", scriptFilePathName.c_str());
+                                } else {
+                                    if (scriptingPtr->callScriptInit(errorContainer)) {
+                                        const auto fileLines = ez::str::splitStringToVector(fileContent, '\n');
+                                        rowCount = (int32_t)fileLines.size();
+                                        SetRowCount(rowCount);
+                                        rowIndex = 0U;
+                                        Ltg::ScriptingDatas datas;
+                                        for (const auto& rowContent : fileLines) {
+                                            if (!vWorking) {
+                                                break;
+                                            }
+                                            const int64_t secondTimeMark = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+                                            vGenerationTime = (double)(secondTimeMark - firstTimeMark) / 1000.0;
+                                            vProgress = (double)rowIndex / (double)rowCount;
+                                            SetRowIndex(rowIndex++);
+                                            datas.buffer = std::move(rowContent);
+                                            scriptingPtr->callScriptExec(datas, errorContainer);
                                         }
-                                        SetRowIndex(lua_Row_Index);
-                                        const int64_t secondTimeMark = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-                                        vGenerationTime = (double)(secondTimeMark - firstTimeMark) / 1000.0;
-                                        vProgress = (double)lua_Row_Index / (double)lua_Row_Count;
-                                        m_callScriptExec(lua_Current_Buffer_Row_Content);
-                                        ++lua_Row_Index;
+                                        scriptingPtr->callScriptEnd(errorContainer);
                                     }
-                                    m_callScriptEnd();
                                 }
+                                DataBase::Instance()->CommitTransaction();
+                            } catch (std::exception& e) {
+                                LogVarLightError("%s", e.what());
+                                DataBase::Instance()->RollbackTransaction();
                             }
-                            DataBase::Instance()->CommitTransaction();
-                        } catch (std::exception& e) {
-                            LogVarLightError("%s", e.what());
-                            DataBase::Instance()->RollbackTransaction();
                         }
                     }
                 }
-            }
-
-            // retrieve datas from database
-            LogEngine::Instance()->Finalize();
-            DataBase::Instance()->CloseDBFile();
+                LogEngine::Instance()->Finalize();  // retrieve datas from database
+                DataBase::Instance()->CloseDBFile();
+                scriptingPtr->unload();
+            }            
         }
     }
 
     vWorking = false;
-}
-
-bool ScriptingEngine::m_compileScript(const std::string& vFilePathName) {
-    return true;
-}
-
-bool ScriptingEngine::m_callScriptInit() {
-    return true;
-}
-
-bool ScriptingEngine::m_callScriptExec(const std::string& vRow) {
-    return true;
-}
-
-bool ScriptingEngine::m_callScriptEnd() {
-    return true;
 }
 
 ///////////////////////////////////////////////////
@@ -166,7 +156,7 @@ bool ScriptingEngine::Init() {
 
 void ScriptingEngine::Unit() {
     m_scriptingModules.clear();
-    m_scriptingModuleNames.clear();
+    m_scriptingModuleCombo.clear();
 }
 
 void ScriptingEngine::SetInfos(const std::string& vInfos) {
@@ -294,6 +284,17 @@ bool ScriptingEngine::FinishIfRequired() {
     return false;
 }
 
+bool ScriptingEngine::drawMenu() {
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    return m_scriptingModuleCombo.display(0.0f, "Scripting");
+}
+
+bool ScriptingEngine::isValidScriptingSelected() const {
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    const auto selectedScripting = m_scriptingModuleCombo.getText();
+    return (m_scriptingModules.find(selectedScripting) != m_scriptingModules.end());
+}
+
 ///////////////////////////////////////////////////////
 //// CONFIGURATION ////////////////////////////////////
 ///////////////////////////////////////////////////////
@@ -316,15 +317,15 @@ bool ScriptingEngine::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml:
 ///////////////////////////////////////////////////////
 
 void ScriptingEngine::m_getAvailableScriptingModules() {
-    m_scriptingModuleNames.clear();
-    m_scriptingModuleNames.push_back("None");
+    m_scriptingModuleCombo.clear();
+    m_scriptingModuleCombo.getArrayRef().push_back("None");
     auto modules = PluginManager::Instance()->getPluginModulesInfos();
     for (const auto& mod : modules) {
         if (mod.type == Ltg::PluginModuleType::SCRIPTING) {
             auto ptr = std::dynamic_pointer_cast<Ltg::ScriptingModule>(PluginManager::Instance()->createPluginModule(mod.label));
             if (ptr != nullptr) {
                 m_scriptingModules[mod.label] = ptr;
-                m_scriptingModuleNames.push_back(mod.label);
+                m_scriptingModuleCombo.getArrayRef().push_back(mod.label);
             }
         }
     }

@@ -23,7 +23,7 @@ PluginReturnMsg PluginInstance::init(const std::string& vName, const std::string
     if (m_Loader.IsAPlugin()) {
         if (m_Loader.IsValid()) {
             if (m_PluginInstance) {
-                if (!m_PluginInstance->Init()) {
+                if (!m_PluginInstance->init()) {
                     m_PluginInstance.reset();
                 } else {
                     return PluginReturnMsg::LOADING_SUCCEED;
@@ -37,7 +37,7 @@ PluginReturnMsg PluginInstance::init(const std::string& vName, const std::string
 
 void PluginInstance::unit() {
     if (m_PluginInstance != nullptr) {
-        m_PluginInstance->Unit();
+        m_PluginInstance->unit();
     }
     m_PluginInstance.reset();
     m_Loader.DLCloseLib();
@@ -90,7 +90,7 @@ std::vector<Ltg::PluginModuleInfos> PluginManager::getPluginModulesInfos() const
         if (plugin.second) {
             auto pluginInstancePtr = plugin.second->get().lock();
             if (pluginInstancePtr != nullptr) {
-                auto lib_entrys = pluginInstancePtr->GetModulesInfos();
+                auto lib_entrys = pluginInstancePtr->getModulesInfos();
                 if (!lib_entrys.empty()) {
                     res.insert(res.end(), lib_entrys.begin(), lib_entrys.end());
                 }
@@ -107,7 +107,7 @@ Ltg::PluginModulePtr PluginManager::createPluginModule(const std::string& vPlugi
             if (plugin.second) {
                 auto pluginInstancePtr = plugin.second->get().lock();
                 if (pluginInstancePtr != nullptr) {
-                    auto ptr = pluginInstancePtr->CreateModule(vPluginNodeName, this);
+                    auto ptr = pluginInstancePtr->createModule(vPluginNodeName, this);
                     if (ptr != nullptr) {
                         return ptr;
                     }
@@ -124,7 +124,7 @@ std::vector<Ltg::PluginPaneConfig> PluginManager::getPluginPanes() const {
         if (plugin.second) {
             auto pluginInstancePtr = plugin.second->get().lock();
             if (pluginInstancePtr) {
-                auto _pluginPanes = pluginInstancePtr->GetPanes();
+                auto _pluginPanes = pluginInstancePtr->getPanes();
                 if (!_pluginPanes.empty()) {
                     pluginsPanes.insert(pluginsPanes.end(), _pluginPanes.begin(), _pluginPanes.end());
                 }
@@ -140,7 +140,7 @@ std::vector<Ltg::PluginSettingsConfig> PluginManager::getPluginSettings() const 
         if (plugin.second) {
             auto pluginInstancePtr = plugin.second->get().lock();
             if (pluginInstancePtr) {
-                auto _pluginSettings = pluginInstancePtr->GetSettings();
+                auto _pluginSettings = pluginInstancePtr->getSettings();
                 if (!_pluginSettings.empty()) {
                     pluginSettings.insert(pluginSettings.end(), _pluginSettings.begin(), _pluginSettings.end());
                 }
@@ -183,7 +183,7 @@ void PluginManager::m_loadPlugin(const fs::directory_entry& vEntry, const std::s
                                     // we will load only authorized types, if there is at least one authorized type per plugin we load the plugin
                                     // else no types are ok for a plugin we unload it
                                     if (!vTypesToLoad.empty()) {
-                                        const auto& modules = pluginInstancePtr->GetModulesInfos();
+                                        const auto& modules = pluginInstancePtr->getModulesInfos();
                                         for (const auto& m : modules) {
                                             if (vTypesToLoad.find(m.type) != vTypesToLoad.end()) {
                                                 // au moin un des type est autorisé. donc on va charger le plugin
@@ -219,8 +219,8 @@ void PluginManager::m_displayLoadedPlugins() {
             if (plugin.second != nullptr) {
                 auto plugin_instance_ptr = plugin.second->get().lock();
                 if (plugin_instance_ptr != nullptr) {
-                    max_name_size = ez::maxi(max_name_size, plugin_instance_ptr->GetName().size() + minimal_space);
-                    max_vers_size = ez::maxi(max_vers_size, plugin_instance_ptr->GetVersion().size() + minimal_space);
+                    max_name_size = ez::maxi(max_name_size, plugin_instance_ptr->getName().size() + minimal_space);
+                    max_vers_size = ez::maxi(max_vers_size, plugin_instance_ptr->getVersion().size() + minimal_space);
                 }
             }
         }
@@ -228,11 +228,11 @@ void PluginManager::m_displayLoadedPlugins() {
             if (plugin.second != nullptr) {
                 auto plugin_instance_ptr = plugin.second->get().lock();
                 if (plugin_instance_ptr != nullptr) {
-                    const auto& name = plugin_instance_ptr->GetName();
+                    const auto& name = plugin_instance_ptr->getName();
                     const auto& name_space = std::string(max_name_size - name.size(), ' ');  // 32 is a space in ASCII
-                    const auto& vers = plugin_instance_ptr->GetVersion();
+                    const auto& vers = plugin_instance_ptr->getVersion();
                     const auto& vers_space = std::string(max_vers_size - vers.size(), ' ');  // 32 is a space in ASCII
-                    const auto& desc = plugin_instance_ptr->GetDescription();
+                    const auto& desc = plugin_instance_ptr->getDescription();
                     LogVarLightInfo("Plugin loaded : %s%sv%s%s(%s)",  //
                                     name.c_str(),
                                     name_space.c_str(),  //

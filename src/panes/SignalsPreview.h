@@ -41,7 +41,7 @@ public:
 private:
     void DrawTable();
     int CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize, ImVec2& vOutButtonSize);
-    int DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, ImVec2 vGlyphSize);
+    int DrawSignalButton(SignalTickPtr vPtr, ImVec2 vGlyphSize);
 
 public:  // singleton
     static std::shared_ptr<SignalsPreview> Instance() {

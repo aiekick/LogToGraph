@@ -27,77 +27,72 @@ PLUGIN_PREFIX void deleter(LuaScripting* ptr) {
 
 #include <Modules/Module.h>
 
-LuaScripting::LuaScripting() {
-#ifdef _MSC_VER
-    // active memory leak detector
-    //_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-}
+LuaScripting::LuaScripting() = default;
 
-bool LuaScripting::Init() {
+bool LuaScripting::init() {
     m_SettingsPtr = std::make_shared<Settings>();
     return true;
 }
 
-void LuaScripting::Unit() {
+void LuaScripting::unit() {
     m_SettingsPtr.reset();
 }
 
-uint32_t LuaScripting::GetMinimalStrockerVersionSupported() const {
+uint32_t LuaScripting::getMinimalAppVersionSupported() const {
     return 0U;
 }
 
-uint32_t LuaScripting::GetVersionMajor() const {
+uint32_t LuaScripting::getVersionMajor() const {
     return LuaScripting_MinorNumber;
 }
 
-uint32_t LuaScripting::GetVersionMinor() const {
+uint32_t LuaScripting::getVersionMinor() const {
     return LuaScripting_MajorNumber;
 }
 
-uint32_t LuaScripting::GetVersionBuild() const {
+uint32_t LuaScripting::getVersionBuild() const {
     return LuaScripting_BuildNumber;
 }
 
-std::string LuaScripting::GetName() const {
+std::string LuaScripting::getName() const {
     return "LuaScripting";
 }
 
-std::string LuaScripting::GetAuthor() const {
+std::string LuaScripting::getAuthor() const {
     return "Stephane Cuillerdier";
 }
 
-std::string LuaScripting::GetVersion() const {
+std::string LuaScripting::getVersion() const {
     return LuaScripting_BuildId;
 }
 
-std::string LuaScripting::GetContact() const {
-    return "strocker@funparadigm.com";
+std::string LuaScripting::getContact() const {
+    return "aiekick@funparadigm.com";
 }
 
-std::string LuaScripting::GetDescription() const {
-    return "Yahoo data broker";
+std::string LuaScripting::getDescription() const {
+    return "Lua Scripting plugin for LogToGraph";
 }
 
-std::vector<Ltg::PluginModuleInfos> LuaScripting::GetModulesInfos() const {
+std::vector<Ltg::PluginModuleInfos> LuaScripting::getModulesInfos() const {
     std::vector<Ltg::PluginModuleInfos> res;
     res.push_back(Ltg::PluginModuleInfos("", "Lua", Ltg::PluginModuleType::SCRIPTING));
     return res;
 }
 
-Ltg::PluginModulePtr LuaScripting::CreateModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) {
+Ltg::PluginModulePtr LuaScripting::createModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) {
     if (vPluginModuleName == "Lua") {
         return Module::create(m_SettingsPtr);
     }
     return nullptr;
 }
 
-std::vector<Ltg::PluginPaneConfig> LuaScripting::GetPanes() const {
+std::vector<Ltg::PluginPaneConfig> LuaScripting::getPanes() const {
     std::vector<Ltg::PluginPaneConfig> res;
     return res;
 }
 
-std::vector<Ltg::PluginSettingsConfig> LuaScripting::GetSettings() const {
+std::vector<Ltg::PluginSettingsConfig> LuaScripting::getSettings() const {
     std::vector<Ltg::PluginSettingsConfig> res;
     res.push_back(Ltg::PluginSettingsConfig(m_SettingsPtr));
     return res;

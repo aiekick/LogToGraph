@@ -31,8 +31,6 @@ limitations under the License.
 #include <models/graphs/GraphView.h>
 #include <models/script/ScriptingEngine.h>
 
-static int GeneratorPaneWidgetId = 0;
-
 ///////////////////////////////////////////////////////////////////////////////////
 //// OVERRIDES ////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -65,8 +63,7 @@ bool LogPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiC
 
         ImGui::End();
     }
-
-    return GeneratorPaneWidgetId;
+    return change;
 }
 
 void LogPane::Clear() {

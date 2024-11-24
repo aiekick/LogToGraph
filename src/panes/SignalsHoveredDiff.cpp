@@ -26,7 +26,6 @@ limitations under the License.
 #include <models/log/SignalSerie.h>
 #include <models/log/SignalTick.h>
 
-static int SourcePane_WidgetId = 0;
 static GraphColor s_DefaultGraphColors;
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -63,8 +62,7 @@ bool SignalsHoveredDiff::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpe
 
         ImGui::End();
     }
-
-    return SourcePane_WidgetId;
+    return change;
 }
 
 void SignalsHoveredDiff::CheckItem(const SignalTickPtr& vSignalTick) {

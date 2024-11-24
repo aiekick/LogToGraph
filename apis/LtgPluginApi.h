@@ -77,9 +77,9 @@ enum class ISettingsType {
 
 struct IXmlSettings {
     // will be called by the saver
-    virtual ez::xml::Nodes GetXmlSettings(const ISettingsType& vType) const = 0;
+    virtual ez::xml::Nodes getXmlSettings(const ISettingsType& vType) const = 0;
     // will be called by the loader
-    virtual void SetXmlSettings(const ez::xml::Node& vName, const ez::xml::Node& vParent, const std::string& vValue, const ISettingsType& vType) = 0;
+    virtual void setXmlSettings(const ez::xml::Node& vName, const ez::xml::Node& vParent, const std::string& vValue, const ISettingsType& vType) = 0;
 };
 
 struct PluginParam {
@@ -116,22 +116,49 @@ struct PluginModuleInfos {
 };
 
 struct ISettings : public IXmlSettings {
-public:
-    // get the categroy path of the settings for the mebnu display. ex: "plugins/apis"
-    virtual SettingsCategoryPath GetCategory() const = 0;
+    virtual ~ISettings() = default;
+    // get the category path of the settings for the mebnu display. ex: "plugins/apis"
+    virtual SettingsCategoryPath getCategory() const = 0;
     // will be called by the loader for inform the pluign than he must load somethings if any
-    virtual bool LoadSettings() = 0;
+    virtual bool loadSettings() = 0;
     // will be called by the saver for inform the pluign than he must save somethings if any, by ex: temporary vars
-    virtual bool SaveSettings() = 0;
+    virtual bool saveSettings() = 0;
     // will draw custom settings via imgui
-    virtual bool DrawSettings() = 0;
+    virtual bool drawSettings() = 0;
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;
 typedef std::weak_ptr<ISettings> ISettingsWeak;
 
-struct ScriptingModule : public PluginModule {
+typedef std::string ScriptFilePathName;
 
+struct ScriptingError {
+    ScriptFilePathName file;
+    size_t line = 0;
+    size_t column = 0;
+};
+typedef std::vector<ScriptingError> ErrorContainer;
+
+struct ScriptingDatas {
+    std::string buffer;
+};
+
+struct ScriptingModule : public PluginModule {
+    virtual ~ScriptingModule() = default;
+    // will load the related scripting engine
+    virtual bool load() = 0;
+    // will unload the related scripting engine
+    virtual void unload() = 0;
+    // will compile the script and return errors
+    virtual bool compileScript(const ScriptFilePathName& vFilePathName, ErrorContainer& vOutErrors) = 0;
+    // will call the init function from script and return errors
+    virtual bool callScriptInit(ErrorContainer& vOutErrors) = 0;
+    // will call the start function from script and return errors
+    virtual bool callScriptStart(ErrorContainer& vOutErrors) = 0;
+    // will call the exec function from script with a buffer and return errors
+    virtual bool callScriptExec(const ScriptingDatas& vOutDatas, ErrorContainer& vErrors) = 0;
+    // will call the end function from script and return errors
+    virtual bool callScriptEnd(ErrorContainer& vOutErrors) = 0;
 };
 
 typedef std::shared_ptr<ScriptingModule> ScriptingModulePtr;
@@ -143,23 +170,22 @@ struct PluginSettingsConfig {
 };
 
 struct PluginInterface {
-    PluginInterface() = default;
     virtual ~PluginInterface() = default;
-    virtual bool Init() = 0;
-    virtual void Unit() = 0;
-    virtual uint32_t GetMinimalStrockerVersionSupported() const = 0;
-    virtual uint32_t GetVersionMajor() const = 0;
-    virtual uint32_t GetVersionMinor() const = 0;
-    virtual uint32_t GetVersionBuild() const = 0;
-    virtual std::string GetName() const = 0;
-    virtual std::string GetAuthor() const = 0;
-    virtual std::string GetVersion() const = 0;
-    virtual std::string GetContact() const = 0;
-    virtual std::string GetDescription() const = 0;
-    virtual std::vector<PluginModuleInfos> GetModulesInfos() const = 0;
-    virtual PluginModulePtr CreateModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) = 0;
-    virtual std::vector<PluginPaneConfig> GetPanes() const = 0;
-    virtual std::vector<PluginSettingsConfig> GetSettings() const = 0;
+    virtual bool init() = 0;
+    virtual void unit() = 0;
+    virtual uint32_t getMinimalAppVersionSupported() const = 0;
+    virtual uint32_t getVersionMajor() const = 0;
+    virtual uint32_t getVersionMinor() const = 0;
+    virtual uint32_t getVersionBuild() const = 0;
+    virtual std::string getName() const = 0;
+    virtual std::string getAuthor() const = 0;
+    virtual std::string getVersion() const = 0;
+    virtual std::string getContact() const = 0;
+    virtual std::string getDescription() const = 0;
+    virtual std::vector<PluginModuleInfos> getModulesInfos() const = 0;
+    virtual PluginModulePtr createModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) = 0;
+    virtual std::vector<PluginPaneConfig> getPanes() const = 0;
+    virtual std::vector<PluginSettingsConfig> getSettings() const = 0;
 };
 
 }  // namespace Ltg

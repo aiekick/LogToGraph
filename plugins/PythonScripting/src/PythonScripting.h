@@ -3,26 +3,26 @@
 #include <apis/LtgPluginApi.h>
 #include <Settings/Settings.h>
 
-class LuaScripting : public Ltg::PluginInterface {
+class PythonScripting : public Ltg::PluginInterface {
 private:
     SettingsPtr m_SettingsPtr = nullptr;  // common eettings for whole module
 
 public:
-    LuaScripting();
-    virtual ~LuaScripting() = default;
-    bool Init() override;
-    void Unit() override;
-    uint32_t GetMinimalStrockerVersionSupported() const override;
-    uint32_t GetVersionMajor() const override;
-    uint32_t GetVersionMinor() const override;
-    uint32_t GetVersionBuild() const override;
-    std::string GetName() const override;
-    std::string GetAuthor() const override;
-    std::string GetVersion() const override;
-    std::string GetContact() const override;
-    std::string GetDescription() const override;
-    std::vector<Ltg::PluginModuleInfos> GetModulesInfos() const override;
-    Ltg::PluginModulePtr CreateModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) override;
-    std::vector<Ltg::PluginPaneConfig> GetPanes() const override;
-    std::vector<Ltg::PluginSettingsConfig> GetSettings() const override;
+    PythonScripting();
+    virtual ~PythonScripting() = default;
+    bool init() override;
+    void unit() override;
+    uint32_t getMinimalAppVersionSupported() const override;
+    uint32_t getVersionMajor() const override;
+    uint32_t getVersionMinor() const override;
+    uint32_t getVersionBuild() const override;
+    std::string getName() const override;
+    std::string getAuthor() const override;
+    std::string getVersion() const override;
+    std::string getContact() const override;
+    std::string getDescription() const override;
+    std::vector<Ltg::PluginModuleInfos> getModulesInfos() const override;
+    Ltg::PluginModulePtr createModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) override;
+    std::vector<Ltg::PluginPaneConfig> getPanes() const override;
+    std::vector<Ltg::PluginSettingsConfig> getSettings() const override;
 };

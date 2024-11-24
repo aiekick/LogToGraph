@@ -1,17 +1,331 @@
 #include "Module.h"
-#include <Panes/DataPane.h>
-
 #include <ImGuiPack.h>
-
 #include <EzLibs/EzFile.hpp>
 #include <EzLibs/EzTime.hpp>
 
 #include <chrono>
 #include <ctime>
 
-using json = nlohmann::json;
+#include <lua.hpp>
 
-Ltg::DataBrockerModulePtr Module::create(const SettingsWeak& vSettings) {
+///////////////////////////////////////////////////
+/// CUSTOM LUA FUNCTIONS //////////////////////////
+///////////////////////////////////////////////////
+
+// custom print for output redirection to in app console
+// based on luaB_print in lbaselib.c
+static int lua_int_print_args(lua_State* L) {
+    std::string res;
+    int n = lua_gettop(L);
+    for (int i = 1; i <= n; i++) {
+        size_t l;
+        const char* s = lua_tolstring(L, i, &l);
+        if (i > 1) /* not the first element? */
+        {
+            res += '\t';
+        }
+        res += std::string(s, l);
+        lua_settop(L, -(n)-1);
+    }
+    res += '\n';
+    LogVarLightInfo("%s", res.c_str());
+    return 0;  // return 0 item
+}
+
+// secure string args
+static std::string get_lua_secure_string(lua_State* L, int arg_idx) {
+    size_t len;
+    auto str = lua_tolstring(L, arg_idx, &len);
+    if (str && len) {
+        return std::string(str, len);
+    }
+
+    return "";
+}
+
+// SetInfos(string)
+static int Lua_void_SetInfos_string(lua_State* L) {
+    std::string res = get_lua_secure_string(L, 1);
+
+    if (res.empty()) {
+        LogVarLightError("%s", "Lua error : string passed to SetInfos is empty");
+    } else {
+        //Controller::Instance()->SetInfos(res);
+    }
+
+    return 0;  // return 0 item
+}
+
+// SetRowBufferName(string)
+static int Lua_void_SetRowBufferName_string(lua_State* L) {
+    std::string res = get_lua_secure_string(L, 1);
+
+    if (res.empty()) {
+        LogVarLightError("%s", "Lua error : string passed to SetBufferName is empty");
+    } else {
+        //Controller::Instance()->SetRowBufferName(res);
+    }
+
+    return 0;  // return 0 item
+}
+
+// SetFunctionForEachRow(string)
+static int Lua_void_SetFunctionForEachRow_string(lua_State* L) {
+    std::string res = get_lua_secure_string(L, 1);
+
+    if (res.empty()) {
+        LogVarLightError("%s", "Lua error : string passed to SetFunctionForEachLine is empty");
+    } else {
+        //Controller::Instance()->SetFunctionForEachRow(res);
+    }
+
+    return 0;  // return 0 item
+}
+
+// SetFunctionForEndFile(string)
+static int Lua_void_SetFunctionForEndFile_string(lua_State* L) {
+    std::string res = get_lua_secure_string(L, 1);
+
+    if (res.empty()) {
+        LogVarLightError("%s", "Lua error : string passed to SetFunctionForEachLine is empty");
+    } else {
+        //Controller::Instance()->SetFunctionForEndFile(res);
+    }
+
+    return 0;  // return 0 item
+}
+
+// int GetRowIndex()
+static int Lua_int_GetRowIndex_void(lua_State* L) {
+    auto row_index = 0;
+    //Controller::Instance()->GetRowIndex();
+
+    lua_pushinteger(L, row_index);
+
+    return 1;  // return 1 item
+}
+
+// int GetRowCount()
+static int Lua_int_GetRowCount_void(lua_State* L) {
+    auto row_count = 0;
+    //Controller::Instance()->GetRowCount();
+
+    lua_pushinteger(L, row_count);
+
+    return 1;  // return 1 item
+}
+
+// LogInfos(string)
+static int Lua_void_LogInfo_string(lua_State* L) {
+    std::string res = get_lua_secure_string(L, 1);
+
+    if (res.empty()) {
+        LogVarLightError("%s", "Lua code error : the string passed to LogInfo is empty");
+    } else {
+        LogVarLightInfo("%s", res.c_str());
+    }
+
+    return 0;  // return 0 item
+}
+
+// LogWarning(string)
+static int Lua_void_LogWarning_string(lua_State* L) {
+    std::string res = get_lua_secure_string(L, 1);
+
+    if (res.empty()) {
+        LogVarLightError("%s", "Lua code error : the string passed to LogWarning is empty");
+    } else {
+        LogVarLightWarning("%s", res.c_str());
+    }
+
+    return 0;  // return 0 item
+}
+
+// LogError(string)
+static int Lua_void_LogError_string(lua_State* L) {
+    std::string res = get_lua_secure_string(L, 1);
+
+    if (res.empty()) {
+        LogVarLightError("%s", "Lua code error : the string passed to LogError is empty");
+    } else {
+        LogVarLightError("%s", res.c_str());
+    }
+
+    return 0;  // return 0 item
+}
+
+// AddSignalValue(signal_category, signal_name, signal_epoch_time, signal_value)
+static int Lua_void_AddSignalValue_category_name_date_value(lua_State* L) {
+    // params from stack
+    const auto arg_0_category = get_lua_secure_string(L, 1);
+    const auto arg_1_name = get_lua_secure_string(L, 2);
+    const auto arg_2_date = lua_tonumber(L, 3);
+    const auto arg_3_value = lua_tonumber(L, 4);
+
+    if (arg_0_category.empty() || arg_1_name.empty()) {
+        LogVarLightError("%s", "Lua code error : the category or/and name passed to AddSignalValue are empty");
+    } else {
+        //DataBase::Instance()->AddSignalTick((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_value);
+    }
+
+    return 0;  // return 0 item
+}
+
+// AddSignalTag(date, r, g, b, a, name, help)
+static int Lua_void_AddSignalTag_date_color_name_help(lua_State* L) {
+    // params from stack
+    const auto arg_1_date = lua_tonumber(L, 1);
+    const auto arg_2_color_r = lua_tointeger(L, 2);
+    const auto arg_3_color_g = lua_tointeger(L, 3);
+    const auto arg_4_color_b = lua_tointeger(L, 4);
+    const auto arg_5_color_a = lua_tointeger(L, 5);
+    const auto arg_6_name = get_lua_secure_string(L, 6);
+    const auto arg_7_help = get_lua_secure_string(L, 7);
+
+    if (arg_6_name.empty()) {
+        LogVarLightError("%s", "Lua code error : the string passed to LogValue is empty");
+    } else {
+        auto color = ImVec4((float)arg_2_color_r, (float)arg_3_color_g, (float)arg_4_color_b, (float)arg_5_color_a);
+        //DataBase::Instance()->AddSignalTag(arg_1_date, color, arg_6_name, arg_7_help);
+    }
+
+    return 0;  // return 0 item
+}
+
+// AddSignalStartZone(signal_category, signal_name, signal_epoch_time, signal_string)
+static int Lua_void_AddSignalStartZone_category_name_date_string(lua_State* L) {
+    // params from stack
+    const auto arg_0_category = get_lua_secure_string(L, 1);
+    const auto arg_1_name = get_lua_secure_string(L, 2);
+    const auto arg_2_date = lua_tonumber(L, 3);
+    const auto arg_3_string = get_lua_secure_string(L, 4);
+
+    if (arg_0_category.empty() || arg_1_name.empty()) {
+        LogVarLightError("%s", "Lua code error : the category or/and name passed to AddSignalStartZone are empty");
+    } else {
+        //DataBase::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, Controller::sc_START_ZONE);
+    }
+
+    return 0;  // return 0 item
+}
+
+// AddSignalEndZone(signal_category, signal_name, signal_epoch_time, signal_string)
+static int Lua_void_AddSignalEndZone_category_name_date_string(lua_State* L) {
+    // params from stack
+    const auto arg_0_category = get_lua_secure_string(L, 1);
+    const auto arg_1_name = get_lua_secure_string(L, 2);
+    const auto arg_2_date = lua_tonumber(L, 3);
+    const auto arg_3_string = get_lua_secure_string(L, 4);
+
+    if (arg_0_category.empty() || arg_1_name.empty()) {
+        LogVarLightError("%s", "Lua code error : the category or/and name passed to AddSignalEndZone are empty");
+    } else {
+        //DataBase::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, Controller::sc_END_ZONE);
+    }
+
+    return 0;  // return 0 item
+}
+
+// AddSignalStatus(signal_category, signal_name, signal_epoch_time, signal_string)
+static int Lua_void_AddSignalStatus_category_name_date_string(lua_State* L) {
+    // params from stack
+    const auto arg_0_category = get_lua_secure_string(L, 1);
+    const auto arg_1_name = get_lua_secure_string(L, 2);
+    const auto arg_2_date = lua_tonumber(L, 3);
+    const auto arg_3_string = get_lua_secure_string(L, 4);
+
+    if (arg_0_category.empty() || arg_1_name.empty()) {
+        LogVarLightError("%s", "Lua code error : the category or/and name passed to AddSignalStatus are empty");
+    } else {
+        //DataBase::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, "");
+    }
+
+    return 0;  // return 0 item
+}
+
+// number GetEpochTime(date_time, hour_offset)
+// date_time is in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS"
+static int Lua_number_GetEpochTimeFrom_date_time_string_offset_int(lua_State* L) {
+    // params from stack
+    const auto arg_0_datetime = get_lua_secure_string(L, 1);
+    const auto arg_1_offset = lua_tonumber(L, 2);
+    if (!arg_0_datetime.empty()) {
+        std::tm date_heure = {};
+        double millisecondes = 0;
+
+        std::stringstream ss(arg_0_datetime);
+        ss >> std::get_time(&date_heure, "%Y-%m-%d %H:%M:%S");
+        if (ss.peek() == ',' || ss.peek() == '.') {
+            ss.ignore();
+            ss >> millisecondes;
+        }
+
+        // temporaire
+        date_heure.tm_hour += (int)arg_1_offset;
+
+        std::time_t temps_epoch = std::mktime(&date_heure);
+        double time_number = temps_epoch + millisecondes / 1000;
+
+        lua_pushnumber(L, time_number);
+
+        return 1;  // return 1 item
+    }
+
+    return 0;  // return 0 item
+}
+
+static lua_State* CreateLuaState() {
+    auto lua_state_ptr = luaL_newstate();
+    if (lua_state_ptr) {
+        luaJIT_setmode(lua_state_ptr, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_ON);
+
+        luaL_openlibs(lua_state_ptr);  // lua access to basic libraries
+
+        // register custom functions
+        lua_register(lua_state_ptr, "print", lua_int_print_args);
+        lua_register(lua_state_ptr, "LogInfo", Lua_void_LogInfo_string);
+        lua_register(lua_state_ptr, "LogWarning", Lua_void_LogWarning_string);
+        lua_register(lua_state_ptr, "LogError", Lua_void_LogError_string);
+        lua_register(lua_state_ptr, "SetInfos", Lua_void_SetInfos_string);
+        lua_register(lua_state_ptr, "SetRowBufferName", Lua_void_SetRowBufferName_string);
+        lua_register(lua_state_ptr, "SetFunctionForEachRow", Lua_void_SetFunctionForEachRow_string);
+        lua_register(lua_state_ptr, "SetFunctionForEndFile", Lua_void_SetFunctionForEndFile_string);
+        lua_register(lua_state_ptr, "GetRowIndex", Lua_int_GetRowIndex_void);
+        lua_register(lua_state_ptr, "GetRowCount", Lua_int_GetRowCount_void);
+        lua_register(lua_state_ptr, "AddSignalValue", Lua_void_AddSignalValue_category_name_date_value);
+        lua_register(lua_state_ptr, "AddSignalStartZone", Lua_void_AddSignalStartZone_category_name_date_string);
+        lua_register(lua_state_ptr, "AddSignalEndZone", Lua_void_AddSignalEndZone_category_name_date_string);
+        lua_register(lua_state_ptr, "GetEpochTime", Lua_number_GetEpochTimeFrom_date_time_string_offset_int);
+        lua_register(lua_state_ptr, "AddSignalTag", Lua_void_AddSignalTag_date_color_name_help);
+        lua_register(lua_state_ptr, "AddSignalStatus", Lua_void_AddSignalStatus_category_name_date_string);
+    }
+
+    return lua_state_ptr;
+}
+
+static void DestroyLuaState(lua_State* vlua_State_ptr) {
+    lua_close(vlua_State_ptr);
+    vlua_State_ptr = nullptr;
+}
+
+///////////////////////////////////////////////////
+///////////////////////////////////////////////////
+///////////////////////////////////////////////////
+
+/*
+void Controller::sSetLuaBufferVarContent(lua_State* vLuaState, const std::string& vVarName, const std::string& vContent) {
+    if (!vVarName.empty() && !vContent.empty()) {
+        auto _cont = vContent;
+        if (_cont.find('\"') != std::string::npos) {
+            ez::str::replaceString(_cont, "\"", "\\\"");
+        }
+        const string str = vVarName + " = \"" + _cont + "\"";
+        luaL_dostring(vLuaState, str.c_str());
+    }
+}
+*/
+
+Ltg::ScriptingModulePtr Module::create(const SettingsWeak& vSettings) {
     assert(!vSettings.expired());
     auto res = std::make_shared<Module>();
     res->m_Settings = vSettings;
@@ -22,239 +336,45 @@ Ltg::DataBrockerModulePtr Module::create(const SettingsWeak& vSettings) {
 }
 
 bool Module::init(Ltg::PluginBridge* vBridgePtr) {
-    m_OptionsCombo = ImWidgets::QuickStringCombo((int32_t)m_SelectedOptions, {"Range", "From date with range", "From date to date"});
-    std::vector<std::string> ranges;
-    ranges.reserve(m_Api.m_RangeStrings.size());
-    for (const auto& a : m_Api.m_RangeStrings) {
-        ranges.push_back(a);
-    }
-    m_RangeCombo = ImWidgets::QuickStringCombo((int32_t)m_SelectedRange, ranges);
-    std::vector<std::string> intervals;
-    intervals.reserve(m_Api.m_IntervalStrings.size());
-    for (const auto& a : m_Api.m_IntervalStrings) {
-        intervals.push_back(a);
-    }
-    m_IntervalCombo = ImWidgets::QuickStringCombo((int32_t)m_SelectedInterval, intervals);
-    return m_CurlWrapper.init();
+    return true;
 }
 
 void Module::unit() {
-    m_CurlWrapper.unit();
 }
 
-bool Module::DrawWidgets(const uint32_t& vCurrentFrame, ImGuiContext* vContextPtr, void* vUserDatas) {
-    bool res = false;
+/*bool Module::m_execScriptCode(const std::string& vCode, std::string& vErrors) {
+    if (luaL_dostring(m_LuaStatePtr, vCode.c_str()) != LUA_OK) {
+        vErrors = get_lua_secure_string(m_LuaStatePtr, -1);
 
-    const float column_offset = 80.0f;
+        LogVarLightError("%s", vErrors.c_str());
 
-    if (m_OptionsCombo.displayWithColumn(0.0f, "Mode", column_offset)) {
-        m_SelectedOptions = (Options)m_OptionsCombo.getIndex();
-        res = true;
+        return false;
     }
 
-    if (m_IntervalCombo.displayWithColumn(0.0f, "Interval", column_offset)) {
-        m_SelectedInterval = (YahooApi::Interval)m_IntervalCombo.getIndex();
-        res = true;
-    }
+    return true;
+}*/
 
-    if (m_SelectedOptions == Options::INTERVAL_FROM_CURRENT_DATE_WITH_RANGE) {
-        if (m_RangeCombo.displayWithColumn(0.0f, "Range", column_offset)) {
-            m_SelectedRange = (YahooApi::Range)m_RangeCombo.getIndex();
-            res = true;
-        }
-    } else if (m_SelectedOptions == Options::INTERVAL_FROM_DATE_WITH_RANGE) {
-        if (m_StartDate.displayWithColumn(0.0f, "Start date", column_offset)) {
-            res = true;
-        }
-        if (m_RangeCombo.displayWithColumn(0.0f, "Range", column_offset)) {
-            m_SelectedRange = (YahooApi::Range)m_RangeCombo.getIndex();
-            res = true;
-        }   
-    } else if (m_SelectedOptions == Options::INTERVAL_FROM_DATE_TO_DATE) {
-        if (m_StartDate.displayWithColumn(0.0f, "Start date", column_offset)) {
-            res = true;
-        }
-        if (m_EndDate.displayWithColumn(0.0f, "End date", column_offset)) {
-            res = true;
-        }
-    }
-
-    return res;
+bool Module::load() {
+    m_LuaStatePtr = CreateLuaState();
+    return m_LuaStatePtr != nullptr;
 }
 
-bool Module::DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const ImRect& vMaxRect, ImGuiContext* vContextPtr, void* vUserDatas) {
-    return false;
+void Module::unload() {
+    DestroyLuaState(m_LuaStatePtr);
 }
 
-bool Module::StartPluginConfigRequest() {
-    m_RequestRawDatas = ez::file::loadFileToString("yahoo_historic_datas_CURLE_OK.txt");
-    DataPane::Instance()->setRequestDatasRaw(m_RequestRawDatas);
-    m_RequestPricesDatas = m_parseJsonResponse(m_RequestRawDatas);
-    if (!m_RequestPricesDatas.prices.times.empty()) {
-        DataPane::Instance()->setRequestDatasJson(m_RequestJsonDatas);
-        DataPane::Instance()->setRequestDatasPrices(m_RequestPricesDatas);
-        return true;
-    }
-    return false;
+bool Module::compileScript(const Ltg::ScriptFilePathName& vFilePathName, Ltg::ErrorContainer& vOutErrors) {
+    return true;
 }
-
-bool Module::Request(const std::string& vSymbol, const Ltg::ProtocolType vProtocol) {
-    std::stringstream file_name;
-    file_name << "yahoo_json_" << vSymbol << ".txt";
-    if (vProtocol == Ltg::ProtocolType::NET) {
-        std::string url;
-        if (m_SelectedOptions == Options::INTERVAL_FROM_CURRENT_DATE_WITH_RANGE) {
-            url = m_Api.getUrlForHistory(vSymbol, m_SelectedInterval, m_SelectedRange);
-        } else if (m_SelectedOptions == Options::INTERVAL_FROM_DATE_WITH_RANGE) {
-            url = m_Api.getUrlForHistory(vSymbol, m_SelectedInterval, m_StartDate.getDateAsEpoch(), m_SelectedRange);
-        } else if (m_SelectedOptions == Options::INTERVAL_FROM_DATE_TO_DATE) {
-            url = m_Api.getUrlForHistory(vSymbol, m_SelectedInterval, m_StartDate.getDateAsEpoch(), m_EndDate.getDateAsEpoch());
-        }
-        std::string error_code;
-        m_RequestRawDatas = m_CurlWrapper.DownloadDatas(url, error_code);
-        ez::file::saveStringToFile(m_RequestRawDatas, file_name.str());
-        DataPane::Instance()->setRequestDatasRaw(m_RequestRawDatas);
-        m_RequestPricesDatas = m_parseJsonResponse(m_RequestRawDatas);
-        if (!m_RequestPricesDatas.prices.times.empty()) {
-            DataPane::Instance()->setRequestDatasJson(m_RequestJsonDatas);
-            DataPane::Instance()->setRequestDatasPrices(m_RequestPricesDatas);
-            return true;
-        }
-    } else if (vProtocol == Ltg::ProtocolType::FILE) {
-        m_RequestRawDatas = ez::file::loadFileToString(file_name.str());
-        DataPane::Instance()->setRequestDatasRaw(m_RequestRawDatas);
-        try {
-            m_RequestPricesDatas = m_parseJsonResponse(m_RequestRawDatas);
-        } catch (...) {
-            return false;
-        }
-        if (!m_RequestPricesDatas.prices.times.empty()) {
-            DataPane::Instance()->setRequestDatasJson(m_RequestJsonDatas);
-            DataPane::Instance()->setRequestDatasPrices(m_RequestPricesDatas);
-            return true;
-        }
-    }
-    return false;
+bool Module::callScriptInit(Ltg::ErrorContainer& vOutErrors) {
+    return true;
 }
-
-bool Module::GrabOneDay(const std::string& vSymbol, const Ltg::IntervalType vInterval, const Ltg::RangeType vRange) {
-    EZ_TOOLS_DEBUG_BREAK;
-    return false;
+bool Module::callScriptStart(Ltg::ErrorContainer& vOutErrors) {
+    return true;
 }
-
-Ltg::SymbolPrices Module::getLastRequestedPrices() {
-    return m_RequestPricesDatas;
+bool Module::callScriptExec(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorContainer& vErrors) {
+    return true;
 }
-
-/////////////////////////////////////////////////
-///// PRIVATE ///////////////////////////////////
-/////////////////////////////////////////////////
-
-Ltg::SymbolPrices Module::m_parseJsonResponse(const std::string& vResponse) {
-    m_RequestJsonDatas = json::parse(vResponse);
-    return m_parseJsonResponseHistorical(m_RequestJsonDatas);
+bool Module::callScriptEnd(Ltg::ErrorContainer& vOutErrors) {
+    return true;
 }
-
-Ltg::SymbolPrices Module::m_parseJsonResponseHistorical(const nlohmann::json& vJsonParsed) {
-    Ltg::SymbolPrices res;
-    if (!vJsonParsed.is_null()) {
-        if (vJsonParsed.contains("chart")) {
-            const auto& root_chart = vJsonParsed["chart"];
-            if (root_chart.contains("result")) {
-                const auto& root_chart_result = root_chart["result"];
-                if (root_chart_result.is_array() && root_chart_result.size() == 1U) {
-                    const auto& item = root_chart_result[0];
-                    if (item.contains("meta")) {
-                        const auto& meta = item["meta"];
-                        if (!meta["fullExchangeName"].is_null()) {
-                            res.market =  meta["fullExchangeName"];
-                        }
-                        if (!meta["symbol"].is_null()) {
-                            res.symbol = meta["symbol"];
-                        }
-                        if (!meta["dataGranularity"].is_null()) {
-                            const std::string interval = meta["dataGranularity"];
-                            YahooApi yapi;
-                            size_t idx = 0U;
-                            for (const auto& a : yapi.m_IntervalStrings) {
-                                if (a == interval) {
-                                    res.prices.period = yapi.m_IntervalInMins.at(idx);
-                                }
-                                ++idx;
-                            }
-                        }
-                    }
-                    if (item.contains("timestamp")) {
-                        const auto& timestamps = item["timestamp"];
-                        if (item.contains("indicators")) {
-                            const auto& ind = item["indicators"];
-                            if (ind.contains("quote")) {
-                                const auto& quotes = ind["quote"][0];
-                                if (!quotes.is_null()) {
-                                    int32_t idx = 0;
-                                    for (size_t i = 0; i < timestamps.size(); ++i) {
-                                        if (!timestamps[i].is_null() &&       //
-                                            !quotes["open"][i].is_null() &&   //
-                                            !quotes["high"][i].is_null() &&   //
-                                            !quotes["low"][i].is_null() &&    //
-                                            !quotes["close"][i].is_null() &&  //
-                                            !quotes["volume"][i].is_null()) {
-                                            res.prices.times.push_back(timestamps[i].get<double>());
-                                            res.prices.opens.push_back(quotes["open"][i].get<double>());
-                                            res.prices.highs.push_back(quotes["high"][i].get<double>());
-                                            res.prices.lows.push_back(quotes["low"][i].get<double>());
-                                            res.prices.closes.push_back(quotes["close"][i].get<double>());
-                                            res.prices.volumes.push_back(quotes["volume"][i].get<double>());
-                                            res.prices.indexs.push_back(static_cast<double>(idx++));
-                                        } else {
-                                            LogVarDebugWarning("Bar[%i] is null ", (int32_t)i);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return res;
-}
-
-std::time_t Module::m_convertToEpochTime(const std::string& vIsoDateTime, const char* format) {
-    struct std::tm time = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-    std::istringstream ss(vIsoDateTime);
-    ss >> std::get_time(&time, format);
-    if (ss.fail()) {
-        std::cerr << "ERROR: Cannot parse date string (" << vIsoDateTime << "); required format %Y-%m-%d" << std::endl;
-        exit(1);
-    }
-    time.tm_hour = 0;
-    time.tm_min = 0;
-    time.tm_sec = 0;
-#ifdef _MSC_VER
-    return _mkgmtime(&time);
-#else
-    return timegm(&time);
-#endif
-}
-
-std::string Module::m_convertToISO8601(const std::time_t& vEpochTime) {
-    std::string ret;
-    auto tp = std::chrono::system_clock::from_time_t(vEpochTime);
-    auto tt = std::chrono::system_clock::to_time_t(tp);
-#ifdef _MSC_VER
-    tm _timeinfo;
-    tm* tm_timeinfo = &_timeinfo;
-    if (localtime_s(tm_timeinfo, &tt) != 0) {
-        return ret;
-    }
-#else
-    auto* tm_timeinfo = std::localtime(&tt);
-#endif
-    std::ostringstream oss;
-    oss << std::put_time(tm_timeinfo, "%Y-%m-%dT%H:%M:%S");
-    ret = oss.str();
-    return ret;
-}
-

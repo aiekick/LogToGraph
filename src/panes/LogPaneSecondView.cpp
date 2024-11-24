@@ -28,8 +28,6 @@ limitations under the License.
 #include <models/log/SignalTick.h>
 #include <models/script/ScriptingEngine.h>
 
-static int GeneratorPaneWidgetId = 0;
-
 ///////////////////////////////////////////////////////////////////////////////////
 //// OVERRIDES ////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -62,8 +60,7 @@ bool LogPaneSecondView::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpen
 
         ImGui::End();
     }
-
-    return GeneratorPaneWidgetId;
+    return change;
 }
 
 void LogPaneSecondView::Clear() {

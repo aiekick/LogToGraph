@@ -13,12 +13,12 @@ public: // for Yahoo
     std::string getApiKey() const;
 
 public: // for Strocker
-    Ltg::SettingsCategoryPath GetCategory() const override;
-    bool LoadSettings() override;
-    bool SaveSettings() override; 
-    bool DrawSettings() override;
-    ez::xml::Nodes GetXmlSettings(const Ltg::ISettingsType& vType) const final;
-    void SetXmlSettings(const ez::xml::Node& vName, const ez::xml::Node& vParent, const std::string& vValue, const Ltg::ISettingsType& vType) final;
+    Ltg::SettingsCategoryPath getCategory() const override;
+    bool loadSettings() override;
+    bool saveSettings() override; 
+    bool drawSettings() override;
+    ez::xml::Nodes getXmlSettings(const Ltg::ISettingsType& vType) const final;
+    void setXmlSettings(const ez::xml::Node& vName, const ez::xml::Node& vParent, const std::string& vValue, const Ltg::ISettingsType& vType) final;
 };
 
 typedef std::shared_ptr<Settings> SettingsPtr;

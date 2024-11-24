@@ -1,8 +1,8 @@
 // This is an independent project of an individual developer. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <Headers/LuaScriptingBuild.h>
-#include "LuaScripting.h"
+#include <Headers/PythonScriptingBuild.h>
+#include "PythonScripting.h"
 
 #define EZ_LOG_IMPLEMENTATION
 #include <EzLibs/EzLog.hpp>
@@ -16,88 +16,83 @@ extern "C"  // needed for avoid renaming of funcs by the compiler
 #define PLUGIN_PREFIX
 #endif
 
-PLUGIN_PREFIX LuaScripting* allocator() {
-    return new LuaScripting();
+PLUGIN_PREFIX PythonScripting* allocator() {
+    return new PythonScripting();
 }
 
-PLUGIN_PREFIX void deleter(LuaScripting* ptr) {
+PLUGIN_PREFIX void deleter(PythonScripting* ptr) {
     delete ptr;
 }
 }
 
 #include <Modules/Module.h>
 
-LuaScripting::LuaScripting() {
-#ifdef _MSC_VER
-    // active memory leak detector
-    //_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-}
+PythonScripting::PythonScripting() = default;
 
-bool LuaScripting::Init() {
+bool PythonScripting::init() {
     m_SettingsPtr = std::make_shared<Settings>();
     return true;
 }
 
-void LuaScripting::Unit() {
+void PythonScripting::unit() {
     m_SettingsPtr.reset();
 }
 
-uint32_t LuaScripting::GetMinimalStrockerVersionSupported() const {
+uint32_t PythonScripting::getMinimalAppVersionSupported() const {
     return 0U;
 }
 
-uint32_t LuaScripting::GetVersionMajor() const {
-    return LuaScripting_MinorNumber;
+uint32_t PythonScripting::getVersionMajor() const {
+    return PythonScripting_MinorNumber;
 }
 
-uint32_t LuaScripting::GetVersionMinor() const {
-    return LuaScripting_MajorNumber;
+uint32_t PythonScripting::getVersionMinor() const {
+    return PythonScripting_MajorNumber;
 }
 
-uint32_t LuaScripting::GetVersionBuild() const {
-    return LuaScripting_BuildNumber;
+uint32_t PythonScripting::getVersionBuild() const {
+    return PythonScripting_BuildNumber;
 }
 
-std::string LuaScripting::GetName() const {
-    return "LuaScripting";
+std::string PythonScripting::getName() const {
+    return "PythonScripting";
 }
 
-std::string LuaScripting::GetAuthor() const {
+std::string PythonScripting::getAuthor() const {
     return "Stephane Cuillerdier";
 }
 
-std::string LuaScripting::GetVersion() const {
-    return LuaScripting_BuildId;
+std::string PythonScripting::getVersion() const {
+    return PythonScripting_BuildId;
 }
 
-std::string LuaScripting::GetContact() const {
-    return "strocker@funparadigm.com";
+std::string PythonScripting::getContact() const {
+    return "aiekick@funparadigm.com";
 }
 
-std::string LuaScripting::GetDescription() const {
-    return "Yahoo data broker";
+std::string PythonScripting::getDescription() const {
+    return "Python Scripting plugin for LogToGraph";
 }
 
-std::vector<Ltg::PluginModuleInfos> LuaScripting::GetModulesInfos() const {
+std::vector<Ltg::PluginModuleInfos> PythonScripting::getModulesInfos() const {
     std::vector<Ltg::PluginModuleInfos> res;
-    res.push_back(Ltg::PluginModuleInfos("", "Lua", Ltg::PluginModuleType::SCRIPTING));
+    res.push_back(Ltg::PluginModuleInfos("", "Python", Ltg::PluginModuleType::SCRIPTING));
     return res;
 }
 
-Ltg::PluginModulePtr LuaScripting::CreateModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) {
-    if (vPluginModuleName == "Lua") {
+Ltg::PluginModulePtr PythonScripting::createModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) {
+    if (vPluginModuleName == "Python") {
         return Module::create(m_SettingsPtr);
     }
     return nullptr;
 }
 
-std::vector<Ltg::PluginPaneConfig> LuaScripting::GetPanes() const {
+std::vector<Ltg::PluginPaneConfig> PythonScripting::getPanes() const {
     std::vector<Ltg::PluginPaneConfig> res;
     return res;
 }
 
-std::vector<Ltg::PluginSettingsConfig> LuaScripting::GetSettings() const {
+std::vector<Ltg::PluginSettingsConfig> PythonScripting::getSettings() const {
     std::vector<Ltg::PluginSettingsConfig> res;
     res.push_back(Ltg::PluginSettingsConfig(m_SettingsPtr));
     return res;

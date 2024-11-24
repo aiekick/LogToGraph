@@ -32,8 +32,6 @@ limitations under the License.
 
 #include <ezlibs/ezFile.hpp>
 
-static int SourcePane_WidgetId = 0;
-
 ///////////////////////////////////////////////////////////////////////////////////
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -70,8 +68,7 @@ bool ToolPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGui
 
         ImGui::End();
     }
-
-    return SourcePane_WidgetId;
+    return change;
 }
 
 bool ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImRect& vRect, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) {
@@ -228,23 +225,26 @@ void ToolPane::DrawTable() {
     }
 
     if (ImGui::CollapsingHeader("Analyse")) {
-        if (!ScriptingEngine::Instance()->IsJoinable()) {
-            if (ImGui::ContrastedButton("Start Analyse of file(s)", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
-                ScriptingEngine::Instance()->Clear();
-                ScriptingEngine::Instance()->SetScriptFilePathName(ProjectFile::Instance()->GetScriptFilePathName());
-                const auto& sources = ProjectFile::Instance()->GetSourceFilePathNames();
-                for (const auto& source : sources) {
-                    ScriptingEngine::Instance()->AddSourceFilePathName(source.second);
+        ScriptingEngine::Instance()->drawMenu();
+        if (ScriptingEngine::Instance()->isValidScriptingSelected()) {
+            if (!ScriptingEngine::Instance()->IsJoinable()) {
+                if (ImGui::ContrastedButton("Start Analyse of file(s)", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
+                    ScriptingEngine::Instance()->Clear();
+                    ScriptingEngine::Instance()->SetScriptFilePathName(ProjectFile::Instance()->GetScriptFilePathName());
+                    const auto& sources = ProjectFile::Instance()->GetSourceFilePathNames();
+                    for (const auto& source : sources) {
+                        ScriptingEngine::Instance()->AddSourceFilePathName(source.second);
+                    }
+                    ScriptingEngine::Instance()->StartWorkerThread(false);
                 }
-                ScriptingEngine::Instance()->StartWorkerThread(false);
-            }
-        } else {
-            if (ImGui::ContrastedButton("Stop Analyse", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
-                ScriptingEngine::Instance()->StopWorkerThread();
-            }
+            } else {
+                if (ImGui::ContrastedButton("Stop Analyse", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
+                    ScriptingEngine::Instance()->StopWorkerThread();
+                }
 
-            auto progress = (float)ScriptingEngine::s_Progress;
-            ImGui::ProgressBar(progress);
+                auto progress = (float)ScriptingEngine::s_progress;
+                ImGui::ProgressBar(progress);
+            }
         }
     }
 }

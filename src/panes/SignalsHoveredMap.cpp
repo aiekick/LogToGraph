@@ -26,8 +26,6 @@ limitations under the License.
 #include <models/log/SignalSerie.h>
 #include <models/log/SignalTick.h>
 
-static int SourcePane_WidgetId = 0;
-
 ///////////////////////////////////////////////////////////////////////////////////
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -60,8 +58,7 @@ bool SignalsHoveredMap::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpen
 
         ImGui::End();
     }
-
-    return SourcePane_WidgetId;
+    return change;
 }
 
 int SignalsHoveredMap::CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize,   /* cell size						*/
@@ -84,7 +81,7 @@ int SignalsHoveredMap::CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize,   /* 
     return count;
 }
 
-int SignalsHoveredMap::DrawSignalButton(int& vWidgetPushId, const SignalTickPtr& vPtr, ImVec2 vGlyphSize) {
+int SignalsHoveredMap::DrawSignalButton(const SignalTickPtr& vPtr, ImVec2 vGlyphSize) {
     int res = 0;
 
     if (vPtr) {
@@ -97,7 +94,7 @@ int SignalsHoveredMap::DrawSignalButton(int& vWidgetPushId, const SignalTickPtr&
             ImGuiContext& g = *GImGui;
             const ImGuiStyle& style = g.Style;
 
-            ImGui::PushID(++vWidgetPushId);
+            ImGui::PushID(ImGui::IncPUSHID());
             const ImGuiID id = window->GetID("#image");
             ImGui::PopID();
 
@@ -174,7 +171,7 @@ void SignalsHoveredMap::DrawTable() {
                                     if (x)
                                         ImGui::SameLine();
 
-                                    DrawSignalButton(SourcePane_WidgetId, ptr, button_size);
+                                    DrawSignalButton(ptr, button_size);
 
                                     ++idx;
                                 }

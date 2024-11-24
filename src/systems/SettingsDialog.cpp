@@ -11,7 +11,7 @@ bool SettingsDialog::init() {
     for (const auto& s : pluginSettings) {
         auto ptr = s.settings.lock();
         if (ptr != nullptr) {
-            m_SettingsPerCategoryPath[ptr->GetCategory()] = s.settings;
+            m_SettingsPerCategoryPath[ptr->getCategory()] = s.settings;
         }
     }
     return true;
@@ -73,7 +73,7 @@ void SettingsDialog::m_DrawContentPane() {
     for (const auto& cat : m_SettingsPerCategoryPath) {
         auto ptr = cat.second.lock();
         if (ptr != nullptr) {
-            ptr->DrawSettings();
+            ptr->drawSettings();
         }
     }
 
@@ -95,7 +95,7 @@ bool SettingsDialog::m_Load() {
     for (const auto& cat : m_SettingsPerCategoryPath) {
         auto ptr = cat.second.lock();
         if (ptr != nullptr) {
-            ptr->LoadSettings();
+            ptr->loadSettings();
         }
     }
     return false;
@@ -105,7 +105,7 @@ bool SettingsDialog::m_Save() {
     for (const auto& cat : m_SettingsPerCategoryPath) {
         auto ptr = cat.second.lock();
         if (ptr != nullptr) {
-            ptr->SaveSettings();
+            ptr->saveSettings();
         }
     }
     ProjectFile::Instance()->SetProjectChange();
@@ -118,9 +118,9 @@ ez::xml::Nodes SettingsDialog::getXmlNodes(const std::string& vUserDatas) {
         auto ptr = cat.second.lock();
         if (ptr != nullptr) {
             if (vUserDatas == "app") {
-                node.addChilds(ptr->GetXmlSettings(Ltg::ISettingsType::APP));
+                node.addChilds(ptr->getXmlSettings(Ltg::ISettingsType::APP));
             } else if (vUserDatas == "project") {
-                node.addChilds(ptr->GetXmlSettings(Ltg::ISettingsType::PROJECT));
+                node.addChilds(ptr->getXmlSettings(Ltg::ISettingsType::PROJECT));
             } else {
                 EZ_TOOLS_DEBUG_BREAK;  // ERROR
             }
@@ -137,10 +137,10 @@ bool SettingsDialog::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::
         auto ptr = cat.second.lock();
         if (ptr != nullptr) {
             if (vUserDatas == "app") {
-                ptr->SetXmlSettings(strName, strParentName, strValue, Ltg::ISettingsType::APP);
+                ptr->setXmlSettings(strName, strParentName, strValue, Ltg::ISettingsType::APP);
                 RecursParsingConfigChilds(vNode, vUserDatas);
             } else if (vUserDatas == "project") {
-                ptr->SetXmlSettings(strName, strParentName, strValue, Ltg::ISettingsType::PROJECT);
+                ptr->setXmlSettings(strName, strParentName, strValue, Ltg::ISettingsType::PROJECT);
                 RecursParsingConfigChilds(vNode, vUserDatas);
             } else {
                 EZ_TOOLS_DEBUG_BREAK;  // ERROR

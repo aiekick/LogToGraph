@@ -28,8 +28,6 @@ limitations under the License.
 #include <models/log/SignalTick.h>
 #include <models/graphs/GraphView.h>
 
-static int SourcePane_WidgetId = 0;
-
 #define GRAPHS_HEIGHT 35.0f
 #define GRAPHS_COLOR_MAP ImPlotColormap_Cool
 

@@ -26,8 +26,6 @@ limitations under the License.
 #include <models/log/SignalSerie.h>
 #include <models/log/SignalTick.h>
 
-static int SourcePane_WidgetId = 0;
-
 ///////////////////////////////////////////////////////////////////////////////////
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -60,8 +58,7 @@ bool SignalsHoveredList::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpe
 
         ImGui::End();
     }
-
-    return SourcePane_WidgetId;
+    return change;
 }
 
 int SignalsHoveredList::CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize,   /* cell size						*/

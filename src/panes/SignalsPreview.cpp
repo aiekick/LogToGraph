@@ -30,8 +30,6 @@ limitations under the License.
 
 #include <models/graphs/GraphView.h>
 
-static int SourcePane_WidgetId = 0;
-
 ///////////////////////////////////////////////////////////////////////////////////
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -62,8 +60,7 @@ bool SignalsPreview::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened,
 
         ImGui::End();
     }
-
-    return SourcePane_WidgetId;
+    return change;
 }
 
 void SignalsPreview::Clear() {
@@ -136,7 +133,7 @@ int SignalsPreview::CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize,   /* cel
     return count;
 }
 
-int SignalsPreview::DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, ImVec2 vGlyphSize) {
+int SignalsPreview::DrawSignalButton(SignalTickPtr vPtr, ImVec2 vGlyphSize) {
     int res = 0;
 
     if (vPtr) {
@@ -149,7 +146,7 @@ int SignalsPreview::DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, ImV
             ImGuiContext& g = *GImGui;
             const ImGuiStyle& style = g.Style;
 
-            ImGui::PushID(++vWidgetPushId);
+            ImGui::PushID(ImGui::IncPUSHID());
             const ImGuiID id = window->GetID("#image");
             ImGui::PopID();
 
@@ -227,7 +224,7 @@ void SignalsPreview::DrawTable() {
                                     if (x)
                                         ImGui::SameLine();
 
-                                    DrawSignalButton(SourcePane_WidgetId, ptr, button_size);
+                                    DrawSignalButton(ptr, button_size);
 
                                     ++idx;
                                 }
