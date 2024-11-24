@@ -55,6 +55,9 @@ public:  // to save
     double m_DefaultCurveDisplayThickNess = 2.0;   // for display a default curve
     bool m_UsePredefinedZeroValue = false;         // use predefined zero value
     double m_PredefinedZeroValue = 0.0;            // the predefined zero value for signals
+    SourceFilePathName m_ScriptFilePathName;
+    SourceFileName m_ScriptFileName;
+    std::vector<std::pair<SourceFileName, SourceFilePathName>> m_SourceFilePathNames;
 
 private:  // dont save
     bool m_IsLoaded = false;
@@ -86,6 +89,14 @@ public:
     void NewFrame();
 
     std::string GetProjectFilepathName() const;
+
+    void SetScriptFilePathName(const SourceFilePathName& vFilePathName);
+    const SourceFilePathName& GetScriptFilePathName() const;
+    const SourceFileName& GetScriptFileName() const;
+
+    void AddSourceFilePathName(const SourceFilePathName& vFilePathName);
+    bool RemoveFilePathName(const SourceFilePathName& vFilePathName);
+    const std::vector<std::pair<SourceFileName, SourceFilePathName>>& GetSourceFilePathNames() const;
 
 public:
     ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;

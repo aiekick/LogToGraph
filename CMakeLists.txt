@@ -40,7 +40,7 @@ else()
 endif()
 
 # some times for unknown reason, the lib file is not generated so no symbols are exported.
-# this option force all sahred lib to export theirs symbols
+# this option force all shared lib to export theirs symbols
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ${USE_SHARED_LIBS} CACHE BOOL "" FORCE)
 
 if ("${CMAKE_EXE_LINKER_FLAGS}" STREQUAL "/machine:x64")
@@ -103,7 +103,7 @@ add_definitions(-DPLUGIN_NAME_PREFIX="${PLUGIN_NAME_PREFIX}")
 ##### SEARCH FOR PLUGINS ##################################
 ###########################################################
 
-set(LOADED_LOG_TO_GRAPH_PLUGINS) ### musty be fillerd by each pluigns in CMakeLists.txt with plugin name
+set(LOADED_LOG_TO_GRAPH_PLUGINS) ### must be filletered by each plugins in CMakeLists.txt with plugin name
 set(PLUGINS_DIRECTORY ${CMAKE_SOURCE_DIR}/plugins)
 file(GLOB SUBDIRS RELATIVE ${PLUGINS_DIRECTORY} ${PLUGINS_DIRECTORY}/*)
 FOREACH(SUBDIR ${SUBDIRS})
@@ -180,23 +180,18 @@ include_directories(
 	${CMAKE_SOURCE_DIR}/3rdparty
 	${IMGUIPACK_INCLUDE_DIRS}
 	${CMAKE_SOURCE_DIR}/src
-	${TINYXML2_INCLUDE_DIR}
 	${SQLITE3_INCLUDE_DIR}
-	${CTOOLS_INCLUDE_DIR}
 	${OPENGL_INCLUDE_DIR}
 	${CMAKE_SOURCE_DIR}
 	${PLOG_INCLUDE_DIR}
 	${GLFW_INCLUDE_DIR}
 	${GLAD_INCLUDE_DIR}
-	${CURL_INCLUDE_DIR}
-	${FMT_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT}
 	${IN_APP_GPU_PROFILER_LIBRARIES}
 	${IMGUIPACK_LIBRARIES}
 	${SQLITE3_LIBRARIES}
-	${LUA_JIT_LIBRARIES}
 	${OPENGL_LIBRARIES}
 	${GLFW_LIBRARIES}
 	${GLAD_LIBRARIES}

@@ -29,7 +29,7 @@ private:
     ImGuiListClipper m_FileListClipper;
     std::map<SignalName, SignalSerieWeak> m_SignalSeries;
     char m_search_buffer[1024 + 1] = "";
-    int32_t m_CurrentLogEdited = -1;
+    int32_t m_CurrentSourceEdited = -1;
 
 public:
     void Clear();

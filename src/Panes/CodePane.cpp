@@ -92,7 +92,7 @@ void CodePane::OpenFile(const std::string& vFilePathName, size_t vErrorLine, std
         } else if (ps.ext == "c" || ps.ext == "h") {
             type = TextEditor::LanguageDefinition::C();
         } else if (ps.ext == "lua") {
-            type = TextEditor::LanguageDefinition::Lua();
+            type = TextEditor::LanguageDefinition::Script();
         }
         if (existing_code_sheet_ptr != nullptr) {
             existing_code_sheet_ptr->wasModified = false;

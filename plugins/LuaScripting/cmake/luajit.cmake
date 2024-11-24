@@ -1,4 +1,4 @@
-set(LUA_JIT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/3rdparty/luajit)
+set(LUA_JIT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/luajit)
 
 include_directories(
     ${LUA_JIT_INCLUDE_DIR}/src	
@@ -41,7 +41,7 @@ if(NOT CMAKE_RELWITHDEBINFO_POSTFIX)
 	set(CMAKE_RELWITHDEBINFO_POSTFIX _reldeb)
 endif()
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty/luajit EXCLUDE_FROM_ALL)
+add_subdirectory(${LUA_JIT_INCLUDE_DIR} EXCLUDE_FROM_ALL)
     
 set_target_properties(libluajit PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(luajit PROPERTIES FOLDER 3rdparty/luajit)

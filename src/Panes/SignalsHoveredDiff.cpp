@@ -22,7 +22,6 @@ limitations under the License.
 #include <cinttypes>  // printf zu
 #include <panes/CodePane.h>
 
-#include <models/lua/LuaEngine.h>
 #include <models/log/LogEngine.h>
 #include <models/log/SignalSerie.h>
 #include <models/log/SignalTick.h>
@@ -173,9 +172,9 @@ void SignalsHoveredDiff::DrawTable() {
                                 if (diff_first_mark_ptr->string.empty()) {
                                     ImGui::Text("%f", diff_first_mark_ptr->value);
                                 } else {
-                                    if (diff_first_mark_ptr->status == LuaEngine::sc_START_ZONE) {
+                                    if (diff_first_mark_ptr->status == LogEngine::sc_START_ZONE) {
                                         ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", diff_first_mark_ptr->string.c_str());
-                                    } else if (diff_first_mark_ptr->status == LuaEngine::sc_END_ZONE) {
+                                    } else if (diff_first_mark_ptr->status == LogEngine::sc_END_ZONE) {
                                         ImGui::Text("%s " ICON_FONT_ARROW_LEFT, diff_first_mark_ptr->string.c_str());
                                     } else {
                                         ImGui::Text("%s", diff_first_mark_ptr->string.c_str());
@@ -188,9 +187,9 @@ void SignalsHoveredDiff::DrawTable() {
                                 if (diff_second_mark_ptr->string.empty()) {
                                     ImGui::Text("%f", diff_second_mark_ptr->value);
                                 } else {
-                                    if (diff_second_mark_ptr->status == LuaEngine::sc_START_ZONE) {
+                                    if (diff_second_mark_ptr->status == LogEngine::sc_START_ZONE) {
                                         ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", diff_second_mark_ptr->string.c_str());
-                                    } else if (diff_second_mark_ptr->status == LuaEngine::sc_END_ZONE) {
+                                    } else if (diff_second_mark_ptr->status == LogEngine::sc_END_ZONE) {
                                         ImGui::Text(ICON_FONT_ARROW_LEFT " %s", diff_second_mark_ptr->string.c_str());
                                     } else {
                                         ImGui::Text("%s", diff_second_mark_ptr->string.c_str());

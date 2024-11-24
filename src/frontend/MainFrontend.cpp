@@ -244,8 +244,8 @@ limitations under the License.
                 // cTools
                 ImGui::ClickableTextUrl("cTools (MIT)", "https://github.com/aiekick/cTools");
                 ImGui::SameLine();
-                // LuaJit
-                ImGui::ClickableTextUrl("Lua Jit (MIT)", "https://github.com/LuaJIT/LuaJIT");
+                // ScriptJit
+                ImGui::ClickableTextUrl("Script Jit (MIT)", "https://github.com/ScriptJIT/ScriptJIT");
                 // BuildInc
                 ImGui::ClickableTextUrl("BuildInc (MIT)", "https://github.com/aiekick/buildinc");
                 ImGui::SameLine();

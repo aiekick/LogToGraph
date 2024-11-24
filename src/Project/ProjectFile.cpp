@@ -18,7 +18,6 @@
  */
 #include "ProjectFile.h"
 
-#include <models/lua/LuaEngine.h>
 #include <models/log/LogEngine.h>
 #include <panes/CodePane.h>
 #include <models/database/DataBase.h>
@@ -32,6 +31,7 @@
 #include <panes/SignalsHoveredDiff.h>
 #include <panes/SignalsHoveredList.h>
 #include <panes/SignalsHoveredMap.h>
+#include <models/script/ScriptingEngine.h>
 
 #include <Panes/GraphPane.h>
 #include <LayoutManager.h>
@@ -56,13 +56,16 @@ void ProjectFile::Clear() {
     m_ProjectFilePathName.clear();
     m_ProjectFileName.clear();
     m_ProjectFilePath.clear();
+    m_ScriptFilePathName.clear();
+    m_ScriptFileName.clear();
+    m_SourceFilePathNames.clear();
     m_IsLoaded = false;
     m_IsThereAnyChanges = false;
     Messaging::Instance()->Clear();
 }
 
 void ProjectFile::ClearDatas() {
-    LuaEngine::Instance()->Clear();
+    ScriptingEngine::Instance()->Clear();
     LogEngine::Instance()->Clear();
     GraphView::Instance()->Clear();
     GraphGroup::Instance()->Clear();
@@ -203,12 +206,47 @@ std::string ProjectFile::GetProjectFilepathName() const {
     return m_ProjectFilePathName;
 }
 
+void ProjectFile::SetScriptFilePathName(const SourceFilePathName& vFilePathName) {
+    m_ScriptFilePathName = vFilePathName;
+    auto ps = ez::file::parsePathFileName(m_ScriptFilePathName);
+    if (ps.isOk) {
+        m_ScriptFileName = ps.GetFPNE_WithPath("");
+    }
+}
+
+const SourceFilePathName& ProjectFile::GetScriptFilePathName() const {
+    return m_ScriptFilePathName;
+}
+const SourceFileName& ProjectFile::GetScriptFileName() const {
+    return m_ScriptFileName;
+}
+
+void ProjectFile::AddSourceFilePathName(const SourceFilePathName& vFilePathName) {
+    auto ps = ez::file::parsePathFileName(vFilePathName);
+    if (ps.isOk) {
+        m_SourceFilePathNames.emplace_back(ps.GetFPNE_WithPath(""), vFilePathName);
+    }
+}
+bool ProjectFile::RemoveFilePathName(const SourceFilePathName& vFilePathName) {
+    for (auto it = m_SourceFilePathNames.begin(); it != m_SourceFilePathNames.end(); ++it) {
+        if (it->first == vFilePathName) {
+            m_SourceFilePathNames.erase(it);
+            return true;
+        }
+    }
+    return false;
+}
+
+const std::vector<std::pair<SourceFileName, SourceFilePathName>>& ProjectFile::GetSourceFilePathNames() const {
+    return m_SourceFilePathNames;
+}
+
 ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     ez::xml::Node node;
 
     node.setName("project");
     node.addChilds(LayoutManager::Instance()->getXmlNodes("project"));
-    node.addChilds(LuaEngine::Instance()->getXmlNodes("project"));
+    node.addChilds(ScriptingEngine::Instance()->getXmlNodes("project"));
     node.addChilds(LogEngine::Instance()->getXmlNodes("project"));
     node.addChild("graph_bar_colors").setContent(m_GraphColors.graphBarColor);
     node.addChild("graph_bar_colors").setContent(m_GraphColors.graphBarColor);
@@ -235,7 +273,11 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     node.addChild("use_predefined_zero_value").setContent(m_UsePredefinedZeroValue);
     node.addChild("predefined_zero_value").setContent(m_PredefinedZeroValue);
     node.addChild("last_log_file_path").setContent(m_LastLogFilePath);
-
+    node.addChild("lua_file").setContent(m_ScriptFilePathName);
+    auto& childNode = node.addChild("log_files");
+    for (const auto& file : m_SourceFilePathNames) {
+        childNode.addChild("log_file").setContent(ez::xml::Node::escapeXml(file.second));
+    }
     return {node};
 }
 
@@ -297,11 +339,17 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
             m_PredefinedZeroValue = ez::dvariant(strValue).GetD();
         } else if (strName == "last_log_file_path") {
             m_LastLogFilePath = strValue;
+        } else if (strName == "script_file") {
+            SetScriptFilePathName(ez::xml::Node::unEscapeXml(strValue));
+        }
+    } else if (strParentName == "log_files") {
+        if (strName == "log_file") {
+            AddSourceFilePathName(ez::xml::Node::unEscapeXml(strValue));
         }
     }
 
     LayoutManager::Instance()->setFromXmlNodes(vNode, vParent, "project");
-    LuaEngine::Instance()->setFromXmlNodes(vNode, vParent, "project");
+    ScriptingEngine::Instance()->setFromXmlNodes(vNode, vParent, "project");
     LogEngine::Instance()->setFromXmlNodes(vNode, vParent, "project");
 
     return true;

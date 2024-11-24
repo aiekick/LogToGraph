@@ -23,7 +23,7 @@ limitations under the License.
 #include <panes/LogPane.h>
 #include <panes/CodePane.h>
 
-#include <models/lua/LuaEngine.h>
+#include <models/script/ScriptingEngine.h>
 #include <models/log/LogEngine.h>
 #include <models/log/SourceFile.h>
 #include <models/log/SignalSerie.h>
@@ -81,7 +81,7 @@ bool ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImR
 
         if (ImGuiFileDialog::Instance()->Display("OPEN_LUA_SCRIPT_FILE", ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, minSize, maxSize)) {
             if (ImGuiFileDialog::Instance()->IsOk()) {
-                LuaEngine::Instance()->SetLuaFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
+                ProjectFile::Instance()->SetScriptFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
                 CodePane::Instance()->OpenFile(ImGuiFileDialog::Instance()->GetFilePathName());
                 ProjectFile::Instance()->SetProjectChange();
             }
@@ -94,7 +94,7 @@ bool ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImR
                 ProjectFile::Instance()->m_LastLogFilePath = ImGuiFileDialog::Instance()->GetFilePathName();
                 auto files = ImGuiFileDialog::Instance()->GetSelection();
                 for (const auto& item : files) {
-                    LuaEngine::Instance()->AddSourceFilePathName(item.second);
+                    ProjectFile::Instance()->AddSourceFilePathName(item.second);
                 }
 
                 ProjectFile::Instance()->SetProjectChange();
@@ -105,12 +105,13 @@ bool ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImR
 
         if (ImGuiFileDialog::Instance()->Display("EDIT_LOG_FILE", ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, minSize, maxSize)) {
             if (ImGuiFileDialog::Instance()->IsOk()) {
-                auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
-                if (m_CurrentLogEdited > -1 && m_CurrentLogEdited < (int32_t)container_ref.size()) {
+                const auto& container = ProjectFile::Instance()->GetSourceFilePathNames();
+                if (m_CurrentSourceEdited > -1 && m_CurrentSourceEdited < (int32_t)container.size()) {
                     auto fpn = ImGuiFileDialog::Instance()->GetFilePathName();
                     auto ps = ez::file::parsePathFileName(fpn);
                     if (ps.isOk) {
-                        container_ref[m_CurrentLogEdited] = std::make_pair(ps.GetFPNE_WithPath(""), fpn);
+                        ProjectFile::Instance()->RemoveFilePathName(container[m_CurrentSourceEdited].second);
+                        ProjectFile::Instance()->AddSourceFilePathName(fpn);
                         ProjectFile::Instance()->SetProjectChange();
                     }
                 }
@@ -127,21 +128,21 @@ void ToolPane::UpdateTree() {
 }
 
 void ToolPane::DrawTable() {
-    if (ImGui::CollapsingHeader("Lua Script File")) {
-        if (ImGui::ContrastedButton("Select the Lua Script File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
+    if (ImGui::CollapsingHeader("Script Script File")) {
+        if (ImGui::ContrastedButton("Select the Script Script File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
             IGFD::FileDialogConfig config;
             config.countSelectionMax = 1;
-            config.filePathName = LuaEngine::Instance()->GetLuaFilePathName();
+            config.filePathName = ProjectFile::Instance()->GetScriptFilePathName();
             config.flags = ImGuiFileDialogFlags_Modal;
-            ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Lua Script File", ".lua,.*", config);
+            ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Script Script File", ".lua,.*", config);
         }
-        if (ImGui::ContrastedButton("##LuaScriptEdit")) {
-            ez::file::openFile(LuaEngine::Instance()->GetLuaFilePathName());
+        if (ImGui::ContrastedButton("##ScriptScriptEdit")) {
+            ez::file::openFile(ProjectFile::Instance()->GetScriptFilePathName());
         }
         ImGui::SameLine();
-        ImGui::TextWrapped("%s", LuaEngine::Instance()->GetLuaFileName().c_str());
+        ImGui::TextWrapped("%s", ProjectFile::Instance()->GetScriptFileName().c_str());
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("%s", LuaEngine::Instance()->GetLuaFilePathName().c_str());
+            ImGui::SetTooltip("%s", ProjectFile::Instance()->GetScriptFilePathName().c_str());
         }
     }
 
@@ -154,11 +155,10 @@ void ToolPane::DrawTable() {
             ImGuiFileDialog::Instance()->OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*", config);
         }
 
-        auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
-
-        if (!container_ref.empty()) {
+        const auto& sources = ProjectFile::Instance()->GetSourceFilePathNames();
+        if (!sources.empty()) {
             static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders;
-            if (ImGui::BeginTable("##sourcefilestable", 3, flags, ImVec2(-1.0f, container_ref.size() * ImGui::GetTextLineHeightWithSpacing()))) {
+            if (ImGui::BeginTable("##sourcefilestable", 3, flags, ImVec2(-1.0f, sources.size() * ImGui::GetTextLineHeightWithSpacing()))) {
                 ImGui::TableSetupScrollFreeze(0, 1);  // Make header always visible
                 ImGui::TableSetupColumn("##Edit", ImGuiTableColumnFlags_WidthFixed);
                 ImGui::TableSetupColumn("Log Files", ImGuiTableColumnFlags_WidthStretch);
@@ -166,22 +166,22 @@ void ToolPane::DrawTable() {
                 ImGui::TableHeadersRow();
 
                 int32_t idx = 0;
-                auto it_to_edit = container_ref.end();
-                auto it_to_erase = container_ref.end();
-                for (auto it_source_file = container_ref.begin(); it_source_file != container_ref.end(); ++it_source_file) {
+                auto it_to_edit = sources.end();
+                auto it_to_erase = sources.end();
+                for (auto it_source_file = sources.begin(); it_source_file != sources.end(); ++it_source_file) {
                     ImGui::TableNextRow();
 
-                    if (ImGui::TableSetColumnIndex(0))  // second column
+                    if (ImGui::TableSetColumnIndex(0)) 
                     {
                         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
-                        if (ImGui::ContrastedButton("##SourceFileEdit", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f))) {
+                        if (ImGui::ContrastedButton("E##SourceFileEdit", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f))) {
                             it_to_edit = it_source_file;
-                            m_CurrentLogEdited = idx;
+                            m_CurrentSourceEdited = idx;
                         }
                         ImGui::PopStyleVar();
                     }
 
-                    if (ImGui::TableSetColumnIndex(1))  // first column
+                    if (ImGui::TableSetColumnIndex(1)) 
                     {
                         ImGui::Selectable(it_source_file->first.c_str());
                         if (ImGui::IsItemHovered()) {
@@ -189,10 +189,10 @@ void ToolPane::DrawTable() {
                         }
                     }
 
-                    if (ImGui::TableSetColumnIndex(2))  // second column
+                    if (ImGui::TableSetColumnIndex(2))
                     {
                         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
-                        if (ImGui::ContrastedButton(ICON_FONT_CANCEL "##SourceFileDelete", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f))) {
+                        if (ImGui::ContrastedButton(ICON_FONT_CANCEL "X##SourceFileDelete", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f))) {
                             it_to_erase = it_source_file;
                         }
                         ImGui::PopStyleVar();
@@ -202,7 +202,7 @@ void ToolPane::DrawTable() {
                 }
 
                 // edit
-                if (it_to_edit != container_ref.end()) {
+                if (it_to_edit != sources.end()) {
                     IGFD::FileDialogConfig config;
                     config.countSelectionMax = 1;
                     config.filePathName = it_to_edit->second;
@@ -211,8 +211,8 @@ void ToolPane::DrawTable() {
                 }
 
                 // erase
-                if (it_to_erase != container_ref.end()) {
-                    container_ref.erase(it_to_erase);
+                if (it_to_erase != sources.end()) {
+                    ProjectFile::Instance()->RemoveFilePathName(it_to_erase->second);
                 }
 
                 ImGui::EndTable();
@@ -228,16 +228,22 @@ void ToolPane::DrawTable() {
     }
 
     if (ImGui::CollapsingHeader("Analyse")) {
-        if (!LuaEngine::Instance()->IsJoinable()) {
-            if (ImGui::ContrastedButton("Start LuAnalyse of log file", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
-                LuaEngine::Instance()->StartWorkerThread(false);
+        if (!ScriptingEngine::Instance()->IsJoinable()) {
+            if (ImGui::ContrastedButton("Start Analyse of file(s)", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
+                ScriptingEngine::Instance()->Clear();
+                ScriptingEngine::Instance()->SetScriptFilePathName(ProjectFile::Instance()->GetScriptFilePathName());
+                const auto& sources = ProjectFile::Instance()->GetSourceFilePathNames();
+                for (const auto& source : sources) {
+                    ScriptingEngine::Instance()->AddSourceFilePathName(source.second);
+                }
+                ScriptingEngine::Instance()->StartWorkerThread(false);
             }
         } else {
-            if (ImGui::ContrastedButton("Stop LuaAnalyse", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
-                LuaEngine::Instance()->StopWorkerThread();
+            if (ImGui::ContrastedButton("Stop Analyse", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
+                ScriptingEngine::Instance()->StopWorkerThread();
             }
 
-            auto progress = (float)LuaEngine::s_Progress;
+            auto progress = (float)ScriptingEngine::s_Progress;
             ImGui::ProgressBar(progress);
         }
     }

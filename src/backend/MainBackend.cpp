@@ -12,7 +12,7 @@
 
 #include <EzLibs/EzFile.hpp>
 
-#include <models/lua/LuaEngine.h>
+#include <models/script/ScriptingEngine.h>
 
 #include <cstdio>     // printf, fprintf
 #include <chrono>     // timer
@@ -241,7 +241,7 @@ void MainBackend::m_MainLoop() {
     while (!glfwWindowShouldClose(m_MainWindowPtr)) {
         {
 #ifndef _DEBUG
-            if (!LuaEngine::Instance()->IsJoinable()) {  // for not blocking threading progress bar animation
+            if (!ScriptingEngine::Instance()->IsJoinable()) {  // for not blocking threading progress bar animation
                 glfwWaitEventsTimeout(1.0);
             }
 #endif
@@ -271,7 +271,7 @@ void MainBackend::m_MainLoop() {
 
             MainFrontend::Instance()->Display(m_CurrentFrame, pos, size);
 
-            LuaEngine::Instance()->FinishIfRequired();
+            ScriptingEngine::Instance()->FinishIfRequired();
 
             ImGui::Render();
 
@@ -455,13 +455,13 @@ void MainBackend::m_InitPlugins(const std::string& vAppPath) {
 }
 
 void MainBackend::m_InitModels() {
-    LuaEngine::Instance()->Init();
+    ScriptingEngine::Instance()->Init();
 }
 
 void MainBackend::m_UnitModels() {
     ProjectFile::Instance()->Clear();
     ProjectFile::Instance()->ClearDatas();
-    LuaEngine::Instance()->Unit();
+    ScriptingEngine::Instance()->Unit();
 }
 
 void MainBackend::m_UnitPlugins() {

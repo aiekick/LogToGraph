@@ -11,7 +11,7 @@
 
 using json = nlohmann::json;
 
-Sto::DataBrockerModulePtr Module::create(const SettingsWeak& vSettings) {
+Ltg::DataBrockerModulePtr Module::create(const SettingsWeak& vSettings) {
     assert(!vSettings.expired());
     auto res = std::make_shared<Module>();
     res->m_Settings = vSettings;
@@ -21,7 +21,7 @@ Sto::DataBrockerModulePtr Module::create(const SettingsWeak& vSettings) {
     return res;
 }
 
-bool Module::init(Sto::PluginBridge* vBridgePtr) {
+bool Module::init(Ltg::PluginBridge* vBridgePtr) {
     m_OptionsCombo = ImWidgets::QuickStringCombo((int32_t)m_SelectedOptions, {"Range", "From date with range", "From date to date"});
     std::vector<std::string> ranges;
     ranges.reserve(m_Api.m_RangeStrings.size());
@@ -98,10 +98,10 @@ bool Module::StartPluginConfigRequest() {
     return false;
 }
 
-bool Module::Request(const std::string& vSymbol, const Sto::ProtocolType vProtocol) {
+bool Module::Request(const std::string& vSymbol, const Ltg::ProtocolType vProtocol) {
     std::stringstream file_name;
     file_name << "yahoo_json_" << vSymbol << ".txt";
-    if (vProtocol == Sto::ProtocolType::NET) {
+    if (vProtocol == Ltg::ProtocolType::NET) {
         std::string url;
         if (m_SelectedOptions == Options::INTERVAL_FROM_CURRENT_DATE_WITH_RANGE) {
             url = m_Api.getUrlForHistory(vSymbol, m_SelectedInterval, m_SelectedRange);
@@ -120,7 +120,7 @@ bool Module::Request(const std::string& vSymbol, const Sto::ProtocolType vProtoc
             DataPane::Instance()->setRequestDatasPrices(m_RequestPricesDatas);
             return true;
         }
-    } else if (vProtocol == Sto::ProtocolType::FILE) {
+    } else if (vProtocol == Ltg::ProtocolType::FILE) {
         m_RequestRawDatas = ez::file::loadFileToString(file_name.str());
         DataPane::Instance()->setRequestDatasRaw(m_RequestRawDatas);
         try {
@@ -137,12 +137,12 @@ bool Module::Request(const std::string& vSymbol, const Sto::ProtocolType vProtoc
     return false;
 }
 
-bool Module::GrabOneDay(const std::string& vSymbol, const Sto::IntervalType vInterval, const Sto::RangeType vRange) {
+bool Module::GrabOneDay(const std::string& vSymbol, const Ltg::IntervalType vInterval, const Ltg::RangeType vRange) {
     EZ_TOOLS_DEBUG_BREAK;
     return false;
 }
 
-Sto::SymbolPrices Module::getLastRequestedPrices() {
+Ltg::SymbolPrices Module::getLastRequestedPrices() {
     return m_RequestPricesDatas;
 }
 
@@ -150,13 +150,13 @@ Sto::SymbolPrices Module::getLastRequestedPrices() {
 ///// PRIVATE ///////////////////////////////////
 /////////////////////////////////////////////////
 
-Sto::SymbolPrices Module::m_parseJsonResponse(const std::string& vResponse) {
+Ltg::SymbolPrices Module::m_parseJsonResponse(const std::string& vResponse) {
     m_RequestJsonDatas = json::parse(vResponse);
     return m_parseJsonResponseHistorical(m_RequestJsonDatas);
 }
 
-Sto::SymbolPrices Module::m_parseJsonResponseHistorical(const nlohmann::json& vJsonParsed) {
-    Sto::SymbolPrices res;
+Ltg::SymbolPrices Module::m_parseJsonResponseHistorical(const nlohmann::json& vJsonParsed) {
+    Ltg::SymbolPrices res;
     if (!vJsonParsed.is_null()) {
         if (vJsonParsed.contains("chart")) {
             const auto& root_chart = vJsonParsed["chart"];

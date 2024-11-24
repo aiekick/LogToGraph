@@ -22,7 +22,6 @@ limitations under the License.
 #include <cinttypes>  // printf zu
 #include <panes/CodePane.h>
 
-#include <models/lua/LuaEngine.h>
 #include <models/log/LogEngine.h>
 #include <models/log/SignalSerie.h>
 #include <models/log/SignalTick.h>

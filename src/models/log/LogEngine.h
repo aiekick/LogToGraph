@@ -39,6 +39,8 @@ private:
 
 public:
     static std::string sConvertEpochToDateTimeString(const double& vTime);
+    static constexpr const char* sc_START_ZONE = "START_ZONE";
+    static constexpr const char* sc_END_ZONE = "END_ZONE";
 
 private:
     // source file container

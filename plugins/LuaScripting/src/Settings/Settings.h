@@ -1,8 +1,8 @@
 #pragma once
 
-#include <apis/StrockerPluginApi.h>
+#include <apis/LtgPluginApi.h>
 
-class Settings : public Sto::ISettings {
+class Settings : public Ltg::ISettings {
 private:  // load / save
     std::string m_ApiKey;
 
@@ -13,12 +13,12 @@ public: // for Yahoo
     std::string getApiKey() const;
 
 public: // for Strocker
-    Sto::SettingsCategoryPath GetCategory() const override;
+    Ltg::SettingsCategoryPath GetCategory() const override;
     bool LoadSettings() override;
     bool SaveSettings() override; 
-    bool DrawSettings() override;                    
-    std::string GetXmlSettings(const std::string& vOffset, const Sto::ISettingsType& vType) const override;
-    void SetXmlSettings(const std::string& vName, const std::string& vParentName, const std::string& vValue, const Sto::ISettingsType& vType) override;
+    bool DrawSettings() override;
+    ez::xml::Nodes GetXmlSettings(const Ltg::ISettingsType& vType) const final;
+    void SetXmlSettings(const ez::xml::Node& vName, const ez::xml::Node& vParent, const std::string& vValue, const Ltg::ISettingsType& vType) final;
 };
 
 typedef std::shared_ptr<Settings> SettingsPtr;

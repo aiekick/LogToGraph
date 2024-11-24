@@ -46,12 +46,8 @@ struct PluginPane : public virtual ILayoutPane {
 
     // the return, is a user side use case here
     bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened, ImGuiContext* vContextPt, void* vUserDatas) override = 0;
-    bool DrawWidgets(const uint32_t& /*vCurrentFrame*/, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) override {
-        return false;
-    }
-    bool DrawOverlays(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vRect*/, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) override {
-        return false;
-    }
+    bool DrawWidgets(const uint32_t& /*vCurrentFrame*/, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) override { return false; }
+    bool DrawOverlays(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vRect*/, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) override { return false; }
     bool DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vMaxRect*/, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) override {
         return false;
     }
@@ -83,7 +79,7 @@ struct IXmlSettings {
     // will be called by the saver
     virtual ez::xml::Nodes GetXmlSettings(const ISettingsType& vType) const = 0;
     // will be called by the loader
-    virtual void SetXmlSettings(const ez::xml::Node& vName, const ez::xml::Node& vParentName, const std::string& vValue, const ISettingsType& vType) = 0;
+    virtual void SetXmlSettings(const ez::xml::Node& vName, const ez::xml::Node& vParent, const std::string& vValue, const ISettingsType& vType) = 0;
 };
 
 struct PluginParam {
@@ -91,16 +87,12 @@ struct PluginParam {
     enum class Type { NUM, STRING } type = Type::NUM;
     double valueD = 0.0;
     std::string valueS;
-    explicit PluginParam(const std::string& vName, const double& vValue) : name(vName), type(Type::NUM), valueD(vValue) {
-    }
-    explicit PluginParam(const std::string& vName, const std::string& vValue) : name(vName), type(Type::NUM), valueS(vValue) {
-    }
+    explicit PluginParam(const std::string& vName, const double& vValue) : name(vName), type(Type::NUM), valueD(vValue) {}
+    explicit PluginParam(const std::string& vName, const std::string& vValue) : name(vName), type(Type::NUM), valueS(vValue) {}
 };
 typedef std::vector<PluginParam> PluginParams;
 
-
-struct PluginBridge {
-};
+struct PluginBridge {};
 
 struct PluginModule {
     virtual ~PluginModule() = default;
@@ -111,7 +103,7 @@ struct PluginModule {
 typedef std::shared_ptr<PluginModule> PluginModulePtr;
 typedef std::weak_ptr<PluginModule> PluginModuleWeak;
 
-enum class PluginModuleType { NONE = 0, Count };
+enum class PluginModuleType { NONE = 0, SCRIPTING, Count };
 
 struct PluginModuleInfos {
     std::string path;
@@ -120,8 +112,7 @@ struct PluginModuleInfos {
     PluginModuleType type;
     std::array<float, 4> color{};
     PluginModuleInfos(const std::string& vPath, const std::string& vLabel, const PluginModuleType& vType, const std::array<float, 4>& vColor = {})
-        : path(vPath), label(vLabel), type(vType), color(vColor) {
-    }
+        : path(vPath), label(vLabel), type(vType), color(vColor) {}
 };
 
 struct ISettings : public IXmlSettings {
@@ -141,8 +132,7 @@ typedef std::weak_ptr<ISettings> ISettingsWeak;
 
 struct PluginSettingsConfig {
     ISettingsWeak settings;
-    PluginSettingsConfig(ISettingsWeak vSertings) : settings(vSertings) {
-    }
+    PluginSettingsConfig(ISettingsWeak vSertings) : settings(vSertings) {}
 };
 
 struct PluginInterface {
@@ -165,4 +155,4 @@ struct PluginInterface {
     virtual std::vector<PluginSettingsConfig> GetSettings() const = 0;
 };
 
-}  // namespace Sto
+}  // namespace Ltg

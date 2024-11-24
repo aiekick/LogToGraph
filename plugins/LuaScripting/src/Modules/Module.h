@@ -1,28 +1,24 @@
 #pragma once
 
-#include <apis/StrockerPluginApi.h>
+#include <apis/LtgPluginApi.h>
 
-#include <apis/CurlWrapper.h>
-#include <Modules/YahooApi.hpp>
 #include <Settings/Settings.h>
-
-#include <json.hpp>
 
 #include <ImGuiPack.h>
 
 #include <string>
 #include <vector>
 
-class Module : public Sto::DataBrockerModule, public Sto::IGuiDrawer {
+class Module : public Ltg::PluginModule {
 public:
-    static Sto::DataBrockerModulePtr create(const SettingsWeak& vSettings);
+    static Ltg::DataBrockerModulePtr create(const SettingsWeak& vSettings);
 
 private:
     YahooApi m_Api;
     CurlWrapper m_CurlWrapper;
     std::string m_RequestRawDatas;
     nlohmann::json m_RequestJsonDatas = {}; 
-    Sto::SymbolPrices m_RequestPricesDatas; 
+    Ltg::SymbolPrices m_RequestPricesDatas; 
     SettingsWeak m_Settings;
 
     ImWidgets::QuickDateTime m_StartDate;
@@ -43,18 +39,18 @@ private:
 
 public:
     virtual ~Module() = default;
-    bool init(Sto::PluginBridge* vBridgePtr = nullptr) override;
+    bool init(Ltg::PluginBridge* vBridgePtr = nullptr) override;
     void unit() override;
     bool DrawWidgets(const uint32_t& vCurrentFrame, ImGuiContext* vContextPtr, void* vUserDatas) override;
     bool DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const ImRect& vMaxRect, ImGuiContext* vContextPtr, void* vUserDatas) override;
     bool StartPluginConfigRequest() override;
-    bool Request(const std::string& vSymbol, const Sto::ProtocolType vProtocol) override;
-    bool GrabOneDay(const std::string& vSymbol, const Sto::IntervalType vInterval, const Sto::RangeType vRange) override;
-    Sto::SymbolPrices getLastRequestedPrices() override;
+    bool Request(const std::string& vSymbol, const Ltg::ProtocolType vProtocol) override;
+    bool GrabOneDay(const std::string& vSymbol, const Ltg::IntervalType vInterval, const Ltg::RangeType vRange) override;
+    Ltg::SymbolPrices getLastRequestedPrices() override;
 
 private:
-    Sto::SymbolPrices m_parseJsonResponse(const std::string& vResponse);
-    Sto::SymbolPrices m_parseJsonResponseHistorical(const nlohmann::json& vJsonParsed);
+    Ltg::SymbolPrices m_parseJsonResponse(const std::string& vResponse);
+    Ltg::SymbolPrices m_parseJsonResponseHistorical(const nlohmann::json& vJsonParsed);
     std::time_t m_convertToEpochTime(const std::string& vIsoDateTime, const char* format = "%Y-%m-%d");
     std::string m_convertToISO8601(const std::time_t& vEpochTime);
 };
