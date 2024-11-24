@@ -41,6 +41,15 @@ else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wdeprecated-declarations -Wunused-parameter -Wno-unknown-pragmas")
 endif ()
 
+find_package(Python COMPONENTS Interpreter Development)
+
+message("Python_FOUND:${Python_FOUND}")
+message("Python_VERSION:${Python_VERSION}")
+message("Python_Development_FOUND:${Python_Development_FOUND}")
+message("Python_LIBRARIES:${Python_LIBRARIES}")
+message("Python_INCLUDES:${Python_INCLUDE_DIRS}")
+message("Python_RUNTIME_LIBRARIES:${Python_RUNTIME_LIBRARY_DIRS}")
+
 file(GLOB_RECURSE PROJECT_SRC_RECURSE 
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.c 
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.h 
@@ -85,7 +94,6 @@ set(FINAL_BIN_DIR ${CMAKE_SOURCE_DIR}/bin/plugins)
 message("Plugin ${PROJECT} => ${FINAL_BIN_DIR}")
 set(CMAKE_PDB_OUTPUT_DIRECTORY "${FINAL_BIN_DIR}/debug")
 
-# important to let the co,fig at end of the output name for let Strocker load the plugin for the good conf
 set_target_properties(${PROJECT} PROPERTIES OUTPUT_NAME_DEBUG "${PLUGIN_NAME_PREFIX}_${PROJECT}_${CMAKE_SYSTEM_NAME}_${ARCH}_Debug")
 set_target_properties(${PROJECT} PROPERTIES OUTPUT_NAME_RELEASE "${PLUGIN_NAME_PREFIX}_${PROJECT}_${CMAKE_SYSTEM_NAME}_${ARCH}_Release")
 set_target_properties(${PROJECT} PROPERTIES OUTPUT_NAME_MINSIZEREL "${PLUGIN_NAME_PREFIX}_${PROJECT}_${CMAKE_SYSTEM_NAME}_${ARCH}_MinSizeRel")
@@ -112,7 +120,26 @@ target_include_directories(${PROJECT} PRIVATE
 
 target_link_libraries(${PROJECT}
 	${IMGUIPACK_LIBRARIES}
+	Python::Python
 )
+
+target_link_directories(${PROJECT} PRIVATE
+	${Python_LIBRARY_DIRS}
+)
+
+target_include_directories(${PROJECT} PRIVATE 
+	${Python_INCLUDE_DIRS}
+	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/pybind11/include
+)
+
+get_target_property(PYTHON_type Python::Python TYPE)
+message("${PYTHON_type}")
+if(PYTHON_type STREQUAL "SHARED_LIBRARY")
+    add_custom_command(TARGET ${PROJECT} POST_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                                $<TARGET_FILE:Python::Python>
+                                $<TARGET_FILE_DIR:${PROJECT}>)
+endif()
 
 # add plugin name in parent LOADED_STROCKER_PLUGINS list
 set(LOADED_LOG_TO_GRAPH_PLUGINS ${LOADED_LOG_TO_GRAPH_PLUGINS} ${PROJECT} PARENT_SCOPE)

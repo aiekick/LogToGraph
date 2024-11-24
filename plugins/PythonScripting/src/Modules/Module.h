@@ -28,4 +28,7 @@ public:
     bool callScriptStart(Ltg::ErrorContainer& vOutErrors) final;
     bool callScriptExec(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorContainer& vErrors) final;
     bool callScriptEnd(Ltg::ErrorContainer& vOutErrors) final;
+
+private:
+
 };
