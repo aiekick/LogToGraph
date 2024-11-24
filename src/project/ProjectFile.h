@@ -58,6 +58,7 @@ public:  // to save
     SourceFilePathName m_ScriptFilePathName;
     SourceFileName m_ScriptFileName;
     std::vector<std::pair<SourceFileName, SourceFilePathName>> m_SourceFilePathNames;
+    Ltg::ScriptingModuleName m_ScriptingModuleName;
 
 private:  // dont save
     bool m_IsLoaded = false;

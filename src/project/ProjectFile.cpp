@@ -141,6 +141,7 @@ bool ProjectFile::LoadAs(const std::string& vFilePathName) {
     }
     return m_IsLoaded;
 }
+
 bool ProjectFile::Save() {
     if (m_NeverSaved) {
         return false;
@@ -211,12 +212,14 @@ void ProjectFile::SetScriptFilePathName(const SourceFilePathName& vFilePathName)
     auto ps = ez::file::parsePathFileName(m_ScriptFilePathName);
     if (ps.isOk) {
         m_ScriptFileName = ps.GetFPNE_WithPath("");
+        SetProjectChange(true);
     }
 }
 
 const SourceFilePathName& ProjectFile::GetScriptFilePathName() const {
     return m_ScriptFilePathName;
 }
+
 const SourceFileName& ProjectFile::GetScriptFileName() const {
     return m_ScriptFileName;
 }
@@ -225,8 +228,10 @@ void ProjectFile::AddSourceFilePathName(const SourceFilePathName& vFilePathName)
     auto ps = ez::file::parsePathFileName(vFilePathName);
     if (ps.isOk) {
         m_SourceFilePathNames.emplace_back(ps.GetFPNE_WithPath(""), vFilePathName);
+        SetProjectChange(true);
     }
 }
+
 bool ProjectFile::RemoveFilePathName(const SourceFilePathName& vFilePathName) {
     for (auto it = m_SourceFilePathNames.begin(); it != m_SourceFilePathNames.end(); ++it) {
         if (it->first == vFilePathName) {
@@ -243,7 +248,6 @@ const std::vector<std::pair<SourceFileName, SourceFilePathName>>& ProjectFile::G
 
 ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     ez::xml::Node node;
-
     node.setName("project");
     node.addChilds(LayoutManager::Instance()->getXmlNodes("project"));
     node.addChilds(ScriptingEngine::Instance()->getXmlNodes("project"));
@@ -273,7 +277,7 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     node.addChild("use_predefined_zero_value").setContent(m_UsePredefinedZeroValue);
     node.addChild("predefined_zero_value").setContent(m_PredefinedZeroValue);
     node.addChild("last_log_file_path").setContent(m_LastLogFilePath);
-    node.addChild("lua_file").setContent(m_ScriptFilePathName);
+    node.addChild("script_file").setContent(m_ScriptFilePathName);
     auto& childNode = node.addChild("log_files");
     for (const auto& file : m_SourceFilePathNames) {
         childNode.addChild("log_file").setContent(ez::xml::Node::escapeXml(file.second));
@@ -341,7 +345,7 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
             m_LastLogFilePath = strValue;
         } else if (strName == "script_file") {
             SetScriptFilePathName(ez::xml::Node::unEscapeXml(strValue));
-        }
+        } 
     } else if (strParentName == "log_files") {
         if (strName == "log_file") {
             AddSourceFilePathName(ez::xml::Node::unEscapeXml(strValue));

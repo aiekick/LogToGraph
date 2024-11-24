@@ -45,9 +45,10 @@ private:                                       // script objects
 private:  // Misc
     SourceFilePathName m_scriptFilePathName;
     std::vector<SourceFilePathName> m_sourceFilePathNames;
-    typedef std::string ScriptingModuleName;
-    std::map<ScriptingModuleName, Ltg::ScriptingModulePtr> m_scriptingModules;
+    std::map<Ltg::ScriptingModuleName, Ltg::ScriptingModulePtr> m_scriptingModules;
     ImWidgets::QuickStringCombo m_scriptingModuleCombo;
+    Ltg::ScriptingModuleWeak m_SelectedScriptingModule;
+    Ltg::ScriptingModuleName m_SelectedScriptingModuleName;
 
 private:  // thread
     std::thread m_WorkerThread;
@@ -101,7 +102,8 @@ public:
 
 private:
     void m_run(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime);
-    void m_getAvailableScriptingModules();
+    void m_fetchScriptingModules();
+    void m_selectScriptingModule(const Ltg::ScriptingModuleName& vName);
 
 public:  // configuration
     ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;

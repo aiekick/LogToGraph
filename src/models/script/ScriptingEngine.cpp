@@ -116,7 +116,7 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                                             vGenerationTime = (double)(secondTimeMark - firstTimeMark) / 1000.0;
                                             vProgress = (double)rowIndex / (double)rowCount;
                                             SetRowIndex(rowIndex++);
-                                            datas.buffer = std::move(rowContent);
+                                            datas.buffer = rowContent;
                                             scriptingPtr->callScriptExec(datas, errorContainer);
                                         }
                                         scriptingPtr->callScriptEnd(errorContainer);
@@ -150,11 +150,12 @@ void ScriptingEngine::Clear() {
 }
 
 bool ScriptingEngine::Init() {
-    m_getAvailableScriptingModules();
+    m_fetchScriptingModules();
     return true;
 }
 
 void ScriptingEngine::Unit() {
+    m_SelectedScriptingModule.reset();
     m_scriptingModules.clear();
     m_scriptingModuleCombo.clear();
 }
@@ -286,13 +287,15 @@ bool ScriptingEngine::FinishIfRequired() {
 
 bool ScriptingEngine::drawMenu() {
     std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
-    return m_scriptingModuleCombo.display(0.0f, "Scripting");
+    if (m_scriptingModuleCombo.display(0.0f, "Scripting")) {
+        m_selectScriptingModule(m_scriptingModuleCombo.getText());
+    }
+    return false;
 }
 
 bool ScriptingEngine::isValidScriptingSelected() const {
     std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
-    const auto selectedScripting = m_scriptingModuleCombo.getText();
-    return (m_scriptingModules.find(selectedScripting) != m_scriptingModules.end());
+    return (!m_SelectedScriptingModule.expired());
 }
 
 ///////////////////////////////////////////////////////
@@ -301,6 +304,7 @@ bool ScriptingEngine::isValidScriptingSelected() const {
 
 ez::xml::Nodes ScriptingEngine::getXmlNodes(const std::string& /*vUserDatas*/) {
     ez::xml::Node node;
+    node.addChild("scripting_module").setContent(m_SelectedScriptingModuleName);
     return node.getChildren();
 }
 
@@ -308,7 +312,10 @@ bool ScriptingEngine::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml:
     // The value of this child identifies the name of this element
     const auto& strName = vNode.getName();
     const auto& strValue = vNode.getContent();
-    const auto& strParentName = vParent.getName();
+    // const auto& strParentName = vParent.getName();
+    if (strName == "scripting_module") {
+        m_selectScriptingModule(strValue);
+    }
     return true;
 }
 
@@ -316,7 +323,7 @@ bool ScriptingEngine::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml:
 //// PLUGINS //////////////////////////////////////////
 ///////////////////////////////////////////////////////
 
-void ScriptingEngine::m_getAvailableScriptingModules() {
+void ScriptingEngine::m_fetchScriptingModules() {
     m_scriptingModuleCombo.clear();
     m_scriptingModuleCombo.getArrayRef().push_back("None");
     auto modules = PluginManager::Instance()->getPluginModulesInfos();
@@ -328,5 +335,13 @@ void ScriptingEngine::m_getAvailableScriptingModules() {
                 m_scriptingModuleCombo.getArrayRef().push_back(mod.label);
             }
         }
+    }
+}
+
+void ScriptingEngine::m_selectScriptingModule(const Ltg::ScriptingModuleName& vName) {
+    if (m_scriptingModules.find(vName) != m_scriptingModules.end()) {
+        m_SelectedScriptingModule = m_scriptingModules.at(vName);
+        ProjectFile::Instance()->SetProjectChange();
+        m_scriptingModuleCombo.select(vName);
     }
 }

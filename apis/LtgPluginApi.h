@@ -142,7 +142,7 @@ typedef std::vector<ScriptingError> ErrorContainer;
 struct ScriptingDatas {
     std::string buffer;
 };
-
+typedef std::string ScriptingModuleName;
 struct ScriptingModule : public PluginModule {
     virtual ~ScriptingModule() = default;
     // will load the related scripting engine
