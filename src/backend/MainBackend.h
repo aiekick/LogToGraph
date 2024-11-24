@@ -2,8 +2,8 @@
 
 #include <glad/glad.h>
 #include <ImGuiPack.h>
-#include <EzLibs/EzTools.hpp>
-#include <EzLibs/EzXmlConfig.hpp>
+#include <ezlibs/ezTools.hpp>
+#include <ezlibs/ezXmlConfig.hpp>
 
 #include <string>
 #include <memory>
@@ -16,8 +16,8 @@ struct GLFWwindow;
 class MainBackend : public ez::xml::Config {
 private:
     GLFWwindow* m_MainWindowPtr = nullptr;
-    const char* m_GlslVersion = "";
-    ImRect m_DisplayRect;
+    const char* m_glslVersion = "";
+    ImRect m_displayRect;
 
     // mouse
     ez::fvec4 m_MouseFrameSize;
@@ -42,7 +42,7 @@ private:
     GLuint m_BigAppIconID = 0U;
 
 public:  // getters
-    ImRect GetDisplayRect() { return m_DisplayRect; }
+    ImRect GetDisplayRect() { return m_displayRect; }
 
 public:
     virtual ~MainBackend();

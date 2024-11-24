@@ -18,10 +18,10 @@ jobs:
     - name: configure
       run: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release
     - name: build
-      run: cmake --build build
+      run: cmake --build build --target package
     - name: upload artifact
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: LogToGraph_Linux_x32
-        path: bin/LogToGraph_Linux_x32
+        path: bin/packages/*.zip
 

@@ -12,6 +12,7 @@
 #include <memory>
 #include <ImGuiPack.h>
 #include <ezlibs/ezTools.hpp>
+#include <ezlibs/ezXmlConfig.hpp>
 
 typedef const char* ImGuiLabel;
 

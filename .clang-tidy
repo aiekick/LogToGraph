@@ -1,0 +1,54 @@
+Checks: >
+  - readability-identifier-naming
+CheckOptions:
+  # Types en PascalCase
+  - key: readability-identifier-naming.TypeCase
+    value: PascalCase
+
+  # Variables globales en camelCase
+  - key: readability-identifier-naming.GlobalVariableCase
+    value: camelCase
+
+  # Variables membres privées/protégées en camelCase avec préfixe m_
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: camelCase
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: m_
+
+  - key: readability-identifier-naming.ProtectedMemberCase
+    value: camelCase
+  - key: readability-identifier-naming.ProtectedMemberPrefix
+    value: m_
+
+  # Fonctions membres privées/protégées en camelCase avec préfixe m_
+  - key: readability-identifier-naming.PrivateMethodCase
+    value: camelCase
+  - key: readability-identifier-naming.PrivateMethodPrefix
+    value: m_
+
+  - key: readability-identifier-naming.ProtectedMethodCase
+    value: camelCase
+  - key: readability-identifier-naming.ProtectedMethodPrefix
+    value: m_
+
+  # Variables locales en snake_case avec un préfixe _
+  - key: readability-identifier-naming.LocalVariableCase
+    value: snake_case
+  - key: readability-identifier-naming.LocalVariablePrefix
+    value: _
+
+  # Arguments en PascalCase avec préfixe v
+  - key: readability-identifier-naming.ParameterCase
+    value: PascalCase
+  - key: readability-identifier-naming.ParameterPrefix
+    value: v
+
+  # Variables (hors contexte global ou membre) en camelCase
+  - key: readability-identifier-naming.VariableCase
+    value: camelCase
+
+  # Fonctions membres publiques en camelCase sans préfixe
+  - key: readability-identifier-naming.PublicMethodCase
+    value: camelCase
+  - key: readability-identifier-naming.PublicMethodPrefix
+    value: ""

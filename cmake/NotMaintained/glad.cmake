@@ -78,6 +78,8 @@ if(NOT glad_POPULATED)
 		target_compile_options(glad PRIVATE -Wno-everything) # disable all warnings, since im not maintaining this lib
 	endif()
 
+	install(TARGETS glad RUNTIME DESTINATION / COMPONENT APP_LIBS_GLAD)
+
 	include_directories(${GLAD_INCLUDE_DIR})
 
 	if(NOT WIN32)

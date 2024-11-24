@@ -23,7 +23,6 @@ limitations under the License.
 #include <models/log/SignalSerie.h>
 #include <models/log/SignalTick.h>
 #include <models/log/SignalTag.h>
-#include <models/lua/LuaEngine.h>
 
 #include <Project/ProjectFile.h>
 
@@ -600,7 +599,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
                                     draw_list->AddLine(last_value_pos, ImVec2(value_pos.x, last_value_pos.y), _color, thickness);
                                     draw_list->AddLine(ImVec2(value_pos.x, last_value_pos.y), value_pos, _color, thickness);
                                 } else {
-                                    if (last_status == LuaEngine::sc_START_ZONE && current_status == LuaEngine::sc_END_ZONE) {
+                                    if (last_status == LogEngine::sc_START_ZONE && current_status == LogEngine::sc_END_ZONE) {
                                         ImPlot::FitPoint(ImPlotPoint(current_time, -1.0f));
                                         ImPlot::FitPoint(ImPlotPoint(current_time, 1.0f));
                                         ImVec2 last_pos = ImPlot::PlotToPixels(last_time, -1.0f);
@@ -674,7 +673,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
                                         if (pushed)
                                             ImGui::PopStyleColor();
                                     } else {
-                                        if (last_status == LuaEngine::sc_START_ZONE && current_status == LuaEngine::sc_END_ZONE) {
+                                        if (last_status == LogEngine::sc_START_ZONE && current_status == LogEngine::sc_END_ZONE) {
                                             // tofix : to refactor
                                             const auto p_min = ImGui::GetCursorScreenPos() - ImVec2(spacing_L, spacing_U);
                                             const auto p_max =
@@ -814,7 +813,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
                                                     draw_list->AddLine(last_value_pos, ImVec2(value_pos.x, last_value_pos.y), _color, thickness);
                                                     draw_list->AddLine(ImVec2(value_pos.x, last_value_pos.y), value_pos, _color, thickness);
                                                 } else {
-                                                    if (last_status == LuaEngine::sc_START_ZONE && current_status == LuaEngine::sc_END_ZONE) {
+                                                    if (last_status == LogEngine::sc_START_ZONE && current_status == LogEngine::sc_END_ZONE) {
                                                         _is_zone_reached = true;
                                                         ImPlot::FitPoint(ImPlotPoint(current_time, _ZoneYOffset));
                                                         ImPlot::FitPoint(ImPlotPoint(current_time, _ZoneYOffset + 1.0f));
@@ -901,7 +900,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
                                                         if (pushed)
                                                             ImGui::PopStyleColor();
                                                     } else {
-                                                        if (last_status == LuaEngine::sc_START_ZONE && current_status == LuaEngine::sc_END_ZONE) {
+                                                        if (last_status == LogEngine::sc_START_ZONE && current_status == LogEngine::sc_END_ZONE) {
                                                             if (_current_hovered_serie == datas_ptr) {
                                                                 // tofix : to refactor
                                                                 const auto p_min = ImGui::GetCursorScreenPos() - ImVec2(spacing_L, spacing_U);

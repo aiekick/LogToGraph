@@ -1,47 +1,32 @@
-# Yahoo Broker
+# Lua Scripting
 
-On ce conencte a une url de requete
+```lua
+-- UserDatas ltg (LogToGraph valid only from LogToGraph)
+-- ltg:logInfo(infos_string) : will log the message in the in app console 				
+-- ltg:logWarning(infos_string) : will log the message in the in app console 
+-- ltg:logError(infos_string) : will log the message in the in app console 
+-- ltg:logDebug(infos_string) : will log the message in the in app console 
+-- ltg:addSignalTag(date, r, g, b, a, name, help) : add a signal tag with date, color a name (color is linear [0:1]. the help will be displayed when mouse over the tag
+-- ltg:addSignalStatus(signal_category, signal_name, signal_epoch_time, signal_status) : will add a signal string status
+-- ltg:addSignalValue(signal_category, signal_name, signal_epoch_time, signal_value) : will add a signal numerical value
+-- ltg:addSignalStartZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal start zone
+-- ltg:addSignalEndZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal end zone 
+-- get/set epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
+-- double ltg:stringToEpoch("2023-01-16 15:24:26,464", 0)   
+-- string ltg:epochToString(18798798465465.546546, 0)  
 
-on doit pouvoir via un panel de brocker :
-* selectionner le broker
-* le type de donnée
-* le timeframe
-* la plage de data
-* une barre de progression
+function startFile()
 
-les donnée seront teleccahrgé soit en stream ou par fichier
-
-le deuxime implique un parse apres du fichier et suaver dans une bd sqlite
-
-It must be capable of :
-- display the Yahoo ui for selct what to get
-- return prices to strocker
-- maybe ahave a custom pane fro debug the infos
-
-Slots Types :
-* Prices [Strocker]
-
-Nodes Types :
-* Preview Prices [Strocker] 
-* YahooDataBrocker [New]
-
-```mermaid
-flowchart TB
-
-subgraph YahooDataBrockerNode[Yahoo Data Broker]
-    YahooDataBrocker[Yahoo Data Brocker] --> SlotPricesOut(Slot Prices)
 end
 
-subgraph PluginIndicators[Plugin Indicators]
-    SlotPricesOut --> SetIndicatorsPrices[Set Prices]
+local x = 0.0;
+function parse(buffer)
+	x = x + 0.01 
+	ltg:addSignalValue("curve", "cos", x, math.cos(x))
+	ltg:addSignalValue("curve", "sin", x, math.sin(x))
 end
 
-subgraph PluginCharting[Plugin Charting]
-    SlotPricesOut --> SetChartingPrices[Set Prices]
-end
+function endFile()
 
-subgraph StrockerEnd[Strocker]
-    SlotPricesOut --> PreviewPrices[Preview Prices]
 end
-
 ```

@@ -6,9 +6,9 @@ enable_language(C CXX)
 
 project(${PROJECT} CXX)
 
-option(PLUGIN_ENABLE_YAHOO_BROKER "Enable the plugin Yahoo Broker" ON)
+option(PLUGIN_ENABLE_LUA_SCRIPTING "Enable the plugin Lua Scripting" ON)
 
-if (PLUGIN_ENABLE_YAHOO_BROKER)
+if (PLUGIN_ENABLE_LUA_SCRIPTING)
 
 set(LLVM_USE_CRT_DEBUG MDd CACHE STRING "" FORCE)
 set(LLVM_USE_CRT_MINSIZEREL MD CACHE STRING "" FORCE)
@@ -41,6 +41,9 @@ else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wdeprecated-declarations -Wunused-parameter -Wno-unknown-pragmas")
 endif ()
 
+include(cmake/luajit.cmake)
+include(cmake/sol2.cmake)
+
 file(GLOB_RECURSE PROJECT_SRC_RECURSE 
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.c 
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.h 
@@ -61,7 +64,6 @@ set(ENABLE_EXPORTS ON CACHE STRING "" FORCE)
 add_library(${PROJECT} MODULE
 	${APIS_SOURCES}
 	${CMAKE_RECURSE}
-	${SHADER_SOURCES}
 	${PROJECT_SRC_RECURSE}
 	${PROJECT_SHADERS_RECURSE}
 )
@@ -98,29 +100,30 @@ set_target_properties(${PROJECT} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE "${
 set_target_properties(${PROJECT} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL "${FINAL_BIN_DIR}")
 set_target_properties(${PROJECT} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${FINAL_BIN_DIR}")
 
-set_target_properties(${PROJECT} PROPERTIES FOLDER Plugins/Brockers)
+set_target_properties(${PROJECT} PROPERTIES FOLDER Plugins/Scripting)
 			
 install(IMPORTED_RUNTIME_ARTIFACTS ${PROJECT} DESTINATION plugins COMPONENT PLUGIN_BINARY_${PROJECT})
+install(TARGETS ${LUA_JIT_LIBRARIES} RUNTIME DESTINATION plugins COMPONENT APP_LIBS_${LUA_JIT_LIBRARIES})
 
 target_include_directories(${PROJECT} PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
 	${CMAKE_CURRENT_SOURCE_DIR}/src
 	${CMAKE_CURRENT_SOURCE_DIR}
+	${LUA_JIT_INCLUDE_DIR}/src
 	${IMGUIPACK_INCLUDE_DIRS}
-	${CTOOLS_INCLUDE_DIR}
 	${EZLIBS_INCLUDE_DIR}
 	${CMAKE_SOURCE_DIR}
-	${CURL_INCLUDE_DIR}
-	${JSON_INCLUDE_DIR}
+	${SOL2_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT}
 	${IMGUIPACK_LIBRARIES}
-	${CURL_LIBRARIES}
+	${LUA_JIT_LIBRARIES}
+	${SOL2_LIBRARIES}
 )
 
 # add plugin name in parent LOADED_STROCKER_PLUGINS list
-set(LOADED_STROCKER_PLUGINS ${LOADED_STROCKER_PLUGINS} ${PROJECT} PARENT_SCOPE)
+set(LOADED_LOG_TO_GRAPH_PLUGINS ${LOADED_LOG_TO_GRAPH_PLUGINS} ${PROJECT} PARENT_SCOPE)
 
 ########################################################
 ################# BUILD INCREMENT TOOL #################
@@ -137,4 +140,4 @@ add_custom_command(
 ########################################################
 ########################################################
 
-endif() #PLUGIN_ENABLE_YAHOO_BROKER
+endif() #PLUGIN_ENABLE_LUA_SCRIPTING

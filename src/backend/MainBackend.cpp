@@ -10,9 +10,9 @@
 #include <3rdparty/imgui_docking/backends/imgui_impl_opengl3.h>
 #include <3rdparty/imgui_docking/backends/imgui_impl_glfw.h>
 
-#include <EzLibs/EzFile.hpp>
+#include <ezlibs/ezFile.hpp>
 
-#include <models/lua/LuaEngine.h>
+#include <models/script/ScriptingEngine.h>
 
 #include <cstdio>     // printf, fprintf
 #include <chrono>     // timer
@@ -78,7 +78,7 @@ bool MainBackend::init(const std::string& vAppPath) {
 #ifdef _DEBUG
     SetConsoleVisibility(true);
 #else
-    SetConsoleVisibility(false);
+    SetConsoleVisibility(true);
 #endif
     if (m_InitWindow() && m_InitImGui()) {
         m_InitPlugins(vAppPath);
@@ -241,7 +241,7 @@ void MainBackend::m_MainLoop() {
     while (!glfwWindowShouldClose(m_MainWindowPtr)) {
         {
 #ifndef _DEBUG
-            if (!LuaEngine::Instance()->IsJoinable()) {  // for not blocking threading progress bar animation
+            if (!ScriptingEngine::Instance()->IsJoinable()) {  // for not blocking threading progress bar animation
                 glfwWaitEventsTimeout(1.0);
             }
 #endif
@@ -269,9 +269,9 @@ void MainBackend::m_MainLoop() {
                 size = viewport->WorkSize;
             }
 
-            MainFrontend::Instance()->Display(m_CurrentFrame, pos, size);
+            MainFrontend::Instance()->Display(m_CurrentFrame, ImVec2(0,0), size);
 
-            LuaEngine::Instance()->FinishIfRequired();
+            ScriptingEngine::Instance()->FinishIfRequired();
 
             ImGui::Render();
 
@@ -353,7 +353,7 @@ bool MainBackend::m_InitWindow() {
         return false;
 
     // GL 3.0 + GLSL 130
-    m_GlslVersion = "#version 130";
+    m_glslVersion = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_SAMPLES, 4);
@@ -423,7 +423,7 @@ bool MainBackend::m_InitImGui() {
 
     // Setup Platform/Renderer bindings
     if (ImGui_ImplGlfw_InitForOpenGL(m_MainWindowPtr, true) &&  //
-        ImGui_ImplOpenGL3_Init(m_GlslVersion)) {
+        ImGui_ImplOpenGL3_Init(m_glslVersion)) {
         // ui init
         if (MainFrontend::Instance()->init()) {
             iagp::InAppGpuProfiler::Instance()->Clear();
@@ -455,13 +455,13 @@ void MainBackend::m_InitPlugins(const std::string& vAppPath) {
 }
 
 void MainBackend::m_InitModels() {
-    LuaEngine::Instance()->Init();
+    ScriptingEngine::Instance()->Init();
 }
 
 void MainBackend::m_UnitModels() {
     ProjectFile::Instance()->Clear();
     ProjectFile::Instance()->ClearDatas();
-    LuaEngine::Instance()->Unit();
+    ScriptingEngine::Instance()->Unit();
 }
 
 void MainBackend::m_UnitPlugins() {

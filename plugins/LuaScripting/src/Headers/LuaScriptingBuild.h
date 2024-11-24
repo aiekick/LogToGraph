@@ -1,7 +1,7 @@
 #pragma once
 
 #define LuaScripting_Prefix "LuaScripting"
-#define LuaScripting_BuildNumber 1
+#define LuaScripting_BuildNumber 53
 #define LuaScripting_MinorNumber 0
 #define LuaScripting_MajorNumber 0
-#define LuaScripting_BuildId "0.0.1"
+#define LuaScripting_BuildId "0.0.53"

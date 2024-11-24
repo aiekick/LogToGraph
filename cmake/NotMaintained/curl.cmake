@@ -147,6 +147,8 @@ if(NOT curl_POPULATED)
 		endif()
 	endif()
 
+	install(TARGETS ${CURL_LIBRARIES} RUNTIME DESTINATION / COMPONENT APP_LIBS_CURL)
+
 	set(CURL_INCLUDE_DIR ${curl_SOURCE_DIR}/include)
 	include_directories(${CURL_INCLUDE_DIR}/curl)
 endif()

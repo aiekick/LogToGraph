@@ -6,11 +6,11 @@ std::string Settings::getApiKey() const {
     return m_ApiKey;
 }
 
-Sto::SettingsCategoryPath Settings::GetCategory() const {
+Ltg::SettingsCategoryPath Settings::getCategory() const {
     return "Brockers/Yahoo";
 }
 
-bool Settings::LoadSettings() {
+bool Settings::loadSettings() {
     if (!m_ApiKey.empty()) {
         size_t maxCountChars = m_TmpBuffer.size();
         if (m_ApiKey.size() < maxCountChars) {
@@ -27,13 +27,13 @@ bool Settings::LoadSettings() {
     return false;
 }
 
-bool Settings::SaveSettings() {
+bool Settings::saveSettings() {
     m_ApiKey = m_TmpBuffer.data();
     m_TmpBuffer[0] = '\0';
     return true;
 }
 
-bool Settings::DrawSettings() {
+bool Settings::drawSettings() {
     bool change = false;
     ImGui::Header("Yahoo");
     //ImGui::Text("Api Key :");
@@ -41,24 +41,14 @@ bool Settings::DrawSettings() {
     return change;
 }
 
-std::string Settings::GetXmlSettings(const std::string& vOffset, const Sto::ISettingsType& vType) const {
-    std::string str;
-    str += vOffset + "<Yahoo>\n";
-    /*if (vType == Sto::ISettingsType::PROJECT) {  // we are considering than the api key is per user
-        str += vOffset + "\t<api_key>" + m_ApiKey + "</api_key>\n";
-    }*/
-    str += vOffset + "</Yahoo>\n";
-    return str;
+ez::xml::Nodes Settings::getXmlSettings(const Ltg::ISettingsType& vType) const {
+    ez::xml::Node node("LuaScripting");
+    return {node};
 }
 
-void Settings::SetXmlSettings(const std::string& vName, const std::string& vParentName, const std::string& vValue, const Sto::ISettingsType& vType) {
-    if (!vName.empty() && !vValue.empty()) {
-        if (vParentName == "Yahoo") {
-            /*if (vType == Sto::ISettingsType::PROJECT) {  // we are considering than the api key is per user
-                if (vName == "api_key") {
-                    m_ApiKey = vValue;
-                }
-            }*/
+void Settings::setXmlSettings(const ez::xml::Node& vName, const ez::xml::Node& vParent, const std::string& vValue, const Ltg::ISettingsType& vType) {
+    if (!vName.getName().empty() && !vValue.empty()) {
+        if (vParent.getName() == "LuaScripting") {
         }
     }
 }

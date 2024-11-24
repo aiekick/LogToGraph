@@ -1,10 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(PROJECT Strocker)
-
-enable_language(C CXX)
-project(${PROJECT} CXX)
-
 ###########################################################
 ##### SEARCH FOR PLUGINS ##################################
 ###########################################################
