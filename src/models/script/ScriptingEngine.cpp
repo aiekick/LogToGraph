@@ -35,6 +35,8 @@ limitations under the License.
 
 #include <ezlibs/ezFile.hpp>
 
+#include <systems/PluginManager.h>
+
 using namespace std::chrono;
 
 ///////////////////////////////////////////////////
@@ -48,16 +50,16 @@ static SourceFileWeak source_file_parent;
 /// STATIC'S //////////////////////////////////////
 ///////////////////////////////////////////////////
 
-std::atomic<double> ScriptingEngine::s_Progress(0.0);
-std::atomic<bool> ScriptingEngine::s_Working(false);
-std::atomic<double> ScriptingEngine::s_GenerationTime(0.0);
-std::mutex ScriptingEngine::s_WorkerThread_Mutex;
+std::atomic<double> ScriptingEngine::s_progress(0.0);
+std::atomic<bool> ScriptingEngine::s_working(false);
+std::atomic<double> ScriptingEngine::s_generationTime(0.0);
+std::mutex ScriptingEngine::s_workerThread_Mutex;
 
 ///////////////////////////////////////////////////
 /// WORKER THREAD /////////////////////////////////
 ///////////////////////////////////////////////////
 
-void ScriptingEngine::m_Run(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime) {
+void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime) {
     vProgress = 0.0;
 
     vWorking = true;
@@ -66,12 +68,12 @@ void ScriptingEngine::m_Run(std::atomic<double>& vProgress, std::atomic<bool>& v
 
     const int64_t firstTimeMark = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
-    s_WorkerThread_Mutex.lock();
+    s_workerThread_Mutex.lock();
 
-    const auto scriptFilePathName = m_ScriptFilePathName;
-    const auto sourceFilePathNames = m_SourceFilePathNames;
+    const auto scriptFilePathName = m_scriptFilePathName;
+    const auto sourceFilePathNames = m_sourceFilePathNames;
 
-    s_WorkerThread_Mutex.unlock();
+    s_workerThread_Mutex.unlock();
 
     std::string lua_Current_Buffer_Row_Var_Name;    // current line of buffer
     std::string lua_Function_To_Call_For_Each_Row;  // the function to call for each lines
@@ -153,73 +155,76 @@ bool ScriptingEngine::m_callScriptEnd() {
 ///////////////////////////////////////////////////
 
 void ScriptingEngine::Clear() {
-    m_ScriptFilePathName.clear();
-    m_SourceFilePathNames.clear();
+    m_scriptFilePathName.clear();
+    m_sourceFilePathNames.clear();
 }
 
 bool ScriptingEngine::Init() {
+    m_getAvailableScriptingModules();
     return true;
 }
 
 void ScriptingEngine::Unit() {
+    m_scriptingModules.clear();
+    m_scriptingModuleNames.clear();
 }
 
 void ScriptingEngine::SetInfos(const std::string& vInfos) {
-    std::lock_guard<std::mutex> guard(s_WorkerThread_Mutex);
-    m_ScriptDescription = vInfos;
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    m_scriptDescription = vInfos;
 }
 
 std::string ScriptingEngine::GetInfos() const {
-    std::lock_guard<std::mutex> guard(s_WorkerThread_Mutex);
-    return m_ScriptDescription;
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    return m_scriptDescription;
 }
 
 void ScriptingEngine::SetFunctionForEachRow(const std::string& vName) {
-    std::lock_guard<std::mutex> guard(s_WorkerThread_Mutex);
-    m_ScriptFuncToCallForEachRow = vName;
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    m_scriptFuncToCallForEachRow = vName;
 }
 
 std::string ScriptingEngine::GetFunctionForEachRow() const {
-    std::lock_guard<std::mutex> guard(s_WorkerThread_Mutex);
-    return m_ScriptFuncToCallForEachRow;
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    return m_scriptFuncToCallForEachRow;
 }
 
 void ScriptingEngine::SetFunctionForEndFile(const std::string& vName) {
-    std::lock_guard<std::mutex> guard(s_WorkerThread_Mutex);
-    m_ScriptFuncToCallEndFile = vName;
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    m_scriptFuncToCallEndFile = vName;
 }
 
 std::string ScriptingEngine::GetFunctionForEndFile() const {
-    std::lock_guard<std::mutex> guard(s_WorkerThread_Mutex);
-    return m_ScriptFuncToCallEndFile;
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    return m_scriptFuncToCallEndFile;
 }
 
 void ScriptingEngine::SetRowIndex(const int32_t& vRowID) {
-    std::lock_guard<std::mutex> guard(s_WorkerThread_Mutex);
-    m_ScriptRowIndex = vRowID;
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    m_scriptRowIndex = vRowID;
 }
 
 int32_t ScriptingEngine::GetRowIndex() const {
-    std::lock_guard<std::mutex> guard(s_WorkerThread_Mutex);
-    return m_ScriptRowIndex;
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    return m_scriptRowIndex;
 }
 
 void ScriptingEngine::SetRowCount(const int32_t& vRowCount) {
-    std::lock_guard<std::mutex> guard(s_WorkerThread_Mutex);
-    m_ScriptRowCount = vRowCount;
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    m_scriptRowCount = vRowCount;
 }
 
 int32_t ScriptingEngine::GetRowCount() const {
-    std::lock_guard<std::mutex> guard(s_WorkerThread_Mutex);
-    return m_ScriptRowCount;
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    return m_scriptRowCount;
 }
 
 void ScriptingEngine::SetScriptFilePathName(const SourceFilePathName& vFilePathName) {
-    m_ScriptFilePathName = vFilePathName;
+    m_scriptFilePathName = vFilePathName;
 }
 
 void ScriptingEngine::AddSourceFilePathName(const SourceFilePathName& vFilePathName) {
-    m_SourceFilePathNames.push_back(vFilePathName);
+    m_sourceFilePathNames.push_back(vFilePathName);
 }
 
 void ScriptingEngine::AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue) {
@@ -247,20 +252,20 @@ void ScriptingEngine::StartWorkerThread(const bool& vFirstLoad) {
         GraphView::Instance()->Clear();
         ToolPane::Instance()->Clear();
         LogPane::Instance()->Clear();
-        ScriptingEngine::s_Working = true;
+        ScriptingEngine::s_working = true;
         m_WorkerThread = std::thread(  //
-            &ScriptingEngine::m_Run,
+            &ScriptingEngine::m_run,
             this,
-            std::ref(ScriptingEngine::s_Progress),
-            std::ref(ScriptingEngine::s_Working),
-            std::ref(ScriptingEngine::s_GenerationTime));
+            std::ref(ScriptingEngine::s_progress),
+            std::ref(ScriptingEngine::s_working),
+            std::ref(ScriptingEngine::s_generationTime));
     }
 }
 
 bool ScriptingEngine::StopWorkerThread() {
     bool res = IsJoinable();
     if (res) {
-        ScriptingEngine::s_Working = false;
+        ScriptingEngine::s_working = false;
         Join();
     }
     return res;
@@ -276,7 +281,7 @@ void ScriptingEngine::Join() {
 
 bool ScriptingEngine::FinishIfRequired() {
     if (IsJoinable()) {
-        if (!ScriptingEngine::s_Working) {
+        if (!ScriptingEngine::s_working) {
             Join();
             LogPane::Instance()->Clear();
             LogPaneSecondView::Instance()->Clear();
@@ -304,4 +309,23 @@ bool ScriptingEngine::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml:
     const auto& strValue = vNode.getContent();
     const auto& strParentName = vParent.getName();
     return true;
+}
+
+///////////////////////////////////////////////////////
+//// PLUGINS //////////////////////////////////////////
+///////////////////////////////////////////////////////
+
+void ScriptingEngine::m_getAvailableScriptingModules() {
+    m_scriptingModuleNames.clear();
+    m_scriptingModuleNames.push_back("None");
+    auto modules = PluginManager::Instance()->getPluginModulesInfos();
+    for (const auto& mod : modules) {
+        if (mod.type == Ltg::PluginModuleType::SCRIPTING) {
+            auto ptr = std::dynamic_pointer_cast<Ltg::ScriptingModule>(PluginManager::Instance()->createPluginModule(mod.label));
+            if (ptr != nullptr) {
+                m_scriptingModules[mod.label] = ptr;
+                m_scriptingModuleNames.push_back(mod.label);
+            }
+        }
+    }
 }

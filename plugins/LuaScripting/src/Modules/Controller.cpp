@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "LuaEngine.h"
+#include "Controller.h"
 
 #include <iostream>
 #include <functional>
@@ -85,7 +85,7 @@ static int Lua_void_SetInfos_string(lua_State* L) {
     if (res.empty()) {
         LogVarLightError("%s", "Lua error : string passed to SetInfos is empty");
     } else {
-        LuaEngine::Instance()->SetInfos(res);
+        Controller::Instance()->SetInfos(res);
     }
 
     return 0;  // return 0 item
@@ -98,7 +98,7 @@ static int Lua_void_SetRowBufferName_string(lua_State* L) {
     if (res.empty()) {
         LogVarLightError("%s", "Lua error : string passed to SetBufferName is empty");
     } else {
-        LuaEngine::Instance()->SetRowBufferName(res);
+        Controller::Instance()->SetRowBufferName(res);
     }
 
     return 0;  // return 0 item
@@ -111,7 +111,7 @@ static int Lua_void_SetFunctionForEachRow_string(lua_State* L) {
     if (res.empty()) {
         LogVarLightError("%s", "Lua error : string passed to SetFunctionForEachLine is empty");
     } else {
-        LuaEngine::Instance()->SetFunctionForEachRow(res);
+        Controller::Instance()->SetFunctionForEachRow(res);
     }
 
     return 0;  // return 0 item
@@ -124,7 +124,7 @@ static int Lua_void_SetFunctionForEndFile_string(lua_State* L) {
     if (res.empty()) {
         LogVarLightError("%s", "Lua error : string passed to SetFunctionForEachLine is empty");
     } else {
-        LuaEngine::Instance()->SetFunctionForEndFile(res);
+        Controller::Instance()->SetFunctionForEndFile(res);
     }
 
     return 0;  // return 0 item
@@ -132,7 +132,7 @@ static int Lua_void_SetFunctionForEndFile_string(lua_State* L) {
 
 // int GetRowIndex()
 static int Lua_int_GetRowIndex_void(lua_State* L) {
-    auto row_index = LuaEngine::Instance()->GetRowIndex();
+    auto row_index = Controller::Instance()->GetRowIndex();
 
     lua_pushinteger(L, row_index);
 
@@ -141,7 +141,7 @@ static int Lua_int_GetRowIndex_void(lua_State* L) {
 
 // int GetRowCount()
 static int Lua_int_GetRowCount_void(lua_State* L) {
-    auto row_count = LuaEngine::Instance()->GetRowCount();
+    auto row_count = Controller::Instance()->GetRowCount();
 
     lua_pushinteger(L, row_count);
 
@@ -236,7 +236,7 @@ static int Lua_void_AddSignalStartZone_category_name_date_string(lua_State* L) {
     if (arg_0_category.empty() || arg_1_name.empty()) {
         LogVarLightError("%s", "Lua code error : the category or/and name passed to AddSignalStartZone are empty");
     } else {
-        DataBase::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, LuaEngine::sc_START_ZONE);
+        DataBase::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, Controller::sc_START_ZONE);
     }
 
     return 0;  // return 0 item
@@ -253,7 +253,7 @@ static int Lua_void_AddSignalEndZone_category_name_date_string(lua_State* L) {
     if (arg_0_category.empty() || arg_1_name.empty()) {
         LogVarLightError("%s", "Lua code error : the category or/and name passed to AddSignalEndZone are empty");
     } else {
-        DataBase::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, LuaEngine::sc_END_ZONE);
+        DataBase::Instance()->AddSignalStatus((SourceFileID)source_file_id, arg_0_category, arg_1_name, arg_2_date, arg_3_string, Controller::sc_END_ZONE);
     }
 
     return 0;  // return 0 item
@@ -345,16 +345,16 @@ static void DestroyLuaState(lua_State* vlua_State_ptr) {
 /// STATIC'S //////////////////////////////////////
 ///////////////////////////////////////////////////
 
-std::atomic<double> LuaEngine::s_Progress(0.0);
-std::atomic<bool> LuaEngine::s_Working(false);
-std::atomic<double> LuaEngine::s_GenerationTime(0.0);
-std::mutex LuaEngine::s_WorkerThread_Mutex;
+std::atomic<double> Controller::s_Progress(0.0);
+std::atomic<bool> Controller::s_Working(false);
+std::atomic<double> Controller::s_GenerationTime(0.0);
+std::mutex Controller::s_WorkerThread_Mutex;
 
 ///////////////////////////////////////////////////
 /// WORKER THREAD /////////////////////////////////
 ///////////////////////////////////////////////////
 
-void LuaEngine::sLuAnalyse(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime) {
+void Controller::sLuAnalyse(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime) {
     vProgress = 0.0;
 
     vWorking = true;
@@ -363,8 +363,8 @@ void LuaEngine::sLuAnalyse(std::atomic<double>& vProgress, std::atomic<bool>& vW
 
     const int64_t firstTimeMark = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
-    const auto& luaFilePathName = LuaEngine::Instance()->GetLuaFilePathName();
-    const auto& source_files_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
+    const auto& luaFilePathName = Controller::Instance()->GetLuaFilePathName();
+    const auto& source_files_ref = Controller::Instance()->GetSourceFilePathNamesRef();
 
     std::string lua_Current_Buffer_Row_Var_Name;    // current line of buffer
     std::string lua_Function_To_Call_For_Each_Row;  // the function to call for each lines
@@ -399,22 +399,22 @@ void LuaEngine::sLuAnalyse(std::atomic<double>& vProgress, std::atomic<bool>& vW
                                     if (lua_isfunction(_luaState, -1)) {
                                         lua_pcall(_luaState, 0, 0, 0);
 
-                                        lua_Current_Buffer_Row_Var_Name = LuaEngine::Instance()->GetRowBufferName();
-                                        lua_Function_To_Call_For_Each_Row = LuaEngine::Instance()->GetFunctionForEachRow();
-                                        lua_Function_To_Call_End_File = LuaEngine::Instance()->GetFunctionForEndFile();
+                                        lua_Current_Buffer_Row_Var_Name = Controller::Instance()->GetRowBufferName();
+                                        lua_Function_To_Call_For_Each_Row = Controller::Instance()->GetFunctionForEachRow();
+                                        lua_Function_To_Call_End_File = Controller::Instance()->GetFunctionForEndFile();
                                     }
 
                                     auto file_lines = ez::str::splitStringToVector(file_string, '\n');
                                     lua_Row_Count = (int32_t)file_lines.size();
 
-                                    LuaEngine::Instance()->SetRowCount(lua_Row_Count);
+                                    Controller::Instance()->SetRowCount(lua_Row_Count);
 
                                     lua_Row_Index = 0U;
                                     for (auto lua_Current_Buffer_Row_Content : file_lines) {
                                         if (!vWorking)
                                             break;
 
-                                        LuaEngine::Instance()->SetRowIndex(lua_Row_Index);
+                                        Controller::Instance()->SetRowIndex(lua_Row_Index);
 
                                         // time
                                         const int64_t secondTimeMark =
@@ -472,7 +472,7 @@ void LuaEngine::sLuAnalyse(std::atomic<double>& vProgress, std::atomic<bool>& vW
     vWorking = false;
 }
 
-void LuaEngine::sSetLuaBufferVarContent(lua_State* vLuaState, const std::string& vVarName, const std::string& vContent) {
+void Controller::sSetLuaBufferVarContent(lua_State* vLuaState, const std::string& vVarName, const std::string& vContent) {
     if (!vVarName.empty() && !vContent.empty()) {
         auto _cont = vContent;
         if (_cont.find('\"') != std::string::npos) {
@@ -487,21 +487,21 @@ void LuaEngine::sSetLuaBufferVarContent(lua_State* vLuaState, const std::string&
 /// INIT/UNIT /////////////////////////////////////
 ///////////////////////////////////////////////////
 
-void LuaEngine::Clear() {
+void Controller::Clear() {
     m_LuaFilePathName.clear();
     m_SourceFilePathNames.clear();
 }
 
-bool LuaEngine::Init() {
+bool Controller::Init() {
     m_LuaStatePtr = CreateLuaState();
     return m_LuaStatePtr != nullptr;
 }
 
-void LuaEngine::Unit() {
+void Controller::Unit() {
     DestroyLuaState(m_LuaStatePtr);
 }
 
-bool LuaEngine::ExecScriptCode(const std::string& vCode, std::string& vErrors) {
+bool Controller::ExecScriptCode(const std::string& vCode, std::string& vErrors) {
     if (luaL_dostring(m_LuaStatePtr, vCode.c_str()) != LUA_OK) {
         vErrors = get_lua_secure_string(m_LuaStatePtr, -1);
 
@@ -513,55 +513,55 @@ bool LuaEngine::ExecScriptCode(const std::string& vCode, std::string& vErrors) {
     return true;
 }
 
-void LuaEngine::SetInfos(const std::string& vInfos) {
+void Controller::SetInfos(const std::string& vInfos) {
     m_Lua_Script_Description = vInfos;
 }
 
-std::string LuaEngine::GetInfos() {
+std::string Controller::GetInfos() {
     return m_Lua_Script_Description;
 }
 
-void LuaEngine::SetRowBufferName(const std::string& vName) {
+void Controller::SetRowBufferName(const std::string& vName) {
     m_Lua_Row_Buffer_Var_Name = vName;
 }
 
-std::string LuaEngine::GetRowBufferName() {
+std::string Controller::GetRowBufferName() {
     return m_Lua_Row_Buffer_Var_Name;
 }
 
-void LuaEngine::SetFunctionForEachRow(const std::string& vName) {
+void Controller::SetFunctionForEachRow(const std::string& vName) {
     m_Lua_Function_To_Call_For_Each_Line = vName;
 }
 
-std::string LuaEngine::GetFunctionForEachRow() {
+std::string Controller::GetFunctionForEachRow() {
     return m_Lua_Function_To_Call_For_Each_Line;
 }
 
-void LuaEngine::SetFunctionForEndFile(const std::string& vName) {
+void Controller::SetFunctionForEndFile(const std::string& vName) {
     m_Lua_Function_To_Call_End_File = vName;
 }
 
-std::string LuaEngine::GetFunctionForEndFile() {
+std::string Controller::GetFunctionForEndFile() {
     return m_Lua_Function_To_Call_End_File;
 }
 
-void LuaEngine::SetRowIndex(const int32_t& vRowID) {
+void Controller::SetRowIndex(const int32_t& vRowID) {
     m_Lua_Row_Index = vRowID;
 }
 
-int32_t LuaEngine::GetRowIndex() const {
+int32_t Controller::GetRowIndex() const {
     return m_Lua_Row_Index;
 }
 
-void LuaEngine::SetRowCount(const int32_t& vRowCount) {
+void Controller::SetRowCount(const int32_t& vRowCount) {
     m_Lua_Row_Count = vRowCount;
 }
 
-int32_t LuaEngine::GetRowCount() const {
+int32_t Controller::GetRowCount() const {
     return m_Lua_Row_Count;
 }
 
-void LuaEngine::SetLuaFilePathName(const std::string& vFilePathName) {
+void Controller::SetLuaFilePathName(const std::string& vFilePathName) {
     m_LuaFilePathName = vFilePathName;
     auto ps = ez::file::parsePathFileName(m_LuaFilePathName);
     if (ps.isOk) {
@@ -569,30 +569,30 @@ void LuaEngine::SetLuaFilePathName(const std::string& vFilePathName) {
     }
 }
 
-std::string LuaEngine::GetLuaFilePathName() {
+std::string Controller::GetLuaFilePathName() {
     return m_LuaFilePathName;
 }
 
-std::string LuaEngine::GetLuaFileName() {
+std::string Controller::GetLuaFileName() {
     return m_LuaFileName;
 }
 
-void LuaEngine::AddSourceFilePathName(const std::string& vFilePathName) {
+void Controller::AddSourceFilePathName(const std::string& vFilePathName) {
     auto ps = ez::file::parsePathFileName(vFilePathName);
     if (ps.isOk) {
         m_SourceFilePathNames.emplace_back(ps.GetFPNE_WithPath(""), vFilePathName);
     }
 }
 
-std::vector<std::pair<SourceFileName, SourceFilePathName>>& LuaEngine::GetSourceFilePathNamesRef() {
+std::vector<std::pair<SourceFileName, SourceFilePathName>>& Controller::GetSourceFilePathNamesRef() {
     return m_SourceFilePathNames;
 }
 
-void LuaEngine::AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue) {
+void Controller::AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue) {
     LogEngine::Instance()->AddSignalTick(source_file_parent, vCategory, vName, vDate, vValue);
 }
 
-void LuaEngine::AddSignalStatus(const SignalCategory& vCategory,
+void Controller::AddSignalStatus(const SignalCategory& vCategory,
                                 const SignalName& vName,
                                 const SignalEpochTime& vDate,
                                 const SignalString& vString,
@@ -604,7 +604,7 @@ void LuaEngine::AddSignalStatus(const SignalCategory& vCategory,
 //// THREAD ///////////////////////////////////////////
 ///////////////////////////////////////////////////////
 
-void LuaEngine::StartWorkerThread(const bool& vFirstLoad) {
+void Controller::StartWorkerThread(const bool& vFirstLoad) {
     if (!StopWorkerThread()) {
         if (!vFirstLoad) {
             LogEngine::Instance()->PrepareForSave();
@@ -615,35 +615,35 @@ void LuaEngine::StartWorkerThread(const bool& vFirstLoad) {
         ToolPane::Instance()->Clear();
         LogPane::Instance()->Clear();
 
-        LuaEngine::s_Working = true;
+        Controller::s_Working = true;
 
-        m_WorkerThread = std::thread(sLuAnalyse, std::ref(LuaEngine::s_Progress), std::ref(LuaEngine::s_Working), std::ref(LuaEngine::s_GenerationTime));
+        m_WorkerThread = std::thread(sLuAnalyse, std::ref(Controller::s_Progress), std::ref(Controller::s_Working), std::ref(Controller::s_GenerationTime));
     }
 }
 
-bool LuaEngine::StopWorkerThread() {
+bool Controller::StopWorkerThread() {
     bool res = false;
 
     res = IsJoinable();
     if (res) {
-        LuaEngine::s_Working = false;
+        Controller::s_Working = false;
         Join();
     }
 
     return res;
 }
 
-bool LuaEngine::IsJoinable() {
+bool Controller::IsJoinable() {
     return m_WorkerThread.joinable();
 }
 
-void LuaEngine::Join() {
+void Controller::Join() {
     m_WorkerThread.join();
 }
 
-bool LuaEngine::FinishIfRequired() {
+bool Controller::FinishIfRequired() {
     if (m_WorkerThread.joinable()) {
-        if (!LuaEngine::s_Working) {
+        if (!Controller::s_Working) {
             Join();
             LogPane::Instance()->Clear();
             LogPaneSecondView::Instance()->Clear();
@@ -660,18 +660,18 @@ bool LuaEngine::FinishIfRequired() {
 //// CONFIGURATION ////////////////////////////////////
 ///////////////////////////////////////////////////////
 
-ez::xml::Nodes LuaEngine::getXmlNodes(const std::string& /*vUserDatas*/) {
+ez::xml::Nodes Controller::getXmlNodes(const std::string& /*vUserDatas*/) {
     ez::xml::Node node("root");
     node.addChild("lua_file").setContent(m_LuaFilePathName);
     auto& childNode = node.addChild("log_files");
-    auto& container_ref = LuaEngine::Instance()->GetSourceFilePathNamesRef();
+    auto& container_ref = Controller::Instance()->GetSourceFilePathNamesRef();
     for (const auto& source_file : container_ref) {
         childNode.addChild("log_file").setContent(ez::xml::Node::escapeXml(source_file.second));
     }
     return node.getChildren();
 }
 
-bool LuaEngine::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& /*vUserDatas*/) {
+bool Controller::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& /*vUserDatas*/) {
     // The value of this child identifies the name of this element
     const auto& strName = vNode.getName();
     const auto& strValue = vNode.getContent();
@@ -683,7 +683,7 @@ bool LuaEngine::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node&
 
     if (strParentName == "log_files") {
         if (strName == "log_file") {
-            LuaEngine::Instance()->AddSourceFilePathName(ez::xml::Node::unEscapeXml(strValue));
+            Controller::Instance()->AddSourceFilePathName(ez::xml::Node::unEscapeXml(strValue));
         }
     }
 

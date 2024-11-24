@@ -25,27 +25,29 @@ limitations under the License.
 #include <string>
 #include <functional>
 #include <Headers/Globals.h>
+#include <apis/LtgPluginApi.h>
 
 class ScriptingEngine : public ez::xml::Config {
 public:
-    static std::mutex s_WorkerThread_Mutex;
-    static std::atomic<bool> s_Working;
-    static std::atomic<double> s_Progress;
-    static std::atomic<double> s_GenerationTime;
-    static constexpr const char* sc_START_ZONE = "START_ZONE";
-    static constexpr const char* sc_END_ZONE = "END_ZONE";
+    static std::mutex s_workerThread_Mutex;
+    static std::atomic<bool> s_working;
+    static std::atomic<double> s_progress;
+    static std::atomic<double> s_generationTime;
 
 private:  // script objects
-    std::string m_ScriptDescription;           // infos about script file
-    std::string m_RowBufferContent;            // content of the buffer row
-    std::string m_ScriptFuncToCallForEachRow;  // the function to call for each lines
-    std::string m_ScriptFuncToCallEndFile;     // the fucntion to call for the end of the file
-    int32_t m_ScriptRowIndex = 0;              // the current row pos read from file
-    int32_t m_ScriptRowCount = 0;              // the row count read from file
+    std::string m_scriptDescription;           // infos about script file
+    std::string m_rowBufferContent;            // content of the buffer row
+    std::string m_scriptFuncToCallForEachRow;  // the function to call for each lines
+    std::string m_scriptFuncToCallEndFile;     // the fucntion to call for the end of the file
+    int32_t m_scriptRowIndex = 0;              // the current row pos read from file
+    int32_t m_scriptRowCount = 0;              // the row count read from file
 
-private:// Misc
-    SourceFilePathName m_ScriptFilePathName;
-    std::vector<SourceFilePathName> m_SourceFilePathNames;
+private:  // Misc
+    SourceFilePathName m_scriptFilePathName;
+    std::vector<SourceFilePathName> m_sourceFilePathNames;
+    typedef std::string ScriptingModuleName;
+    std::vector<ScriptingModuleName> m_scriptingModuleNames;
+    std::map<ScriptingModuleName, Ltg::ScriptingModulePtr> m_scriptingModules;
 
 private:  // thread
     std::thread m_WorkerThread;
@@ -75,12 +77,18 @@ public:
 
     void AddSourceFilePathName(const SourceFilePathName& vFilePathName);
 
-    void AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue);
-    void AddSignalStatus(const SignalCategory& vCategory,
-                         const SignalName& vName,
-                         const SignalEpochTime& vDate,
-                         const SignalString& vString,
-                         const SignalStatus& vStatus);
+    void AddSignalValue(  //
+        const SignalCategory& vCategory,
+        const SignalName& vName,
+        const SignalEpochTime& vDate,
+        const SignalValue& vValue);
+
+    void AddSignalStatus(  //
+        const SignalCategory& vCategory,
+        const SignalName& vName,
+        const SignalEpochTime& vDate,
+        const SignalString& vString,
+        const SignalStatus& vStatus);
 
     void StartWorkerThread(const bool& vFirstLoad);
     bool StopWorkerThread();
@@ -89,11 +97,12 @@ public:
     bool FinishIfRequired();
 
 private:
-    void m_Run(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime);
+    void m_run(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime);
     bool m_compileScript(const std::string& vFilePathName);
     bool m_callScriptInit();
     bool m_callScriptExec(const std::string& vRow);
     bool m_callScriptEnd();
+    void m_getAvailableScriptingModules();
 
 public:  // configuration
     ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;

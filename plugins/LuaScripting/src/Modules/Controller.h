@@ -25,7 +25,7 @@ limitations under the License.
 #include <ezlibs/ezXmlConfig.hpp>
 
 struct lua_State;
-class LuaEngine : public ez::xml::Config {
+class Controller : public ez::xml::Config {
 public:
     static std::mutex s_WorkerThread_Mutex;
     static std::atomic<bool> s_Working;
@@ -109,14 +109,14 @@ public:  // configuration
     bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
 
 public:  // singleton
-    static std::shared_ptr<LuaEngine> Instance() {
-        static std::shared_ptr<LuaEngine> _instance = std::make_shared<LuaEngine>();
+    static std::shared_ptr<Controller> Instance() {
+        static std::shared_ptr<Controller> _instance = std::make_shared<Controller>();
         return _instance;
     }
 
 public:
-    LuaEngine() = default;                                     // Prevent construction
-    LuaEngine(const LuaEngine&) = delete;                      // Prevent construction by copying
-    LuaEngine& operator=(const LuaEngine&) { return *this; };  // Prevent assignment
-    virtual ~LuaEngine() = default;                            // Prevent unwanted destruction};
+    Controller() = default;                                     // Prevent construction
+    Controller(const Controller&) = delete;                      // Prevent construction by copying
+    Controller& operator=(const Controller&) { return *this; };  // Prevent assignment
+    virtual ~Controller() = default;                            // Prevent unwanted destruction};
 };

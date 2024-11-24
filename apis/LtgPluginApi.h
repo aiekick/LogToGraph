@@ -130,6 +130,13 @@ public:
 typedef std::shared_ptr<ISettings> ISettingsPtr;
 typedef std::weak_ptr<ISettings> ISettingsWeak;
 
+struct ScriptingModule : public PluginModule {
+
+};
+
+typedef std::shared_ptr<ScriptingModule> ScriptingModulePtr;
+typedef std::weak_ptr<ScriptingModule> ScriptingModuleWeak;
+
 struct PluginSettingsConfig {
     ISettingsWeak settings;
     PluginSettingsConfig(ISettingsWeak vSertings) : settings(vSertings) {}
