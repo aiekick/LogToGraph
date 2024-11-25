@@ -78,7 +78,7 @@ bool MainBackend::init(const std::string& vAppPath) {
 #ifdef _DEBUG
     SetConsoleVisibility(true);
 #else
-    SetConsoleVisibility(false);
+    SetConsoleVisibility(true);
 #endif
     if (m_InitWindow() && m_InitImGui()) {
         m_InitPlugins(vAppPath);

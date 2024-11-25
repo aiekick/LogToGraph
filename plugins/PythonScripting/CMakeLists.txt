@@ -8,7 +8,7 @@ project(${PROJECT} CXX)
 
 option(PLUGIN_ENABLE_PYTHON_SCRIPTING "Enable the plugin Python Scripting" ON)
 
-if (PLUGIN_ENABLE_PYTHON_SCRIPTING)
+if (WIN32 AND PLUGIN_ENABLE_PYTHON_SCRIPTING)
 
 set(LLVM_USE_CRT_DEBUG MDd CACHE STRING "" FORCE)
 set(LLVM_USE_CRT_MINSIZEREL MD CACHE STRING "" FORCE)
@@ -41,7 +41,7 @@ else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wdeprecated-declarations -Wunused-parameter -Wno-unknown-pragmas")
 endif ()
 
-find_package(Python COMPONENTS Interpreter Development)
+#find_package(Python COMPONENTS Interpreter Development)
 
 file(GLOB_RECURSE PROJECT_SRC_RECURSE 
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.c 
@@ -113,27 +113,29 @@ target_include_directories(${PROJECT} PRIVATE
 
 target_link_libraries(${PROJECT}
 	${IMGUIPACK_LIBRARIES}
-	Python::Python
+	python313
 )
 
 target_link_directories(${PROJECT} PRIVATE
 	${Python_LIBRARY_DIRS}
+	${FINAL_BIN_DIR}/python
 )
 
 target_include_directories(${PROJECT} PRIVATE 
 	${Python_INCLUDE_DIRS}
+	${FINAL_BIN_DIR}/python/include
 )
 
-get_target_property(PYTHON_type Python::Python TYPE)
-message("${PYTHON_type}")
-if(PYTHON_type STREQUAL "SHARED_LIBRARY")
-    add_custom_command(TARGET ${PROJECT} POST_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                                $<TARGET_FILE:Python::Python>
-                                $<TARGET_FILE_DIR:${PROJECT}>)
-endif()
+## get_target_property(PYTHON_type Python::Python TYPE)
+## message("${PYTHON_type}")
+## if(PYTHON_type STREQUAL "SHARED_LIBRARY")
+##     add_custom_command(TARGET ${PROJECT} POST_BUILD
+##                         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+##                                 $<TARGET_FILE:Python::Python>
+##                                 $<TARGET_FILE_DIR:${PROJECT}>)
+## endif()
 
-install(FILES $<TARGET_FILE:Python::Python> DESTINATION plugins COMPONENT PLUGIN_LIBS_PYTHON)
+install(FILES ${FINAL_BIN_DIR}/python/python313.dll DESTINATION plugins COMPONENT PLUGIN_LIBS_PYTHON)
 
 # add plugin name in parent LOADED_STROCKER_PLUGINS list
 set(LOADED_LOG_TO_GRAPH_PLUGINS ${LOADED_LOG_TO_GRAPH_PLUGINS} ${PROJECT} PARENT_SCOPE)
