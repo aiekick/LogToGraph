@@ -1,66 +1,81 @@
 #include "Module.h"
 
-#include <ImGuiPack.h>
 #include <EzLibs/EzFile.hpp>
 #include <EzLibs/EzTime.hpp>
+#include <ImGuiPack.h>
 
-#include <pybind11/embed.h>
+#include <Python.h>
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 #include <memory>
-
-
 #include <chrono>
+#include <mutex>
 #include <ctime>
 
 ///////////////////////////////////////////////////
 /// CUSTOM PYTHON FUNCTIONS ///////////////////////
 ///////////////////////////////////////////////////
 
-class Logger {
+// Singleton pour gérer les données du modèle
+class Model {
 public:
-    void log(const std::string& message) { std::cout << "Log: " << message << std::endl; }
-};
-
-class SignalProcessor {
-private:
-    Logger* logger;
-
-public:
-    SignalProcessor(Logger* logger) : logger(logger) {}
-    void addSignalValue(int signalId, double value) {
-        if (logger) {
-            logger->log("Processing signal ID: " + std::to_string(signalId) + " with value: " + std::to_string(value));
-        }
-        std::cout << "Signal ID: " << signalId << ", Value: " << value << std::endl;
+    static Model& getInstance() {
+        static Model instance;  // Singleton
+        return instance;
     }
-};
 
-class ApplicationContext {
+    void addSignal(double value) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        signals_.push_back(value);
+        std::cout << "Signal added to model: " << value << std::endl;
+    }
+
+    const std::vector<double>& getSignals() const { return signals_; }
+
 private:
-    std::unique_ptr<Logger> logger;
-    std::unique_ptr<SignalProcessor> processor;
+    Model() = default;
+    ~Model() = default;
 
-public:
-    ApplicationContext() : logger(std::make_unique<Logger>()), processor(std::make_unique<SignalProcessor>(logger.get())) {}
+    Model(const Model&) = delete;
+    Model& operator=(const Model&) = delete;
 
-    SignalProcessor* getProcessor() { return processor.get(); }
-
-    Logger* getLogger() { return logger.get(); }
+    std::vector<double> signals_;
+    mutable std::mutex mutex_;
 };
 
-namespace py = pybind11;
+// Fonction C++ appelée par Python pour ajouter un signal
+PyObject* addSignalValue(PyObject* self, PyObject* args) {
+    double value;
+    if (!PyArg_ParseTuple(args, "d", &value)) {
+        return nullptr;
+    }
 
-PYBIND11_MODULE(signal_interface, m) {
-    py::class_<Logger>(m, "Logger").def(py::init<>()).def("log", &Logger::log);
+    // Ajouter la valeur au modèle via le singleton
+    Model::getInstance().addSignal(value);
 
-    py::class_<SignalProcessor>(m, "SignalProcessor").def(py::init<Logger*>()).def("addSignalValue", &SignalProcessor::addSignalValue);
+    Py_RETURN_NONE;
+}
 
-    py::class_<ApplicationContext>(m, "ApplicationContext")
-        .def(py::init<>())
-        .def("getProcessor", &ApplicationContext::getProcessor, py::return_value_policy::reference)
-        .def("getLogger", &ApplicationContext::getLogger, py::return_value_policy::reference);
+// Méthodes Python exposées
+static PyMethodDef SignalMethods[] = {
+    {"addSignalValue", addSignalValue, METH_VARARGS, "Add a signal value to the model"},
+    {nullptr, nullptr, 0, nullptr}  // Fin
+};
+
+// Définition du module Python
+static struct PyModuleDef SignalModule = {
+    PyModuleDef_HEAD_INIT,
+    "signal_handler",  // Nom du module
+    nullptr,           // Documentation
+    -1,                // Taille de l'état global (pas utilisé ici)
+    SignalMethods      // Tableau de fonctions exposées
+};
+
+// Initialisation du module Python
+PyMODINIT_FUNC PyInit_signal_handler(void) {
+    return PyModule_Create(&SignalModule);
 }
 
 ///////////////////////////////////////////////////
@@ -85,27 +100,69 @@ void Module::unit() {
 }
 
 bool Module::load() {
-    py::scoped_interpreter guard{};  // Démarrer l'interpréteur Python
+    try {
+        // Initialisation de Python
+        PyImport_AppendInittab("signal_handler", &PyInit_signal_handler);
+        Py_Initialize();
 
-    // Créer une instance du contexte
-    ApplicationContext context;
+        // Charger le script Python
+        PyObject* pName = PyUnicode_FromString("script");  // Nom du script Python
+        PyObject* pModule = PyImport_Import(pName);
+        Py_DECREF(pName);
 
-    // Importer le script Python
-    py::module script = py::module::import("script_name");
+        if (pModule == nullptr) {
+            PyErr_Print();
+            std::cerr << "Failed to load 'parser.py'" << std::endl;
+            Py_Finalize();
+            return 1;
+        }
 
-    // Ouvrir le fichier log
-    std::ifstream logFile("log.txt");
-    if (!logFile.is_open()) {
-        std::cerr << "Erreur : impossible d'ouvrir le fichier." << std::endl;
+        // Récupérer la fonction parse_line
+        PyObject* pFunc = PyObject_GetAttrString(pModule, "parse_line");
+        if (!pFunc || !PyCallable_Check(pFunc)) {
+            if (PyErr_Occurred())
+                PyErr_Print();
+            std::cerr << "Cannot find function 'parse_line'" << std::endl;
+            Py_XDECREF(pFunc);
+            Py_DECREF(pModule);
+            Py_Finalize();
+            return 1;
+        }
+
+        // Exemples de lignes à parser
+        std::vector<std::string> lines = {"TestConcurrency::test[19:11:43.266341] TEST_VALGRIND INFO_1   SE_IAV_TestConcurrency.cpp::setUp(): Creation of objects",
+                                          "[19:11:45.343944] CSC_SE_IAV DEBUG    SE_IAV_Supervisor.cpp::_updateCrIr(): getInitEnCours[1] getInitCompEnCours[1]"};
+
+        for (const std::string& line : lines) {
+            // Passer la ligne au script Python
+            PyObject* pArgs = PyTuple_Pack(1, PyUnicode_FromString(line.c_str()));
+            PyObject* pValue = PyObject_CallObject(pFunc, pArgs);
+            Py_DECREF(pArgs);
+
+            if (pValue == nullptr) {
+                PyErr_Print();
+                std::cerr << "Failed to call Python function" << std::endl;
+            } else {
+                Py_DECREF(pValue);
+            }
+        }
+
+        // Afficher les signaux stockés dans le modèle
+        const auto& signals = Model::getInstance().getSignals();
+        std::cout << "Final signals in model:" << std::endl;
+        for (double signal : signals) {
+            std::cout << signal << std::endl;
+        }
+
+        // Nettoyage
+        Py_XDECREF(pFunc);
+        Py_DECREF(pModule);
+        Py_Finalize();
+
+    } catch (const std::exception& e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
         return 1;
     }
-
-    std::string line;
-    while (std::getline(logFile, line)) {
-        // Appeler le script Python pour traiter chaque ligne
-        script.attr("process_line")(line, &context);
-    }
-
     return true;
 }
 

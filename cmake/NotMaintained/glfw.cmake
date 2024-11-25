@@ -41,5 +41,7 @@ if(NOT glfw_POPULATED)
 
 	add_definitions(${GLFW_DEFINITIONS})
 
+	install(TARGETS glfw RUNTIME DESTINATION / COMPONENT APP_LIBS_GLFW)
+
 	include_directories(${GLFW_INCLUDE_DIR})
 endif()

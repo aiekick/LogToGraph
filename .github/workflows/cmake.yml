@@ -22,7 +22,7 @@ jobs:
       with:
         Submodules: true
     - name: upload artifact
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: LogToGraph
         path: ${{github.workspace}}

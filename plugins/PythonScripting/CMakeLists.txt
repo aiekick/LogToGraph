@@ -43,13 +43,6 @@ endif ()
 
 find_package(Python COMPONENTS Interpreter Development)
 
-message("Python_FOUND:${Python_FOUND}")
-message("Python_VERSION:${Python_VERSION}")
-message("Python_Development_FOUND:${Python_Development_FOUND}")
-message("Python_LIBRARIES:${Python_LIBRARIES}")
-message("Python_INCLUDES:${Python_INCLUDE_DIRS}")
-message("Python_RUNTIME_LIBRARIES:${Python_RUNTIME_LIBRARY_DIRS}")
-
 file(GLOB_RECURSE PROJECT_SRC_RECURSE 
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.c 
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.h 
@@ -129,7 +122,6 @@ target_link_directories(${PROJECT} PRIVATE
 
 target_include_directories(${PROJECT} PRIVATE 
 	${Python_INCLUDE_DIRS}
-	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/pybind11/include
 )
 
 get_target_property(PYTHON_type Python::Python TYPE)
@@ -140,6 +132,8 @@ if(PYTHON_type STREQUAL "SHARED_LIBRARY")
                                 $<TARGET_FILE:Python::Python>
                                 $<TARGET_FILE_DIR:${PROJECT}>)
 endif()
+
+install(FILES $<TARGET_FILE:Python::Python> DESTINATION plugins COMPONENT PLUGIN_LIBS_PYTHON)
 
 # add plugin name in parent LOADED_STROCKER_PLUGINS list
 set(LOADED_LOG_TO_GRAPH_PLUGINS ${LOADED_LOG_TO_GRAPH_PLUGINS} ${PROJECT} PARENT_SCOPE)
