@@ -41,6 +41,8 @@ else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wdeprecated-declarations -Wunused-parameter -Wno-unknown-pragmas")
 endif ()
 
+include(cmake/python.cmake)
+
 #find_package(Python COMPONENTS Interpreter Development)
 
 file(GLOB_RECURSE PROJECT_SRC_RECURSE 
@@ -113,7 +115,7 @@ target_include_directories(${PROJECT} PRIVATE
 
 target_link_libraries(${PROJECT}
 	${IMGUIPACK_LIBRARIES}
-	python313
+	libpython-static
 )
 
 target_link_directories(${PROJECT} PRIVATE
