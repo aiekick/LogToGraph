@@ -86,8 +86,8 @@ void SignalsHoveredList::DrawTable() {
     if (win) {
         const auto& signals_count = LogEngine::Instance()->GetPreviewTicks().size();
         if (signals_count) {
-            static ImGuiTableFlags flags =
-                ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_NoHostExtendY;
+            static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
+                ImGuiTableFlags_NoHostExtendY | ImGuiTableFlags_Resizable;
 
             auto listViewID = ImGui::GetID("##SignalsHoveredList_DrawTable");
             if (ImGui::BeginTableEx("##SignalsHoveredList_DrawTable", listViewID, 5, flags))  //-V112
@@ -150,9 +150,9 @@ void SignalsHoveredList::DrawTable() {
                                     ImGui::Text("%f", infos_ptr->value);
                                 } else {
                                     if (infos_ptr->status == LogEngine::sc_START_ZONE) {
-                                        ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", infos_ptr->string.c_str());
+                                        ImGui::Text(ICON_FONT_ARROW_RIGHT_THICK " %s", infos_ptr->string.c_str());
                                     } else if (infos_ptr->status == LogEngine::sc_END_ZONE) {
-                                        ImGui::Text("%s " ICON_FONT_ARROW_LEFT, infos_ptr->string.c_str());
+                                        ImGui::Text("%s " ICON_FONT_ARROW_LEFT_THICK, infos_ptr->string.c_str());
                                     } else {
                                         ImGui::Text("%s", infos_ptr->string.c_str());
                                     }

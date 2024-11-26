@@ -4041,12 +4041,12 @@
 				<glyph orgId="65534" newId="65534" orgName="sign-direction-remove" newName="sign-direction-remove" trans="0;0" scale="1;1"/>
 				<glyph orgId="65535" newId="65535" orgName="silverware-clean" newName="silverware-clean" trans="0;0" scale="1;1"/>
 			</glyphs>
-			<prefix>STRO</prefix>
+			<prefix>FONT</prefix>
 			<genmodeflags>1307</genmodeflags>
 			<pathfilename>MaterialDesignIcons.ttf</pathfilename>
 			<oversample>3</oversample>
 			<fontsize>50</fontsize>
-			<generatedfilename>strockerFontIcon</generatedfilename>
+			<generatedfilename>fontIcons</generatedfilename>
 			<cardglyhpheight>40</cardglyhpheight>
 			<cardcountrowsmax>200</cardcountrowsmax>
 			<rasterizer>1</rasterizer>
@@ -4055,7 +4055,7 @@
 			<padding>16</padding>
 			<filtering>9729</filtering>
 			<enabled>true</enabled>
-			<collapsed>true</collapsed>
+			<collapsed>false</collapsed>
 		</font>
 		<rangecoloring show="false" hash="10;15;35;0.5"/>
 		<previewglyphcount>23</previewglyphcount>
@@ -4070,12 +4070,12 @@
 		<glyphdrawingflags>1535</glyphdrawingflags>
 		<glyphpreviewquadbeziercounsegment>0</glyphpreviewquadbeziercounsegment>
 		<glyphpreviewzoomprecision>20</glyphpreviewzoomprecision>
-		<genmodeflags>34072</genmodeflags>
+		<genmodeflags>34075</genmodeflags>
 		<fonttomergein>MaterialDesignIcons.ttf</fonttomergein>
 		<glyphdisplaytuningmode>1</glyphdisplaytuningmode>
 		<sourcefontpaneflags>1</sourcefontpaneflags>
-		<lastgeneratedpath>C:\Gamedev\gitlab\SdfMesher\src\Res</lastgeneratedpath>
-		<lastgeneratedfilename></lastgeneratedfilename>
+		<lastgeneratedpath>C:\Gamedev\github\LogToGraph\src\res</lastgeneratedpath>
+		<lastgeneratedfilename>fontIcons.cpp</lastgeneratedfilename>
 		<zoomglyphs>false</zoomglyphs>
 		<showbaseline>false</showbaseline>
 		<showadvancex>false</showadvancex>

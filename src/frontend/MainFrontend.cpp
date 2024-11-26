@@ -17,7 +17,7 @@ limitations under the License.
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <Headers/Globals.h>
+#include <Headers/DatasDef.h>
 
 #include "MainFrontend.h"
 
@@ -42,6 +42,8 @@ limitations under the License.
 #include <panes/LogPaneSecondView.h>
 #include <panes/GraphListPane.h>
 #include <panes/AnnotationPane.h>
+
+#include <res/fontIcons.h>
 
 #include <systems/SettingsDialog.h>
 
@@ -80,27 +82,25 @@ bool MainFrontend::init() {
 
     m_build_themes();
 
-    LayoutManager::Instance()->Init("Layouts", "Default Layout");
+    LayoutManager::Instance()->Init(ICON_FONT_TABLET_DASHBOARD " Layouts", "Default Layout");
 
     LayoutManager::Instance()->SetPaneDisposalRatio("LEFT", 0.25f);
     LayoutManager::Instance()->SetPaneDisposalRatio("RIGHT", 0.25f);
     LayoutManager::Instance()->SetPaneDisposalRatio("BOTTOM", 0.25f);
 
-    LayoutManager::Instance()->AddPane(CodePane::Instance(), "Debug Pane", "", "RIGHT", 0.25f, false, false);
-    LayoutManager::Instance()->AddPane(ConsolePane::Instance(), "Console Pane", "", "BOTTOM", 0.3f, false, false);
-    LayoutManager::Instance()->AddPane(ProfilerPane::Instance(), "Profiler Pane", "", "BOTTOM", 0.3f, false, false);
+    LayoutManager::Instance()->AddPane(CodePane::Instance(), ICON_FONT_CODE_BRACES " Code", "Misc", "RIGHT", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(ConsolePane::Instance(), ICON_FONT_COMMENT_TEXT_MULTIPLE " Console", "Misc", "BOTTOM", 0.3f, false, false);
+    LayoutManager::Instance()->AddPane(ProfilerPane::Instance(), ICON_FONT_CHART_DONUT_VARIANT " Profiler", "Misc", "BOTTOM", 0.3f, false, false);
 
-    LayoutManager::Instance()->AddPane(ToolPane::Instance(), "Tool", "", "LEFT", 0.25f, true, true);
-    LayoutManager::Instance()->AddPane(LogPane::Instance(), "Logs", "", "RIGHT", 0.25f, true, false);
-    LayoutManager::Instance()->AddPane(LogPaneSecondView::Instance(), "Logs Second View", "", "RIGHT", 0.25f, false, false);
-    LayoutManager::Instance()->AddPane(GraphPane::Instance(), "Graphs", "", "CENTRAL", 0.25f, true, false);
-    LayoutManager::Instance()->AddPane(GraphListPane::Instance(), "All Graph Signals", "", "CENTRAL", 0.25f, false, false);
-    LayoutManager::Instance()->AddPane(GraphGroupPane::Instance(), "Graph Groups", "", "RIGHT", 0.25f, true, false);
-    LayoutManager::Instance()->AddPane(SignalsHoveredList::Instance(), "Signals Hovered List", "", "RIGHT", 0.25f, false, false);
-    LayoutManager::Instance()->AddPane(SignalsHoveredDiff::Instance(), "Signals Hovered Diff", "", "RIGHT", 0.25f, false, false);
-    LayoutManager::Instance()->AddPane(ConsolePane::Instance(), "Console", "", "BOTTOM", 0.25f, false, false);
-    LayoutManager::Instance()->AddPane(CodePane::Instance(), "Code", "", "RIGHT", 0.25f, false, false);
-    LayoutManager::Instance()->AddPane(AnnotationPane::Instance(), "Annotations", "", "RIGHT", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(AnnotationPane::Instance(), ICON_FONT_CARDS " Annotations", "", "RIGHT", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(LogPane::Instance(), ICON_FONT_FILE_DOCUMENT_BOX " Logs", "", "RIGHT", 0.25f, true, false);
+    LayoutManager::Instance()->AddPane(LogPaneSecondView::Instance(), ICON_FONT_FILE_DOCUMENT_BOX  " Logs 2nd", "", "RIGHT", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(GraphPane::Instance(), ICON_FONT_CHART_LINE " Graphs", "", "CENTRAL", 0.25f, true, false);
+    LayoutManager::Instance()->AddPane(GraphListPane::Instance(), ICON_FONT_CHART_LINE " All Graph Signals", "", "CENTRAL", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(GraphGroupPane::Instance(), ICON_FONT_BUFFER " Graph Groups", "", "RIGHT", 0.25f, true, false);
+    LayoutManager::Instance()->AddPane(SignalsHoveredList::Instance(), ICON_FONT_CACTUS " Signals Hovered List", "", "RIGHT", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(SignalsHoveredDiff::Instance(), ICON_FONT_VECTOR_DIFFERENCE " Signals Hovered Diff", "", "RIGHT", 0.25f, false, false);
+    LayoutManager::Instance()->AddPane(ToolPane::Instance(), ICON_FONT_CUBE_SCAN " Tool", "", "LEFT", 0.25f, true, true);
 
     // InitPänes is done in m_InitPanes, because a specific order is needed
 
@@ -204,7 +204,7 @@ void MainFrontend::m_drawAboutDialog() {
 
             ImGui::Text("License : %s",
                         u8R"(
-Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
+Copyright 2022-2024 Stephane Cuillerdier (aka aiekick)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -278,42 +278,42 @@ void MainFrontend::OpenAboutDialog() {
 
 void MainFrontend::m_drawMainMenuBar() {
     if (ImGui::BeginMainMenuBar()) {
-        if (ImGui::BeginMenu(" Project")) {
-            if (ImGui::MenuItem(" New")) {
+        if (ImGui::BeginMenu(ICON_FONT_ARCHIVE " Project")) {
+            if (ImGui::MenuItem(ICON_FONT_FILE " New")) {
                 Action_Menu_NewProject();
             }
 
-            if (ImGui::MenuItem(" Open")) {
+            if (ImGui::MenuItem(ICON_FONT_FOLDER_OPEN " Open")) {
                 Action_Menu_OpenProject();
             }
 
             if (ProjectFile::Instance()->IsProjectLoaded()) {
                 ImGui::Separator();
 
-                if (ImGui::MenuItem(" Re Open")) {
+                if (ImGui::MenuItem(ICON_FONT_FOLDER_OPEN " Re Open")) {
                     Action_Menu_ReOpenProject();
                 }
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem(" Save")) {
+                if (ImGui::MenuItem(ICON_FONT_FLOPPY " Save")) {
                     Action_Menu_SaveProject();
                 }
 
-                if (ImGui::MenuItem(" Save As")) {
+                if (ImGui::MenuItem(ICON_FONT_FLOPPY " Save As")) {
                     Action_Menu_SaveAsProject();
                 }
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem(" Close")) {
+                if (ImGui::MenuItem(ICON_FONT_CLOSE" Close")) {
                     Action_Menu_CloseProject();
                 }
             }
 
             ImGui::Separator();
 
-            if (ImGui::MenuItem(" About")) {
+            if (ImGui::MenuItem(ICON_FONT_INFORMATION " About")) {
                 OpenAboutDialog();
             }
 
@@ -327,12 +327,12 @@ void MainFrontend::m_drawMainMenuBar() {
 
         ImGui::Spacing();
 
-        if (ImGui::BeginMenu("Tools")) {
-            if (ImGui::MenuItem("Settings")) {
+        if (ImGui::BeginMenu(ICON_FONT_TUNE " Tools")) {
+            if (ImGui::MenuItem(ICON_FONT_SETTINGS " Settings")) {
                 SettingsDialog::Instance()->OpenDialog();
             }
             ImGui::Separator();
-            if (ImGui::BeginMenu("Styles")) {
+            if (ImGui::BeginMenu(ICON_FONT_PALETTE " Styles")) {
                 ImGuiThemeHelper::Instance()->DrawMenu();
 
                 ImGui::Separator();
@@ -350,7 +350,7 @@ void MainFrontend::m_drawMainMenuBar() {
         if (ProjectFile::Instance()->IsThereAnyProjectChanges()) {
             ImGui::Spacing(200.0f);
 
-            if (ImGui::MenuItem(" Save")) {
+            if (ImGui::MenuItem(ICON_FONT_FLOPPY " Save")) {
                 Action_Menu_SaveProject();
             }
         }

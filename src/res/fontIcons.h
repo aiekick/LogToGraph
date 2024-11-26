@@ -1,10 +1,10 @@
-// Header Generated with https://github.com/aiekick/ImGuiFontStudio
-// Based on https://github.com/juliettef/IconFontCppHeaders
-// for Language c++
+//Header Generated with https://github.com/aiekick/ImGuiFontStudio
+//Based on https://github.com/juliettef/IconFontCppHeaders
+//for Language c++
 
 #pragma once
 
-#define FONT_ICON_BUFFER_NAME FONT_ICON_compressed_data_base85
+#define FONT_ICON_BUFFER_NAME FONT_compressed_data_base85
 #define FONT_ICON_BUFFER_SIZE 0x82947
 
 #define ICON_MIN_FONT 0x30

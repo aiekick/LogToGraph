@@ -1,6 +1,7 @@
 #include "Module.h"
 #include <ezlibs/ezFile.hpp>
 #include <ezlibs/ezTime.hpp>
+#include <ezlibs/ezLog.hpp>
 #include <ImGuiPack.h>
 #include <exception>
 #include <chrono>

@@ -135,7 +135,7 @@ void AnnotationPane::DrawContent() {
 
                             if (ImGui::TableNextColumn())  // delete
                             {
-                                if (ImGui::ContrastedButton(ICON_FONT_CANCEL)) {
+                                if (ImGui::ContrastedButton(ICON_FONT_CLOSE_BOX)) {
                                     annotation_to_remove_ptr = anno_ptr;
                                 }
                             }

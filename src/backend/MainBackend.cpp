@@ -411,7 +411,7 @@ bool MainBackend::m_InitImGui() {
             }
         }
         {  // icon font
-            static const ImWchar icons_ranges[] = {ICON_MIN_FONT, ICON_MIN_FONT, 0};
+            static const ImWchar icons_ranges[] = {ICON_MIN_FONT, ICON_MAX_FONT, 0};
             ImFontConfig icons_config;
             icons_config.MergeMode = true;
             icons_config.PixelSnapH = true;

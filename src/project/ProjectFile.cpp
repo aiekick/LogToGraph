@@ -234,7 +234,7 @@ void ProjectFile::AddSourceFilePathName(const SourceFilePathName& vFilePathName)
 
 bool ProjectFile::RemoveFilePathName(const SourceFilePathName& vFilePathName) {
     for (auto it = m_SourceFilePathNames.begin(); it != m_SourceFilePathNames.end(); ++it) {
-        if (it->first == vFilePathName) {
+        if (it->second == vFilePathName) {
             m_SourceFilePathNames.erase(it);
             return true;
         }

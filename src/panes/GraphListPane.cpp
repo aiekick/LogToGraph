@@ -182,8 +182,8 @@ void GraphListPane::DrawTree() {
         ImGui::EndMenuBar();
     }
 
-    static ImGuiTableFlags flags =
-        ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_NoHostExtendY;
+    static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
+        ImGuiTableFlags_NoHostExtendY | ImGuiTableFlags_Resizable;
 
     // if first frame is not built
     if (m_FilteredSignalSeries.empty()) {

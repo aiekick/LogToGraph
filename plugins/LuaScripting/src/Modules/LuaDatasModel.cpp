@@ -61,7 +61,8 @@ double LuaDatasModel::stringToEpoch(const std::string& vDateTime, double vHourOf
     if (dateStream.fail()) {
         throw std::invalid_argument("Invalid date format");
     }
-    timeStruct.tm_hour += vHourOffset;
+    timeStruct.tm_hour += static_cast<int32_t>(vHourOffset);
+    timeStruct.tm_isdst = 1;
     dateStream >> delimiter >> microseconds;
     std::time_t epochSeconds = std::mktime(&timeStruct);
     if (epochSeconds == -1) {
@@ -78,7 +79,8 @@ std::string LuaDatasModel::epochToString(double vEpochTime, double vHourOffset) 
     if (!timeStruct) {
         throw std::runtime_error("Failed to convert epoch time to struct tm");
     }
-    timeStruct->tm_hour += vHourOffset;
+    timeStruct->tm_hour += static_cast<int32_t>(vHourOffset);
+    timeStruct->tm_isdst = 1;
     std::ostringstream dateStream;
     dateStream << std::put_time(timeStruct, "%Y-%m-%d %H:%M:%S");
     dateStream << '.' << std::setfill('0') << std::setw(6) << microseconds;

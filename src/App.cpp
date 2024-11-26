@@ -41,9 +41,9 @@ void App::m_InitMessaging() {
     Messaging::Instance()->AddCategory(MESSAGING_CODE_ERRORS, "Errors(s)", MESSAGING_LABEL_ERRORS, ImVec4(0.8f, 0.0f, 0.0f, 1.0f));
     Messaging::Instance()->AddCategory(MESSAGING_CODE_DEBUG, "Debug(s)", MESSAGING_LABEL_DEBUG, ImVec4(0.8f, 0.8f, 0.0f, 1.0f));
     Messaging::Instance()->SetLayoutManager(LayoutManager::Instance());
-    ez::Log::Instance()->standardLogFunction = [](const int& vType, const std::string& vMessage) {
+    ez::Log::instance()->setStandardLogMessageFunctor([](const int& vType, const std::string& vMessage) {
         MessageData msg_datas;
         const auto& type = vType;
         Messaging::Instance()->AddMessage(vMessage, type, false, msg_datas, {});
-    };
+    });
 }
