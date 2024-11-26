@@ -22,8 +22,8 @@ limitations under the License.
 #include <iostream>
 
 #define EZ_LOG_IMPLEMENTATION
-#include <EzLibs/EzLog.hpp>
-#include <EzLibs/EzTools.hpp>
+#include <ezlibs/ezLog.hpp>
+#include <ezlibs/ezTools.hpp>
 
 int main(int argc, char** argv) {
 #ifdef _MSC_VER

@@ -27,7 +27,7 @@ limitations under the License.
 #include <Headers/Globals.h>
 #include <apis/LtgPluginApi.h>
 
-class ScriptingEngine : public ez::xml::Config {
+class ScriptingEngine : public Ltg::IDatasModel, public ez::xml::Config {
 public:
     static std::mutex s_workerThread_Mutex;
     static std::atomic<bool> s_working;
@@ -99,6 +99,13 @@ public:
 
     bool drawMenu();
     bool isValidScriptingSelected() const;
+
+    // interface with script languagesn so must be mutex protected
+    void addSignalTag(double vEpoch, double r, double g, double b, double a, const std::string& vName, const std::string& vHelp) final;
+    void addSignalStatus(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStatus) final;
+    void addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue) final;
+    void addSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg) final;
+    void addSignalEndZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vEndMsg) final;
 
 private:
     void m_run(std::atomic<double>& vProgress, std::atomic<bool>& vWorking, std::atomic<double>& vGenerationTime);

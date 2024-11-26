@@ -16,7 +16,7 @@ limitations under the License.
 
 #pragma once
 
-#include <EzLibs/EzXmlConfig.hpp>
+#include <ezlibs/ezXmlConfig.hpp>
 #include <string>
 
 enum class LanguageEnum { FR = 0, EN };

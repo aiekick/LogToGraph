@@ -10,7 +10,7 @@
 #include <3rdparty/imgui_docking/backends/imgui_impl_opengl3.h>
 #include <3rdparty/imgui_docking/backends/imgui_impl_glfw.h>
 
-#include <EzLibs/EzFile.hpp>
+#include <ezlibs/ezFile.hpp>
 
 #include <models/script/ScriptingEngine.h>
 

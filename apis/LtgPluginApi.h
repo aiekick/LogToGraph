@@ -27,9 +27,13 @@ limitations under the License.
 #include "ILayoutPane.h"
 #include <ezlibs/ezXml.hpp>
 
+namespace ez {
+class Log;
+}
+
 namespace Ltg {
 
-class ProjectInterface {
+class IProject {
 public:
     virtual bool IsProjectLoaded() const = 0;
     virtual bool IsProjectNeverSaved() const = 0;
@@ -37,8 +41,8 @@ public:
     virtual void SetProjectChange(bool vChange = true) = 0;
     virtual bool WasJustSaved() = 0;
 };
-typedef std::shared_ptr<ProjectInterface> ProjectInterfacePtr;
-typedef std::weak_ptr<ProjectInterface> ProjectInterfaceWeak;
+typedef std::shared_ptr<IProject> IProjectPtr;
+typedef std::weak_ptr<IProject> IProjectWeak;
 
 struct PluginPane : public virtual ILayoutPane {
     bool Init() override = 0;  // return false if the init was failed
@@ -55,7 +59,7 @@ struct PluginPane : public virtual ILayoutPane {
     // if for any reason the pane must be hidden temporary, the user can control this here
     virtual bool CanBeDisplayed() override = 0;
 
-    virtual void SetProjectInstance(ProjectInterfaceWeak vProjectInstance) = 0;
+    virtual void SetProjectInstance(IProjectWeak vProjectInstance) = 0;
 };
 
 struct PluginPaneConfig {
@@ -139,6 +143,53 @@ struct ScriptingError {
 };
 typedef std::vector<ScriptingError> ErrorContainer;
 
+// lua_register(lua_state_ptr, "print", lua_int_print_args);
+struct IDatasModel {
+    // is the entry point of the script. this function is needed
+    //virtual void init() = 0;
+    // will set the description of your script in app
+    //virtual void setScriptDescription(const std::string& vKey) = 0;
+    // set the lua string varaible name who will be filled with the content of the row file
+    //virtual void setRowBufferName(const std::string& vKey) = 0;
+    // set the function name who will be called at each row of the file
+    //virtual void setFunctionForEachRow(const std::string& vKey) = 0;
+    // set the function name who will be called at the end of the file
+    //virtual void setFunctionForEndFile(const std::string& vKey) = 0;
+
+    // will log the message in the in app console
+    //virtual void logInfo(const std::string& vKey) = 0;
+    // will log the message in the in app console
+    //virtual void logWarning(const std::string& vKey) = 0;
+    // will log the message in the in app console
+    //virtual void logError(const std::string& vKey) = 0;
+    // will log the message in the in app console
+    //virtual void logDebug(const std::string& vKey) = 0;
+
+    // return the row number of the file
+    //virtual int32_t getRowIndex() = 0;
+    // return the number of rows of the file
+    //virtual int32_t getRowCount() = 0;
+    // get epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or
+    // "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
+    //virtual std::string getEpochTime(const std::string& vDateTime, int32_t vHourOffset) = 0;
+
+    // Add Signal ticks
+    // add a signal tag with date, color a name. the help will be displayed when mouse over the tag
+    // rgba are normalized [0.0:1.0]
+    virtual void addSignalTag(double vEpoch, double r, double g, double b, double a, const std::string& vName, const std::string& vHelp) = 0;
+    // will add a signal string status
+    virtual void addSignalStatus(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStatus) = 0;
+    // will add a signal numerical value
+    virtual void addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue) = 0;
+    // will add a signal start zone
+    virtual void addSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg) = 0;
+    // will add a signal end zone
+    virtual void addSignalEndZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vEndMsg) = 0;
+};
+
+typedef std::shared_ptr<IDatasModel> IDatasModelPtr;
+typedef std::weak_ptr<IDatasModel> IDatasModelWeak;
+
 struct ScriptingDatas {
     std::string buffer;
 };
@@ -146,13 +197,11 @@ typedef std::string ScriptingModuleName;
 struct ScriptingModule : public PluginModule {
     virtual ~ScriptingModule() = default;
     // will load the related scripting engine
-    virtual bool load() = 0;
+    virtual bool load(IDatasModelWeak vDatasModel) = 0;
     // will unload the related scripting engine
     virtual void unload() = 0;
     // will compile the script and return errors
     virtual bool compileScript(const ScriptFilePathName& vFilePathName, ErrorContainer& vOutErrors) = 0;
-    // will call the init function from script and return errors
-    virtual bool callScriptInit(ErrorContainer& vOutErrors) = 0;
     // will call the start function from script and return errors
     virtual bool callScriptStart(ErrorContainer& vOutErrors) = 0;
     // will call the exec function from script with a buffer and return errors
@@ -171,7 +220,7 @@ struct PluginSettingsConfig {
 
 struct PluginInterface {
     virtual ~PluginInterface() = default;
-    virtual bool init() = 0;
+    virtual bool init(ez::Log* vLoggerInstancePtr) = 0;
     virtual void unit() = 0;
     virtual uint32_t getMinimalAppVersionSupported() const = 0;
     virtual uint32_t getVersionMajor() const = 0;

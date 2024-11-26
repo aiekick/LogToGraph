@@ -37,7 +37,7 @@
 #include <LayoutManager.h>
 #include <Systems/SettingsDialog.h>
 
-#include <EzLibs/EzFile.hpp>
+#include <ezlibs/ezFile.hpp>
 
 ProjectFile::ProjectFile() = default;
 

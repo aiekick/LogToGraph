@@ -6,7 +6,7 @@
 #include <headers/LogToGraphBuild.h>
 #include <Backend/MainBackend.h>
 
-#include <EzLibs/EzLog.hpp>
+#include <ezlibs/ezLog.hpp>
 
 // messaging
 #define MESSAGING_CODE_INFOS 0
@@ -25,10 +25,10 @@
 App::App(int vArgc, char** vArgv) : ez::App(vArgc, vArgv) {}
 
 int App::run() {
-    printf("-----------\n");
-    printf("[[ %s Beta %s ]]\n", LogToGraph_Prefix, LogToGraph_BuildId);
-
     m_InitMessaging();
+
+    LogVarLightInfo("-----------");
+    LogVarLightInfo("[[ %s Beta %s ]]", LogToGraph_Prefix, LogToGraph_BuildId);
 
     MainBackend::Instance()->run(getAppPath());
 
@@ -41,7 +41,7 @@ void App::m_InitMessaging() {
     Messaging::Instance()->AddCategory(MESSAGING_CODE_ERRORS, "Errors(s)", MESSAGING_LABEL_ERRORS, ImVec4(0.8f, 0.0f, 0.0f, 1.0f));
     Messaging::Instance()->AddCategory(MESSAGING_CODE_DEBUG, "Debug(s)", MESSAGING_LABEL_DEBUG, ImVec4(0.8f, 0.8f, 0.0f, 1.0f));
     Messaging::Instance()->SetLayoutManager(LayoutManager::Instance());
-    ez::Log::sStandardLogFunction = [](const int& vType, const std::string& vMessage) {
+    ez::Log::Instance()->standardLogFunction = [](const int& vType, const std::string& vMessage) {
         MessageData msg_datas;
         const auto& type = vType;
         Messaging::Instance()->AddMessage(vMessage, type, false, msg_datas, {});

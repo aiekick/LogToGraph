@@ -1,32 +1,35 @@
 #pragma once
 
+#include <Modules/LuaDatasModel.h>
 #include <apis/LtgPluginApi.h>
-
 #include <Settings/Settings.h>
-
-#include <ImGuiPack.h>
-
 #include <string>
 #include <vector>
+#include <memory>
 
-struct lua_State;
+namespace sol {
+class state;
+}
+
+//struct lua_State;
 class Module : public Ltg::ScriptingModule {
 public:
     static Ltg::ScriptingModulePtr create(const SettingsWeak& vSettings);
 
 private:
-    lua_State* m_LuaStatePtr = nullptr;
-    SettingsWeak m_Settings;
+    std::unique_ptr<sol::state> m_luaPtr = nullptr;
+    SettingsWeak m_settings;
+    Ltg::IDatasModelWeak m_datasModel;
+    LuaDatasModelPtr m_luaDatasModelPtr = nullptr;
 
 public:
     virtual ~Module() = default;
     bool init(Ltg::PluginBridge* vBridgePtr = nullptr) final;
     void unit() final;
 
-    bool load() final;
+    bool load(Ltg::IDatasModelWeak vDatasModel) final;
     void unload() final;
     bool compileScript(const Ltg::ScriptFilePathName& vFilePathName, Ltg::ErrorContainer& vOutErrors) final;
-    bool callScriptInit(Ltg::ErrorContainer& vOutErrors) final;
     bool callScriptStart(Ltg::ErrorContainer& vOutErrors) final;
     bool callScriptExec(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorContainer& vErrors) final;
     bool callScriptEnd(Ltg::ErrorContainer& vOutErrors) final;

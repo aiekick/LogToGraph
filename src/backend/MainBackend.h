@@ -2,8 +2,8 @@
 
 #include <glad/glad.h>
 #include <ImGuiPack.h>
-#include <EzLibs/EzTools.hpp>
-#include <EzLibs/EzXmlConfig.hpp>
+#include <ezlibs/ezTools.hpp>
+#include <ezlibs/ezXmlConfig.hpp>
 
 #include <string>
 #include <memory>

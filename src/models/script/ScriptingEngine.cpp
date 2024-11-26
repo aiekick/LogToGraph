@@ -43,7 +43,7 @@ using namespace std::chrono;
 /// STATIC ////////////////////////////////////////
 ///////////////////////////////////////////////////
 
-static size_t source_file_id = 0U;
+static SourceFileID source_file_id = 0;
 static SourceFileWeak source_file_parent;
 
 ///////////////////////////////////////////////////
@@ -69,6 +69,7 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
     const int64_t firstTimeMark = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
     Ltg::ScriptingModulePtr scriptingPtr = nullptr;
+    Ltg::IDatasModelWeak datasModel;
 
     s_workerThread_Mutex.lock();
 
@@ -86,23 +87,23 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
 
     if (!scriptFilePathName.empty()) {
         if (ez::file::isFileExist(scriptFilePathName)) {
-            if (scriptingPtr->load()) {
-                LogEngine::Instance()->Clear();
-                GraphView::Instance()->Clear();
-                DataBase::Instance()->OpenDBFile(ProjectFile::Instance()->m_ProjectFilePathName);
-                DataBase::Instance()->ClearDataTables();
-                for (const auto& sourceFilePathName : sourceFilePathNames) {
-                    if (!sourceFilePathName.empty() && ez::file::isFileExist(sourceFilePathName)) {
-                        const auto fileContent = ez::file::loadFileToString(sourceFilePathName);
-                        if (!fileContent.empty()) {
-                            try {
-                                source_file_id = DataBase::Instance()->AddSourceFile(sourceFilePathName);
-                                DataBase::Instance()->BeginTransaction();
-                                Ltg::ErrorContainer errorContainer;
-                                if (!scriptingPtr->compileScript(scriptFilePathName, errorContainer)) {
-                                    LogVarLightError("Fail to compile script \"%s\"", scriptFilePathName.c_str());
-                                } else {
-                                    if (scriptingPtr->callScriptInit(errorContainer)) {
+            if (scriptingPtr->load(ScriptingEngine::Instance())) {
+                Ltg::ErrorContainer errorContainer;
+                if (!scriptingPtr->compileScript(scriptFilePathName, errorContainer)) {
+                    LogVarLightError("Fail to compile script \"%s\"", scriptFilePathName.c_str());
+                } else {
+                    LogEngine::Instance()->Clear();
+                    GraphView::Instance()->Clear();
+                    DataBase::Instance()->OpenDBFile(ProjectFile::Instance()->m_ProjectFilePathName);
+                    DataBase::Instance()->ClearDataTables();
+                    for (const auto& sourceFilePathName : sourceFilePathNames) {
+                        if (!sourceFilePathName.empty() && ez::file::isFileExist(sourceFilePathName)) {
+                            const auto fileContent = ez::file::loadFileToString(sourceFilePathName);
+                            if (!fileContent.empty()) {
+                                try {
+                                    source_file_id = DataBase::Instance()->AddSourceFile(sourceFilePathName);
+                                    DataBase::Instance()->BeginTransaction();
+                                    if (scriptingPtr->callScriptStart(errorContainer)) {
                                         const auto fileLines = ez::str::splitStringToVector(fileContent, '\n');
                                         rowCount = (int32_t)fileLines.size();
                                         SetRowCount(rowCount);
@@ -121,19 +122,19 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                                         }
                                         scriptingPtr->callScriptEnd(errorContainer);
                                     }
+                                    DataBase::Instance()->CommitTransaction();
+                                } catch (std::exception& e) {
+                                    LogVarLightError("%s", e.what());
+                                    DataBase::Instance()->RollbackTransaction();
                                 }
-                                DataBase::Instance()->CommitTransaction();
-                            } catch (std::exception& e) {
-                                LogVarLightError("%s", e.what());
-                                DataBase::Instance()->RollbackTransaction();
                             }
                         }
                     }
+                    LogEngine::Instance()->Finalize();  // retrieve datas from database
+                    DataBase::Instance()->CloseDBFile();
                 }
-                LogEngine::Instance()->Finalize();  // retrieve datas from database
-                DataBase::Instance()->CloseDBFile();
                 scriptingPtr->unload();
-            }            
+            }
         }
     }
 
@@ -299,6 +300,75 @@ bool ScriptingEngine::isValidScriptingSelected() const {
 }
 
 ///////////////////////////////////////////////////////
+//// SCRIPT LANG //////////////////////////////////////
+///////////////////////////////////////////////////////
+
+void ScriptingEngine::addSignalTag(double vEpoch, double r, double g, double b, double a, const std::string& vName, const std::string& vHelp) {
+    if (vName.empty()) {
+        LogVarLightError("%s", "Lua code error : the name is empty");
+    } else {
+        auto color = ImVec4(  //
+            static_cast<float>(r),
+            static_cast<float>(g),
+            static_cast<float>(b),
+            static_cast<float>(a));
+        DataBase::Instance()->AddSignalTag(vEpoch, color, vName, vHelp);
+    }
+}
+
+void ScriptingEngine::addSignalStatus(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStatus) {
+    if (vCategory.empty() || vName.empty()) {
+        if (vCategory.empty()) {
+            LogVarLightError("%s", "Lua code error : the category passed to addSignalStatus is empty");
+        }
+        if (vName.empty()) {
+            LogVarLightError("%s", "Lua code error : the category passed to addSignalStatus is empty");
+        }
+        return;
+    }
+    DataBase::Instance()->AddSignalStatus(source_file_id, vCategory, vName, vEpoch, vStatus, "");
+}
+
+void ScriptingEngine::addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue) {
+    if (vCategory.empty() || vName.empty()) {
+        if (vCategory.empty()) {
+            LogVarLightError("%s", "Lua code error : the category passed to AddSignalValue is empty");
+        }
+        if (vName.empty()) {
+            LogVarLightError("%s", "Lua code error : the category passed to AddSignalValue is empty");
+        }
+        return;
+    }
+    DataBase::Instance()->AddSignalTick(source_file_id, vCategory, vName, vEpoch, vValue);
+}
+
+void ScriptingEngine::addSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg) {
+    if (vCategory.empty() || vName.empty()) {
+        if (vCategory.empty()) {
+            LogVarLightError("%s", "Lua code error : the category passed to addSignalStartZone is empty");
+        }
+        if (vName.empty()) {
+            LogVarLightError("%s", "Lua code error : the category passed to addSignalStartZone is empty");
+        }
+        return;
+    }
+    DataBase::Instance()->AddSignalStatus(source_file_id, vCategory, vName, vEpoch, vStartMsg, LogEngine::sc_START_ZONE);
+}
+
+void ScriptingEngine::addSignalEndZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vEndMsg) {
+    if (vCategory.empty() || vName.empty()) {
+        if (vCategory.empty()) {
+            LogVarLightError("%s", "Lua code error : the category passed to addSignalEndZone is empty");
+        }
+        if (vName.empty()) {
+            LogVarLightError("%s", "Lua code error : the category passed to addSignalEndZone is empty");
+        }
+        return;
+    }
+    DataBase::Instance()->AddSignalStatus(source_file_id, vCategory, vName, vEpoch, vEndMsg, LogEngine::sc_END_ZONE);
+}
+
+///////////////////////////////////////////////////////
 //// CONFIGURATION ////////////////////////////////////
 ///////////////////////////////////////////////////////
 
@@ -343,5 +413,6 @@ void ScriptingEngine::m_selectScriptingModule(const Ltg::ScriptingModuleName& vN
         m_SelectedScriptingModule = m_scriptingModules.at(vName);
         ProjectFile::Instance()->SetProjectChange();
         m_scriptingModuleCombo.select(vName);
+        m_SelectedScriptingModuleName = vName;
     }
 }

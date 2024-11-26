@@ -174,14 +174,14 @@ DBRowID DataBase::AddSourceFile(const SourceFileName& vSourceFile) {
 void DataBase::AddSignalCategory(const SignalCategory& vSignalCategory) {
     auto insert_query = ez::str::toStr(u8R"(insert or ignore into signal_categories (category) values("%s");)", vSignalCategory.c_str());
     if (sqlite3_exec(m_SqliteDB, insert_query.c_str(), nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK) {
-        LogVarError("Fail to insert a singal category in database : %s", m_LastErrorMsg);
+        LogVarError("Fail to insert a signal category in database : %s", m_LastErrorMsg);
     }
 }
 
 void DataBase::AddSignalName(const SignalName& vSignalName) {
     auto insert_query = ez::str::toStr(u8R"(insert or ignore into signal_names (name) values("%s");)", vSignalName.c_str());
     if (sqlite3_exec(m_SqliteDB, insert_query.c_str(), nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK) {
-        LogVarError("Fail to insert a singal name in database : %s", m_LastErrorMsg);
+        LogVarError("Fail to insert a signal name in database : %s", m_LastErrorMsg);
     }
 }
 

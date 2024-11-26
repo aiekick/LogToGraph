@@ -20,7 +20,7 @@
 #include <unordered_map>
 #include <Headers/Globals.h>
 #include <apis/LtgPluginApi.h>
-#include <EzLibs/EzXmlConfig.hpp>
+#include <ezlibs/ezXmlConfig.hpp>
 
 struct GraphColor {
     ImVec4 graphBarColor = ImVec4(0.2f, 0.5f, 0.8f, 0.5f);
@@ -30,7 +30,7 @@ struct GraphColor {
     ImVec4 graphSecondDiffMarkColor = ImVec4(0.2f, 0.2f, 0.8f, 0.8f);
 };
 
-class ProjectFile : public Ltg::ProjectInterface, public ez::xml::Config {
+class ProjectFile : public Ltg::IProject, public ez::xml::Config {
 public:  // to save
     GraphColor m_GraphColors;
     bool m_CollapseLogSelection = false;

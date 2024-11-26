@@ -42,6 +42,7 @@ else ()
 endif ()
 
 include(cmake/luajit.cmake)
+include(cmake/sol2.cmake)
 
 file(GLOB_RECURSE PROJECT_SRC_RECURSE 
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.c 
@@ -107,14 +108,17 @@ target_include_directories(${PROJECT} PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
 	${CMAKE_CURRENT_SOURCE_DIR}/src
 	${CMAKE_CURRENT_SOURCE_DIR}
+	${LUA_JIT_INCLUDE_DIR}/src
 	${IMGUIPACK_INCLUDE_DIRS}
 	${EZLIBS_INCLUDE_DIR}
 	${CMAKE_SOURCE_DIR}
+	${SOL2_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT}
 	${IMGUIPACK_LIBRARIES}
 	${LUA_JIT_LIBRARIES}
+	${SOL2_LIBRARIES}
 )
 
 # add plugin name in parent LOADED_STROCKER_PLUGINS list

@@ -4,8 +4,7 @@
 #include <Headers/LuaScriptingBuild.h>
 #include "LuaScripting.h"
 
-#define EZ_LOG_IMPLEMENTATION
-#include <EzLibs/EzLog.hpp>
+#include <ezlibs/ezLog.hpp>
 
 // needed for plugin creating / destroying
 extern "C"  // needed for avoid renaming of funcs by the compiler
@@ -29,8 +28,9 @@ PLUGIN_PREFIX void deleter(LuaScripting* ptr) {
 
 LuaScripting::LuaScripting() = default;
 
-bool LuaScripting::init() {
+bool LuaScripting::init(ez::Log* vLoggerInstancePtr) {
     m_SettingsPtr = std::make_shared<Settings>();
+    ez::Log::Instance(vLoggerInstancePtr); // get the instance from the host app
     return true;
 }
 

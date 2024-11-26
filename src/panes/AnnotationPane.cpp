@@ -18,7 +18,7 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "AnnotationPane.h"
-#include <EzLibs/EzLog.hpp>
+#include <ezlibs/ezLog.hpp>
 
 #include <Project/ProjectFile.h>
 #include <cinttypes>  // printf zu

@@ -10,7 +10,7 @@ private:
 public:
     LuaScripting();
     virtual ~LuaScripting() = default;
-    bool init() override;
+    bool init(ez::Log* vLoggerInstancePtr) override;
     void unit() override;
     uint32_t getMinimalAppVersionSupported() const override;
     uint32_t getVersionMajor() const override;

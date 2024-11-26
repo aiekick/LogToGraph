@@ -1,7 +1,8 @@
 #include <systems/PluginManager.h>
 
-#include <EzLibs/EzFile.hpp>
-#include <EzLibs/EzMath.hpp>
+#include <ezlibs/ezFile.hpp>
+#include <ezlibs/ezMath.hpp>
+#include <ezlibs/ezLog.hpp>
 
 namespace fs = std::filesystem;
 
@@ -23,7 +24,9 @@ PluginReturnMsg PluginInstance::init(const std::string& vName, const std::string
     if (m_Loader.IsAPlugin()) {
         if (m_Loader.IsValid()) {
             if (m_PluginInstance) {
-                if (!m_PluginInstance->init()) {
+                if (!m_PluginInstance->init(  //
+                        ez::Log::Instance()   // redirection of the logger instance
+                        )) {
                     m_PluginInstance.reset();
                 } else {
                     return PluginReturnMsg::LOADING_SUCCEED;
@@ -68,8 +71,8 @@ void PluginManager::unloadPlugins() {
 }
 
 void PluginManager::loadPlugins(const std::string& vAppPath, const std::set<Ltg::PluginModuleType> vTypesToLoad) {
-    printf("-----------\n");
-    LogVarLightInfo("Availables Plugins :\n");
+    std::cout << "-----------" << std::endl;
+    LogVarLightInfo("Availables Plugins :");
     auto plugin_directory = std::filesystem::path(vAppPath).append("plugins");
     if (std::filesystem::exists(plugin_directory)) {
         const auto dir_iter = std::filesystem::directory_iterator(plugin_directory);
@@ -78,14 +81,13 @@ void PluginManager::loadPlugins(const std::string& vAppPath, const std::set<Ltg:
         }
         m_displayLoadedPlugins();
     } else {
-        LogVarLightInfo("Plugin directory %s not found !", plugin_directory.string().c_str());
+        LogVarLightInfo("x Plugin directory %s not found !", plugin_directory.string().c_str());
     }
-    printf("-----------\n");
+    std::cout << "-----------" << std::endl;
 }
 
 std::vector<Ltg::PluginModuleInfos> PluginManager::getPluginModulesInfos() const {
     std::vector<Ltg::PluginModuleInfos> res;
-
     for (auto plugin : m_Plugins) {
         if (plugin.second) {
             auto pluginInstancePtr = plugin.second->get().lock();
@@ -97,7 +99,6 @@ std::vector<Ltg::PluginModuleInfos> PluginManager::getPluginModulesInfos() const
             }
         }
     }
-
     return res;
 }
 
@@ -173,7 +174,7 @@ void PluginManager::m_loadPlugin(const fs::directory_entry& vEntry, const std::s
                         if (ret != PluginReturnMsg::LOADING_SUCCEED) {
                             resPtr.reset();
                             if (ret == PluginReturnMsg::LOADING_FAILED) {
-                                LogVarDebugError("Plugin %s fail to load", ps.name.c_str());
+                                LogVarDebugError("x Plugin %s fail to load", ps.name.c_str());
                             }
                         } else {
                             bool authorized = false;
@@ -233,7 +234,7 @@ void PluginManager::m_displayLoadedPlugins() {
                     const auto& vers = plugin_instance_ptr->getVersion();
                     const auto& vers_space = std::string(max_vers_size - vers.size(), ' ');  // 32 is a space in ASCII
                     const auto& desc = plugin_instance_ptr->getDescription();
-                    LogVarLightInfo("Plugin loaded : %s%sv%s%s(%s)",  //
+                    LogVarLightInfo("- Plugin loaded : %s%sv%s%s(%s)",  //
                                     name.c_str(),
                                     name_space.c_str(),  //
                                     vers.c_str(),

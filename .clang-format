@@ -53,7 +53,16 @@ ConstructorInitializerIndentWidth: 4
 ContinuationIndentWidth: 4
 Cpp11BracedListStyle: true
 DerivePointerAlignment: true
+
+# Respecter les directives clang-format on/off dans le code
+# Permet de désactiver clang-format avec des commentaires
+# fait que au besoin on, peut desactiver le 
+# formatage dans un fichier pour une section de code
+# // clang-format off
+# CODE
+# // clang-format on
 DisableFormat: false
+
 ExperimentalAutoDetectBinPacking: false
 FixNamespaceComments: true
 ForEachMacros:   

@@ -1,3 +1,3 @@
 #pragma once
 
-#include <EzLibs/EzTools.hpp>
+#include <ezlibs/ezTools.hpp>
