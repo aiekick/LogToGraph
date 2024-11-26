@@ -33,3 +33,11 @@
 /bin/plugins/Plugin_LuaScripting_Windows_x64_Debug_debug.dll
 /bin/debug/*.pdb
 /bin/debug.log
+/bin/release
+/bin/sqlite3.dll
+/bin/freetype.dll
+/bin/glad.dll
+/bin/glfw3.dll
+/bin/iagp.dll
+/bin/imguipack.dll
+/bin/luajit.dll
