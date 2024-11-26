@@ -1,7 +1,7 @@
 #include "Module.h"
 
-#include <EzLibs/EzFile.hpp>
-#include <EzLibs/EzTime.hpp>
+#include <ezlibs/ezFile.hpp>
+#include <ezlibs/ezTime.hpp>
 #include <ImGuiPack.h>
 
 #include <Python.h>
@@ -18,7 +18,7 @@
 /// CUSTOM PYTHON FUNCTIONS ///////////////////////
 ///////////////////////////////////////////////////
 
-// Singleton pour gérer les données du modèle
+// Singleton pour gï¿½rer les donnï¿½es du modï¿½le
 class Model {
 public:
     static Model& getInstance() {
@@ -45,32 +45,32 @@ private:
     mutable std::mutex mutex_;
 };
 
-// Fonction C++ appelée par Python pour ajouter un signal
+// Fonction C++ appelï¿½e par Python pour ajouter un signal
 PyObject* addSignalValue(PyObject* self, PyObject* args) {
     double value;
     if (!PyArg_ParseTuple(args, "d", &value)) {
         return nullptr;
     }
 
-    // Ajouter la valeur au modèle via le singleton
+    // Ajouter la valeur au modï¿½le via le singleton
     Model::getInstance().addSignal(value);
 
     Py_RETURN_NONE;
 }
 
-// Méthodes Python exposées
+// Mï¿½thodes Python exposï¿½es
 static PyMethodDef SignalMethods[] = {
     {"addSignalValue", addSignalValue, METH_VARARGS, "Add a signal value to the model"},
     {nullptr, nullptr, 0, nullptr}  // Fin
 };
 
-// Définition du module Python
+// Dï¿½finition du module Python
 static struct PyModuleDef SignalModule = {
     PyModuleDef_HEAD_INIT,
     "signal_handler",  // Nom du module
     nullptr,           // Documentation
-    -1,                // Taille de l'état global (pas utilisé ici)
-    SignalMethods      // Tableau de fonctions exposées
+    -1,                // Taille de l'ï¿½tat global (pas utilisï¿½ ici)
+    SignalMethods      // Tableau de fonctions exposï¿½es
 };
 
 // Initialisation du module Python
@@ -117,7 +117,7 @@ bool Module::load() {
             return 1;
         }
 
-        // Récupérer la fonction parse_line
+        // Rï¿½cupï¿½rer la fonction parse_line
         PyObject* pFunc = PyObject_GetAttrString(pModule, "parse_line");
         if (!pFunc || !PyCallable_Check(pFunc)) {
             if (PyErr_Occurred())
@@ -129,7 +129,7 @@ bool Module::load() {
             return 1;
         }
 
-        // Exemples de lignes à parser
+        // Exemples de lignes ï¿½ parser
         std::vector<std::string> lines = {"TestConcurrency::test[19:11:43.266341] TEST_VALGRIND INFO_1   SE_IAV_TestConcurrency.cpp::setUp(): Creation of objects",
                                           "[19:11:45.343944] CSC_SE_IAV DEBUG    SE_IAV_Supervisor.cpp::_updateCrIr(): getInitEnCours[1] getInitCompEnCours[1]"};
 
@@ -147,7 +147,7 @@ bool Module::load() {
             }
         }
 
-        // Afficher les signaux stockés dans le modèle
+        // Afficher les signaux stockï¿½s dans le modï¿½le
         const auto& signals = Model::getInstance().getSignals();
         std::cout << "Final signals in model:" << std::endl;
         for (double signal : signals) {

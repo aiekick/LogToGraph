@@ -5,7 +5,7 @@
 #include "PythonScripting.h"
 
 #define EZ_LOG_IMPLEMENTATION
-#include <EzLibs/EzLog.hpp>
+#include <ezlibs/ezLog.hpp>
 
 // needed for plugin creating / destroying
 extern "C"  // needed for avoid renaming of funcs by the compiler

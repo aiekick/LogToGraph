@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef WIN32 // UNIX
-#include <EzTools/EzLog.hpp>
+#include <ezlibs/ezLog.hpp>
 #include <dlfcn.h>
 #include <IDLLoader/IDLLoader.h>
 
