@@ -23,7 +23,7 @@ limitations under the License.
 #include <string>
 #include <stdint.h>
 #include <unordered_map>
-#include <Headers/Globals.h>
+#include <Headers/DatasDef.h>
 #include <ezlibs/ezXmlConfig.hpp>
 
 struct SignalSetting {

@@ -30,7 +30,7 @@ LuaScripting::LuaScripting() = default;
 
 bool LuaScripting::init(ez::Log* vLoggerInstancePtr) {
     m_SettingsPtr = std::make_shared<Settings>();
-    ez::Log::Instance(vLoggerInstancePtr); // get the instance from the host app
+    ez::Log::instance(vLoggerInstancePtr); // get the instance from the host app
     return true;
 }
 

@@ -208,6 +208,10 @@ struct ScriptingModule : public PluginModule {
     virtual bool callScriptExec(const ScriptingDatas& vOutDatas, ErrorContainer& vErrors) = 0;
     // will call the end function from script and return errors
     virtual bool callScriptEnd(ErrorContainer& vOutErrors) = 0;
+    // will set the row index
+    virtual void setRowIndex(int32_t vRowIndex) = 0;
+    // will set the row count
+    virtual void setRowCount(int32_t vRowCount) = 0;
 };
 
 typedef std::shared_ptr<ScriptingModule> ScriptingModulePtr;

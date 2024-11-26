@@ -25,7 +25,7 @@ PluginReturnMsg PluginInstance::init(const std::string& vName, const std::string
         if (m_Loader.IsValid()) {
             if (m_PluginInstance) {
                 if (!m_PluginInstance->init(  //
-                        ez::Log::Instance()   // redirection of the logger instance
+                        ez::Log::instance()   // redirection of the logger instance
                         )) {
                     m_PluginInstance.reset();
                 } else {

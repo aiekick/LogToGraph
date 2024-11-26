@@ -135,7 +135,7 @@ void LogPane::DrawTable() {
     }
 
     static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
-        // ImGuiTableFlags_Resizable |
+        ImGuiTableFlags_Resizable |
         ImGuiTableFlags_NoHostExtendY;
 
     // first display
@@ -221,9 +221,9 @@ void LogPane::DrawTable() {
                             ImGui::Text("%f", infos_ptr->value);
                         } else {
                             if (infos_ptr->status == LogEngine::sc_START_ZONE) {
-                                ImGui::Text(ICON_FONT_ARROW_RIGHT " %s", infos_ptr->string.c_str());
+                                ImGui::Text(ICON_FONT_ARROW_RIGHT_THICK " %s", infos_ptr->string.c_str());
                             } else if (infos_ptr->status == LogEngine::sc_END_ZONE) {
-                                ImGui::Text("%s " ICON_FONT_ARROW_LEFT, infos_ptr->string.c_str());
+                                ImGui::Text("%s " ICON_FONT_ARROW_LEFT_THICK, infos_ptr->string.c_str());
                             } else {
                                 ImGui::Text("%s", infos_ptr->string.c_str());
                             }

@@ -1,6 +1,7 @@
 #include "Module.h"
 #include <ezlibs/ezFile.hpp>
 #include <ezlibs/ezTime.hpp>
+#include <ezlibs/ezLog.hpp>
 #include <ImGuiPack.h>
 #include <exception>
 #include <chrono>
@@ -59,13 +60,19 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
         // clang-format off
         m_luaPtr->new_usertype<LuaDatasModel>(
             "LuaDatasModel", sol::constructors<std::shared_ptr<LuaDatasModel>()>(),
-            "stringToEpoch", &LuaDatasModel::stringToEpoch,
-            "epochToString", &LuaDatasModel::epochToString,
-            "addSignalTag", &LuaDatasModel::addSignalTag,
-            "addSignalStatus", &LuaDatasModel::addSignalStatus,
-            "addSignalValue", &LuaDatasModel::addSignalValue,
-            "addSignalStartZone", &LuaDatasModel::addSignalStartZone,
-            "addSignalEndZone", &LuaDatasModel::addSignalEndZone
+            "stringToEpoch", &LuaDatasModel::luaModuleStringToEpoch,
+            "epochToString", &LuaDatasModel::luaModuleEpochToString,
+            "addSignalTag", &LuaDatasModel::luaModuleAddSignalTag,
+            "addSignalStatus", &LuaDatasModel::luaModuleAddSignalStatus,
+            "addSignalValue", &LuaDatasModel::luaModuleAddSignalValue,
+            "addSignalStartZone", &LuaDatasModel::luaModuleAddSignalStartZone,
+            "addSignalEndZone", &LuaDatasModel::luaModuleAddSignalEndZone,
+            "logInfo", &LuaDatasModel::luaModuleLogInfo,
+            "logWarning", &LuaDatasModel::luaModuleLogWarning,
+            "logError", &LuaDatasModel::luaModuleLogError,
+            "logDebug", &LuaDatasModel::luaModuleLogDebug,
+            "getRowIndex", &LuaDatasModel::luaModuleGetRowIndex,
+            "getRowCount", &LuaDatasModel::luaModuleGetRowCount
         );
         // clang-format on
 
@@ -151,4 +158,16 @@ bool Module::callScriptEnd(Ltg::ErrorContainer& vOutErrors) {
         return false;
     }
     return true;
+}
+
+void Module::setRowIndex(int32_t vRowIndex) {
+    if (m_luaDatasModelPtr != nullptr) {
+        m_luaDatasModelPtr->setRowIndex(vRowIndex);
+    }
+}
+
+void Module::setRowCount(int32_t vRowCount) {
+    if (m_luaDatasModelPtr != nullptr) {
+        m_luaDatasModelPtr->setRowCount(vRowCount);
+    }
 }

@@ -6,7 +6,7 @@ enable_language(C CXX)
 
 project(${PROJECT} CXX)
 
-option(PLUGIN_ENABLE_PYTHON_SCRIPTING "Enable the plugin Python Scripting" ON)
+option(PLUGIN_ENABLE_PYTHON_SCRIPTING "Enable the plugin Python Scripting" OFF)
 
 if (WIN32 AND PLUGIN_ENABLE_PYTHON_SCRIPTING)
 

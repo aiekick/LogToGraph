@@ -133,7 +133,7 @@ void ToolPane::DrawTable() {
             config.flags = ImGuiFileDialogFlags_Modal;
             ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Script Script File", ".lua,.*", config);
         }
-        if (ImGui::ContrastedButton("##ScriptScriptEdit")) {
+        if (ImGui::ContrastedButton(ICON_FONT_PENCIL "##ScriptScriptEdit")) {
             ez::file::openFile(ProjectFile::Instance()->GetScriptFilePathName());
         }
         ImGui::SameLine();
@@ -171,7 +171,7 @@ void ToolPane::DrawTable() {
                     if (ImGui::TableSetColumnIndex(0)) 
                     {
                         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
-                        if (ImGui::ContrastedButton("E##SourceFileEdit", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f))) {
+                        if (ImGui::ContrastedButton(ICON_FONT_PENCIL "##SourceFileEdit", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f))) {
                             it_to_edit = it_source_file;
                             m_CurrentSourceEdited = idx;
                         }
@@ -189,7 +189,7 @@ void ToolPane::DrawTable() {
                     if (ImGui::TableSetColumnIndex(2))
                     {
                         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 1));
-                        if (ImGui::ContrastedButton(ICON_FONT_CANCEL "X##SourceFileDelete", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f))) {
+                        if (ImGui::ContrastedButton(ICON_FONT_CLOSE "##SourceFileDelete", nullptr, nullptr, 0.0f, ImVec2(16.0f, 16.0f))) {
                             it_to_erase = it_source_file;
                         }
                         ImGui::PopStyleVar();

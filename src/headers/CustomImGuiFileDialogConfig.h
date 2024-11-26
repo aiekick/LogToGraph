@@ -65,8 +65,8 @@ limitations under the License.
 #define IGFD_KEY_BACKSPACE 259  // GLFW_KEY_BACKSPACE
 
 // by ex you can quit the dialog by pressing the key excape
-// #define USE_DIALOG_EXIT_WITH_KEY
-// #define IGFD_EXIT_KEY ImGuiKey_Escape
+#define USE_DIALOG_EXIT_WITH_KEY
+#define IGFD_EXIT_KEY ImGuiKey_Escape
 
 // widget
 // filter combobox width
@@ -76,30 +76,30 @@ limitations under the License.
 // standar button
 #define IMGUI_BUTTON ImGui::ContrastedButton_For_Dialogs
 
-#define ICON_PLUS u8"\uf415"
-#define ICON_MINUS u8"\uf374"
-#define ICON_CHECK u8"\uf12c"
-#define ICON_CANCEL u8"\uf739"
-#define ICON_TRASH_CAN_OUTLINE u8"\ufa79"
-#define ICON_SERVER u8"\uf48b"
-#define ICON_FOLDER_SEARCH_OUTLINE u8"\uf968"
-#define ICON_FOLDER u8"\uf24b"
-#define ICON_LINK u8"\uf337"
-#define ICON_FILE u8"\uf214"
-#define ICON_CHEVRON_UP u8"\uf143"
-#define ICON_CHEVRON_DOWN u8"\uf140"
-#define ICON_BOOKMARK u8"\uf0c0"
+#define ICON_FONT_PLUS u8"\uf415"
+#define ICON_FONT_PLUS_MINUS u8"\uf991"
+#define ICON_FONT_CHECK_BOLD u8"\ufe6e"
+#define ICON_FONT_CLOSE u8"\uf156"
+#define ICON_FONT_TRASH_CAN u8"\ufa78"
+#define ICON_FONT_REPLY u8"\uf45a"
+#define ICON_FONT_SERVER u8"\uf48b"
+#define ICON_FONT_FILE_FIND u8"\uf21e"
+#define ICON_FONT_FOLDER u8"\uf24b"
+#define ICON_FONT_FILE u8"\uf214"
+#define ICON_FONT_MENU_DOWN u8"\uf35d"
+#define ICON_FONT_MENU_UP u8"\uf360"
+#define ICON_FONT_BOOKMARK u8"\uf0c0"
 
 // locales string
-#define createDirButtonString ICON_PLUS
-#define okButtonString ICON_CHECK " OK"
-#define cancelButtonString ICON_CANCEL " Cancel"
-#define resetButtonString ICON_TRASH_CAN_OUTLINE
-#define drivesButtonString ICON_SERVER
-#define searchString ICON_FOLDER_SEARCH_OUTLINE
-#define dirEntryString ICON_FOLDER " "
-#define linkEntryString ICON_LINK " "
-#define fileEntryString ICON_FILE " "
+#define createDirButtonString ICON_FONT_PLUS
+#define okButtonString ICON_FONT_CHECK_BOLD " OK"
+#define cancelButtonString ICON_FONT_CLOSE " Cancel"
+#define resetButtonString ICON_FONT_TRASH_CAN
+#define drivesButtonString ICON_FONT_SERVER
+#define searchString ICON_FONT_FILE_FIND
+#define dirEntryString ICON_FONT_FOLDER " "
+#define linkEntryString ICON_FONT_FILE " "
+#define fileEntryString ICON_FONT_FILE " "
 // #define fileNameString "File Name : "
 // #define dirNameString "Directory Path :"
 // #define buttonResetSearchString "Reset search"
@@ -108,13 +108,13 @@ limitations under the License.
 // #define buttonCreateDirString "Create Directory"
 // #define OverWriteDialogTitleString "The file Already Exist !"
 // #define OverWriteDialogMessageString "Would you like to OverWrite it ?"
-#define OverWriteDialogConfirmButtonString ICON_CHECK " Confirm"
-#define OverWriteDialogCancelButtonString ICON_CANCEL " Cancel"
+#define OverWriteDialogConfirmButtonString ICON_FONT_CHECK_BOLD " Confirm"
+#define OverWriteDialogCancelButtonString ICON_FONT_CLOSE " Cancel"
 
 // Validation buttons
-// #define okButtonString " OK"
+#define okButtonString " OK"
 // #define okButtonWidth 0.0f
-// #define cancelButtonString " Cancel"
+#define cancelButtonString " Cancel"
 // #define cancelButtonWidth 0.0f
 // alignement [0:1], 0.0 is left, 0.5 middle, 1.0 right, and other ratios
 // #define okCancelButtonAlignement 0.0f
@@ -128,8 +128,8 @@ limitations under the License.
 
 // theses icons will appear in table headers
 #define USE_CUSTOM_SORTING_ICON
-#define tableHeaderAscendingIcon ICON_CHEVRON_UP
-#define tableHeaderDescendingIcon ICON_CHEVRON_DOWN
+#define tableHeaderAscendingIcon ICON_FONT_MENU_UP
+#define tableHeaderDescendingIcon ICON_FONT_MENU_DOWN
 #define tableHeaderFileNameString " File name"
 #define tableHeaderFileTypeString " Type"
 #define tableHeaderFileSizeString " Size"
@@ -150,25 +150,25 @@ limitations under the License.
 // #define defaultSortOrderThumbnails true
 
 #define USE_PLACES_FEATURE
-#define PLACES_PANE_DEFAULT_SHOWN true
+#define PLACES_PANE_DEFAULT_SHOWN false
 #define placesPaneWith 200.0f.0f
 // #define IMGUI_TOGGLE_BUTTON ToggleButton
-#define placesButtonString ICON_BOOKMARK
+#define placesButtonString ICON_FONT_BOOKMARK
 // #define placesButtonHelpString "Places"
-#define addPlaceButtonString ICON_PLUS
-#define removePlaceButtonString ICON_MINUS
+#define addPlaceButtonString ICON_FONT_PLUS
+#define removePlaceButtonString ICON_FONT_PLUS_MINUS
 // #define validatePlaceButtonString "ok"
 // #define editPlaceButtonString "E"
 
 // a group for bookmarks will be added by default, but you can also create it yourself and many more
 #define USE_PLACES_BOOKMARKS
-// #define PLACES_BOOKMARK_DEFAULT_OPEPEND true
+#define PLACES_BOOKMARK_DEFAULT_OPEPEND false
 // #define placesBookmarksGroupName "Bookmarks"
 // #define placesBookmarksDisplayOrder 0  // to the first
 
 // a group for system devices (returned by IFileSystem), but you can also add yours
 // by ex if you would like to display a specific icon for some devices
 #define USE_PLACES_DEVICES
-// #define PLACES_DEVICES_DEFAULT_OPEPEND true
-// #define placesDevicesGroupName "Devices"
+#define PLACES_DEVICES_DEFAULT_OPEPEND false
+#define placesDevicesGroupName ICON_FONT_SERVER " Devices"
 // #define placesDevicesDisplayOrder 10  // to the end

@@ -177,11 +177,11 @@ void MainBackend::setAppTitle(const std::string& vFilePathName) {
     auto ps = ez::file::parsePathFileName(vFilePathName);
     if (ps.isOk) {
         char bufTitle[1024];
-        snprintf(bufTitle, 1023, "Strocker Beta %s - Project : %s.lum", LogToGraph_BuildId, ps.name.c_str());
+        snprintf(bufTitle, 1023, "%s Beta %s - Project : %s.lum", LogToGraph_Prefix, LogToGraph_BuildId, ps.name.c_str());
         glfwSetWindowTitle(m_MainWindowPtr, bufTitle);
     } else {
         char bufTitle[1024];
-        snprintf(bufTitle, 1023, "Strocker Beta %s", LogToGraph_BuildId);
+        snprintf(bufTitle, 1023, "%s Beta %s", LogToGraph_Prefix, LogToGraph_BuildId);
         glfwSetWindowTitle(m_MainWindowPtr, bufTitle);
     }
 }
@@ -359,7 +359,7 @@ bool MainBackend::m_InitWindow() {
     glfwWindowHint(GLFW_SAMPLES, 4);
 
     // Create window with graphics context
-    m_MainWindowPtr = glfwCreateWindow(INITIAL_WIDTH, INITIAL_HEIGHT, "MarketAnalyzer", nullptr, nullptr);
+    m_MainWindowPtr = glfwCreateWindow(INITIAL_WIDTH, INITIAL_HEIGHT, LogToGraph_Prefix, nullptr, nullptr);
     if (m_MainWindowPtr == nullptr) {
         std::cout << "Fail to create the window" << std::endl;
         return false;
@@ -411,7 +411,7 @@ bool MainBackend::m_InitImGui() {
             }
         }
         {  // icon font
-            static const ImWchar icons_ranges[] = {ICON_MIN_FONT, ICON_MIN_FONT, 0};
+            static const ImWchar icons_ranges[] = {ICON_MIN_FONT, ICON_MAX_FONT, 0};
             ImFontConfig icons_config;
             icons_config.MergeMode = true;
             icons_config.PixelSnapH = true;

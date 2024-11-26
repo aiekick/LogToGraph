@@ -2,7 +2,7 @@
 
 #ifdef WIN32
 #include <iostream>
-#include <EzLibs/EzLog.hpp>
+#include <ezlibs/ezLog.hpp>
 #include <IDLLoader/IDLLoader.h>
 #include "Windows.h"
 

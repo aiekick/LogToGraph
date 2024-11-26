@@ -18,7 +18,7 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
-#include <Headers/Globals.h>
+#include <Headers/DatasDef.h>
 #include <apis/LtgPluginApi.h>
 #include <ezlibs/ezXmlConfig.hpp>
 

@@ -41,3 +41,8 @@
 /bin/iagp.dll
 /bin/imguipack.dll
 /bin/luajit.dll
+/bin/plugins/luajit_debug.dll
+/bin/*.ltg
+/bin/packages
+/bin/plugins/Plugin_LuaScripting_Windows_x64_Release.dll
+/bin/plugins/luajit.dll

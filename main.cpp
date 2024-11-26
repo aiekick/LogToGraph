@@ -21,7 +21,6 @@ limitations under the License.
 #include <string>
 #include <iostream>
 
-#define EZ_LOG_IMPLEMENTATION
 #include <ezlibs/ezLog.hpp>
 #include <ezlibs/ezTools.hpp>
 
@@ -39,14 +38,13 @@ int main(int argc, char** argv) {
     try {
         App app(argc, argv);
         app.run();
+        ez::Log::instance()->close();
     } catch (const std::exception& e) {
         LogVarLightInfo("Exception %s", e.what());
-        ez::Log::Instance()->Close();
+        ez::Log::instance()->close();
         EZ_TOOLS_DEBUG_BREAK;
         return EXIT_FAILURE;
     }
-
-    ez::Log::Instance()->Close();
 
 #ifdef _MSC_VER
 #ifdef _DEBUG

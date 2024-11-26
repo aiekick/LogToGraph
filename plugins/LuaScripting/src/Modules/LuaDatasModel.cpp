@@ -10,49 +10,47 @@ LuaDatasModelPtr LuaDatasModel::create(Ltg::IDatasModelWeak vIDatasModel) {
     return res;
 }
 
-void LuaDatasModel::init() {}
-
-void LuaDatasModel::setScriptDescription(const std::string& vKey) {}
-
-void LuaDatasModel::setRowBufferName(const std::string& vKey) {}
-
-void LuaDatasModel::setFunctionForEachRow(const std::string& vKey) {}
-
-void LuaDatasModel::setFunctionForEndFile(const std::string& vKey) {}
-
-void LuaDatasModel::logInfo(const std::string& vKey) {
+void LuaDatasModel::luaModuleLogInfo(const std::string& vKey) {
     if (!vKey.empty()) {
         LogVarLightInfo("%s", vKey.c_str());
     }
 }
 
-void LuaDatasModel::logWarning(const std::string& vKey) {
+void LuaDatasModel::luaModuleLogWarning(const std::string& vKey) {
     if (!vKey.empty()) {
         LogVarLightWarning("%s", vKey.c_str());
     }
 }
 
-void LuaDatasModel::logError(const std::string& vKey) {
+void LuaDatasModel::luaModuleLogError(const std::string& vKey) {
     if (!vKey.empty()) {
         LogVarLightError("%s", vKey.c_str());
     }
 }
 
-void LuaDatasModel::logDebug(const std::string& vKey) {
+void LuaDatasModel::luaModuleLogDebug(const std::string& vKey) {
     if (!vKey.empty()) {
         LogVarDebugInfo("%s", vKey.c_str());
     }
 }
 
-int32_t LuaDatasModel::getRowIndex() {
-    return 0;
+void LuaDatasModel::setRowIndex(int32_t vRowIndex) {
+    m_RowIndex = vRowIndex;
 }
 
-int32_t LuaDatasModel::getRowCount() {
-    return 0;
+double LuaDatasModel::luaModuleGetRowIndex() {
+    return static_cast<double>(m_RowIndex);
 }
 
-double LuaDatasModel::stringToEpoch(const std::string& vDateTime, double vHourOffset) {
+void LuaDatasModel::setRowCount(int32_t vRowCount) {
+    m_RowCount = vRowCount;
+}
+
+double LuaDatasModel::luaModuleGetRowCount() {
+    return static_cast<double>(m_RowCount);
+}
+
+double LuaDatasModel::luaModuleStringToEpoch(const std::string& vDateTime, double vHourOffset) {
     struct tm timeStruct = {};
     int microseconds = 0;
     std::istringstream dateStream(vDateTime);
@@ -61,7 +59,8 @@ double LuaDatasModel::stringToEpoch(const std::string& vDateTime, double vHourOf
     if (dateStream.fail()) {
         throw std::invalid_argument("Invalid date format");
     }
-    timeStruct.tm_hour += vHourOffset;
+    timeStruct.tm_hour += static_cast<int32_t>(vHourOffset);
+    timeStruct.tm_isdst = 1;
     dateStream >> delimiter >> microseconds;
     std::time_t epochSeconds = std::mktime(&timeStruct);
     if (epochSeconds == -1) {
@@ -71,28 +70,29 @@ double LuaDatasModel::stringToEpoch(const std::string& vDateTime, double vHourOf
     return static_cast<double>(epochSeconds) + static_cast<double>(microseconds) / 1000000.0;
 }
 
-std::string LuaDatasModel::epochToString(double vEpochTime, double vHourOffset) {
+std::string LuaDatasModel::luaModuleEpochToString(double vEpochTime, double vHourOffset) {
     std::time_t seconds = static_cast<std::time_t>(vEpochTime);
     int microseconds = static_cast<int>((vEpochTime - seconds) * 1000000.0);
     struct tm* timeStruct = std::gmtime(&seconds);
     if (!timeStruct) {
         throw std::runtime_error("Failed to convert epoch time to struct tm");
     }
-    timeStruct->tm_hour += vHourOffset;
+    timeStruct->tm_hour += static_cast<int32_t>(vHourOffset);
+    timeStruct->tm_isdst = 1;
     std::ostringstream dateStream;
     dateStream << std::put_time(timeStruct, "%Y-%m-%d %H:%M:%S");
     dateStream << '.' << std::setfill('0') << std::setw(6) << microseconds;
     return dateStream.str();
 }
 
-void LuaDatasModel::addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue) {
+void LuaDatasModel::luaModuleAddSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue) {
     auto ptr = m_DatasModel.lock();
     if (ptr != nullptr) {
         ptr->addSignalValue(vCategory, vName, vEpoch, vValue);
     }
 }
 
-void LuaDatasModel::addSignalTag(double vEpoch,
+void LuaDatasModel::luaModuleAddSignalTag(double vEpoch,
                                  double r,
                                  double g,
                                  double b,
@@ -105,21 +105,21 @@ void LuaDatasModel::addSignalTag(double vEpoch,
     }
 }
 
-void LuaDatasModel::addSignalStatus(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStatus) {
+void LuaDatasModel::luaModuleAddSignalStatus(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStatus) {
     auto ptr = m_DatasModel.lock();
     if (ptr != nullptr) {
         ptr->addSignalStatus(vCategory, vName, vEpoch, vStatus);
     }
 }
 
-void LuaDatasModel::addSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg) {
+void LuaDatasModel::luaModuleAddSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg) {
     auto ptr = m_DatasModel.lock();
     if (ptr != nullptr) {
         ptr->addSignalStartZone(vCategory, vName, vEpoch, vStartMsg);
     }
 }
 
-void LuaDatasModel::addSignalEndZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vEndMsg) {
+void LuaDatasModel::luaModuleAddSignalEndZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vEndMsg) {
     auto ptr = m_DatasModel.lock();
     if (ptr != nullptr) {
         ptr->addSignalEndZone(vCategory, vName, vEpoch, vEndMsg);

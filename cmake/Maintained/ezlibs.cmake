@@ -27,7 +27,7 @@ else()
 endif()
 
 file(GLOB_RECURSE EZ_LIBS_SOURCES ${EZLIBS_INCLUDE_DIR}/ezlibs/*.hpp)
-source_group(TREE ${EZLIBS_INCLUDE_DIR}/ezlibs PREFIX EzLibs FILES ${EZ_LIBS_SOURCES})
+source_group(TREE ${EZLIBS_INCLUDE_DIR}/ezlibs PREFIX ezlibs FILES ${EZ_LIBS_SOURCES})
 
 set(EZ_LIBS_SOURCES ${EZ_LIBS_SOURCES})
 

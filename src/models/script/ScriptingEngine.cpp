@@ -106,6 +106,7 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                                     if (scriptingPtr->callScriptStart(errorContainer)) {
                                         const auto fileLines = ez::str::splitStringToVector(fileContent, '\n');
                                         rowCount = (int32_t)fileLines.size();
+                                        scriptingPtr->setRowCount(rowCount);
                                         SetRowCount(rowCount);
                                         rowIndex = 0U;
                                         Ltg::ScriptingDatas datas;
@@ -116,6 +117,7 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                                             const int64_t secondTimeMark = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
                                             vGenerationTime = (double)(secondTimeMark - firstTimeMark) / 1000.0;
                                             vProgress = (double)rowIndex / (double)rowCount;
+                                            scriptingPtr->setRowIndex(rowIndex);
                                             SetRowIndex(rowIndex++);
                                             datas.buffer = rowContent;
                                             scriptingPtr->callScriptExec(datas, errorContainer);

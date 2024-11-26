@@ -75,7 +75,6 @@ if(WIN32)
 	add_definitions(-DWIN32)
 endif()
 
-add_definitions(-DUSE_XML_CONFIG)
 add_definitions(-DUSE_STD_FILESYSTEM)
 add_definitions(-DIMGUI_ENABLE_FREETYPE)
 add_definitions(-DIMGUI_DEFINE_MATH_OPERATORS)
@@ -87,6 +86,7 @@ add_definitions(-DCUSTOM_IMWIDGETS_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/Custo
 add_definitions(-DCUSTOM_IN_APP_GPU_PROFILER_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomInAppGpuProfiler.h")
 add_definitions(-DCUSTOM_IMGUIFILEDIALOG_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImGuiFileDialogConfig.h")
 add_definitions(-DCUSTOM_LOG_TO_GRAPH_BACKEND_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomStrockerBackendConfig.h")
+add_definitions(-DCUSTOM_THEME_HELPER_CONFIG_HEADER="${CMAKE_SOURCE_DIR}/src/headers/CustomImGuiThemeHelperConfigHeader.h")
 
 include(cmake/3rdparty.cmake)
 
@@ -229,7 +229,7 @@ add_subdirectory(3rdparty/BuildInc)
 
 add_custom_command(
 	TARGET ${PROJECT} PRE_BUILD
-	COMMAND BuildInc -prefix=${PROJECT} 1000000:10 $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/Headers/${PROJECT}Build.h>
+	COMMAND BuildInc -prefix=${PROJECT} 1000000:10 $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/headers/${PROJECT}Build.h>
 	DEPENDS ${PROJECT})
 
 ########################################################
@@ -265,7 +265,7 @@ endif()
 ### VERSION #################################################
 #############################################################
 
-file(READ ${CMAKE_SOURCE_DIR}/src/Headers/${PROJECT}Build.h BuildIdFile)
+file(READ ${CMAKE_SOURCE_DIR}/src/headers/${PROJECT}Build.h BuildIdFile)
 string(REGEX MATCH "#define ${PROJECT}_BuildNumber ([0-9]*)" _ ${BuildIdFile})
 set(BuildNumber ${CMAKE_MATCH_1})
 string(REGEX MATCH "#define ${PROJECT}_MinorNumber ([0-9]*)" _ ${BuildIdFile})

@@ -19,7 +19,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <functional>
-#include <Headers/Globals.h>
+#include <Headers/DatasDef.h>
 
 struct sqlite3;
 class DataBase {

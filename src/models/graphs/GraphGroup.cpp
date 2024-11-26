@@ -20,7 +20,7 @@ limitations under the License.
 #include "GraphGroup.h"
 
 #include <models/log/SignalSerie.h>
-#include <Headers/Globals.h>
+#include <Headers/DatasDef.h>
 
 GraphGroupPtr GraphGroup::Create() {
     auto res = std::make_shared<GraphGroup>();

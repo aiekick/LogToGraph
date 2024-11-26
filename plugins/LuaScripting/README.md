@@ -11,9 +11,11 @@
 -- ltg:addSignalValue(signal_category, signal_name, signal_epoch_time, signal_value) : will add a signal numerical value
 -- ltg:addSignalStartZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal start zone
 -- ltg:addSignalEndZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal end zone 
+-- ltg:getRowCount() -- get row count in the file
+-- ltg:getRowIndex() -- get row index in the file
 -- get/set epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
 -- double ltg:stringToEpoch("2023-01-16 15:24:26,464", 0)   
--- string ltg:epochToString(18798798465465.546546, 0)  
+-- string ltg:epochToString(18798798465465.546546, 0)
 
 function startFile()
 

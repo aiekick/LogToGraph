@@ -24,7 +24,7 @@ limitations under the License.
 #include <vector>
 #include <string>
 #include <functional>
-#include <Headers/Globals.h>
+#include <Headers/DatasDef.h>
 #include <apis/LtgPluginApi.h>
 
 class ScriptingEngine : public Ltg::IDatasModel, public ez::xml::Config {

@@ -20,7 +20,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <Headers/Globals.h>
+#include <Headers/DatasDef.h>
 
 /*
 sera rattach� a chaque graph, group� ou seuls

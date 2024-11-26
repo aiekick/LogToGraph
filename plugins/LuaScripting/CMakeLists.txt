@@ -6,7 +6,7 @@ enable_language(C CXX)
 
 project(${PROJECT} CXX)
 
-option(PLUGIN_ENABLE_LUA_SCRIPTING "Enable the plugin Lua Scripting" ON)
+option(PLUGIN_ENABLE_LUA_SCRIPTING "Enable the plugin Lua Scripting" OFF)
 
 if (PLUGIN_ENABLE_LUA_SCRIPTING)
 

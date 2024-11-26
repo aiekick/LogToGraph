@@ -18,8 +18,8 @@ This tool can be adapted to many log formats, since the log pattern matching is 
 ## How is working :
 
 1) The tool will read your log row by row.
-2) Each row will be put in the memory space of your lua script inside a lua variable
-3) The lua script will parse the row and will add a signal tick with infos (category, epoch time, signal name, signal value)
+2) Each row will be put in the memory space of a scripting engine
+3) The script will parse the row and will add a signal tick with infos (category, epoch time, signal name, signal value)
 4) the tool will display all signal in graph
 
 with this tool you can :
@@ -33,40 +33,36 @@ with this tool you can :
  - show the changed signals values between two timeframe markers
  - display the whole singals tick in a log view
  - display the whole singals tick in a second log view (for compare with the first)
- - display a code pane for let you test/design your lua script
+ - display a code pane for let you test/design your script
  - the project file is a sqlite database, so you can open it again without reparse or do treatment with other apps
- - you can parse many log file at same time but with the same parsing lua file
+ - you can parse many log file at same time but with the same parsing file
  
-## Howto : Lua Script file
+## Howto : Script Api
 
-you must have at least a function 'Init" in the lua script. (this is the entry point)
 ```lua
-function Init()
-	SetRowBufferName("buffer_row");
-	SetFunctionForEachRow("eachRow");
+function startFile()
+
 end
-function eachRow()
-	_section, _time, _name, _value = string.match(buffer_row, "<profiler section=\"(.*)\" epoch_time=\"(.*)\" name=\"(.*)\" render_time_ms=\"(.*)\">")
-	if _section ~= nil and _time ~= nil and _name ~= nil and _value ~= nil then
-		AddSignalValue(_section, _name, _time, _value)
-	end
+
+function parse(buffer)
+
+end
+
+function endFile()
+
 end
 ```
 
-in this 'Init' fucntion you will call :
+## Available Scripting Engine
 
-1) "SetRowBufferName" => will indicate to the tool the name of the varaible who will contain the log file row
-2) "SetFunctionForEachRow" => will indicate to the tool the name of the function who will be called each log file row
+LogToGraph can work with many plugins.
 
-in the eachRow function we can have a parsing system (here based on string.match)
-Who will be used for separate log file row components to add as a signal via the fucntion "AddSignalValue"
-
-In the sample directory you have a lua file and his corresponding log file.
-You have more fucntions available, you can check theme in the sample lua script doc/log_parsing.lua 
+- Lua
+- Python (WIP)
 
 ## Howto : Analyse of the log file in LogToGraph
 
-### Open lua and log file then analyse them
+### Open a script and log file then analyse them
 
 1) open the app
 2) in menu, click new
@@ -162,47 +158,19 @@ you also have this dialog when you quit the app
 ## Lua Parsing Api :
 
 ```lua
-
-----------------------------------------------
--- is the entry point of the script. this function is needed
-Init() 									 
--- will set the description of your script in app
-SetScriptDescription(description_string)	 
--- set the lua string varaible name who will be filled with the content of the row file
-SetRowBufferName("buffer_row");			 
--- set the function name who will be called at each row of the file
-SetFunctionForEachRow("eachRow");			 
--- set the function name who will be called at the end of the file
-SetFunctionForEndFile("endFile");
-
-----------------------------------------------
--- will log the message in the in app console 
-LogInfo(infos_string) 				
--- will log the message in the in app console 
-LogWarning(warning_string) 				 
--- will log the message in the in app console 
-LogError(error_string)
-
-----------------------------------------------
- -- return the row number of the file
-GetRowIndex()								
--- return the number of rows of the file
-GetRowCount()								 
- -- get epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or 
- -- "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
-GetEpochTime("2023-01-16 15:24:26,464", 0)    
-
--- Add Signal ticks
--- add a signal tag with date, color a name. the help will be displayed when mouse over the tag
-AddSignalTag(date, r, g, b, a, name, help) 
---will add a signal string status
-AddSignalStatus(signal_category, signal_name, signal_epoch_time, signal_status)
---will add a signal numerical value 
-AddSignalValue(signal_category, signal_name, signal_epoch_time, signal_value)
---will add a signal start zone
-AddSignalStartZone(signal_category, signal_name, signal_epoch_time, signal_string)
---will add a signal end zone
-AddSignalEndZone(signal_category, signal_name, signal_epoch_time, signal_string)
+-- UserDatas ltg (LogToGraph valid only from LogToGraph)
+-- ltg:logInfo(infos_string) : will log the message in the in app console 				
+-- ltg:logWarning(infos_string) : will log the message in the in app console 
+-- ltg:logError(infos_string) : will log the message in the in app console 
+-- ltg:logDebug(infos_string) : will log the message in the in app console 
+-- ltg:addSignalTag(date, r, g, b, a, name, help) : add a signal tag with date, color a name (color is linear [0:1]. the help will be displayed when mouse over the tag
+-- ltg:addSignalStatus(signal_category, signal_name, signal_epoch_time, signal_status) : will add a signal string status
+-- ltg:addSignalValue(signal_category, signal_name, signal_epoch_time, signal_value) : will add a signal numerical value
+-- ltg:addSignalStartZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal start zone
+-- ltg:addSignalEndZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal end zone 
+-- get/set epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
+-- double ltg:stringToEpoch("2023-01-16 15:24:26,464", 0)   
+-- string ltg:epochToString(18798798465465.546546, 0)  
 ```
 
 ## Limitations :

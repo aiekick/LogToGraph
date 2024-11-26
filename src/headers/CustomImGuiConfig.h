@@ -23,8 +23,6 @@
 // Using Dear ImGui via a shared library is not recommended, because of function call overhead and because we don't guarantee backward nor forward ABI compatibility.
 // DLL users: heaps and globals are not shared across DLL boundaries! You will need to call SetCurrentContext() + SetAllocatorFunctions()
 // for each static/DLL boundary you are calling from. Read "Context and Memory Allocators" section of imgui.cpp for more details.
-//#define IMGUI_API __declspec( dllexport )
-//#define IMGUI_API __declspec( dllimport )
 
 //---- Don't define obsolete functions/enums/behaviors. Consider enabling from time to time after updating to avoid using soon-to-be obsolete function/names.
 //#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
@@ -90,12 +88,14 @@
         constexpr ImVec4(const MyVec4& f) : x(f.x), y(f.y), z(f.z), w(f.w) {}   \
         operator MyVec4() const { return MyVec4(x,y,z,w); }
 */
+//---- ...Or use Dear ImGui's own very basic math operators.
+//#define IMGUI_DEFINE_MATH_OPERATORS
 
 //---- Use 32-bit vertex indices (default is 16-bit) is one way to allow large meshes with more than 64K vertices.
 // Your renderer backend will need to support it (most example renderer backends support both 16/32-bit indices).
 // Another way to allow large meshes while keeping 16-bit indices is to handle ImDrawCmd::VtxOffset in your renderer.
 // Read about ImGuiBackendFlags_RendererHasVtxOffset for details.
-#define ImDrawIdx unsigned int
+//#define ImDrawIdx unsigned int
 
 //---- Override ImDrawCallback signature (will need to modify renderer backends accordingly)
 //struct ImDrawList;
@@ -118,3 +118,18 @@ namespace ImGui
     void MyFunction(const char* name, const MyMatrix44& v);
 }
 */
+
+#include <ezlibs/ezTools.hpp>
+#include <ezlibs/ezXmlConfig.hpp>
+
+#ifndef IM_VEC2_CLASS_EXTRA
+#define IM_VEC2_CLASS_EXTRA                        \
+    ImVec2(const ez::fvec2& v) : x(v.x), y(v.y) {} \
+    ImVec2(const ez::dvec2& v) : x(static_cast<float>(v.x)), y(static_cast<float>(v.y)) {}
+#endif
+
+#ifndef IM_VEC4_CLASS_EXTRA
+#define IM_VEC4_CLASS_EXTRA                                        \
+    ImVec4(const ez::fvec4& v) : x(v.x), y(v.y), z(v.z), w(v.w) {} \
+    ImVec4(const ez::dvec4& v) : x(static_cast<float>(v.x)), y(static_cast<float>(v.y)), z(static_cast<float>(v.z)), w(static_cast<float>(v.w)) {}
+#endif
