@@ -18,38 +18,35 @@ public:
 
 private:
     Ltg::IDatasModelWeak m_DatasModel;
+    int32_t m_RowIndex = 0;
+    int32_t m_RowCount = 0;
 
 public:
-    void init();
-    void setScriptDescription(const std::string& vKey);
-    void setRowBufferName(const std::string& vKey);
-    void setFunctionForEachRow(const std::string& vKey);
-    void setFunctionForEndFile(const std::string& vKey);
+    void luaModuleLogInfo(const std::string& vKey);
+    void luaModuleLogWarning(const std::string& vKey);
+    void luaModuleLogError(const std::string& vKey);
+    void luaModuleLogDebug(const std::string& vKey);
 
-    void logInfo(const std::string& vKey);
-    void logWarning(const std::string& vKey);
-    void logError(const std::string& vKey);
-    void logDebug(const std::string& vKey);
-
-    int32_t getRowIndex();
-    int32_t getRowCount();
-
+    void setRowIndex(int32_t vRowIndex);
+    double luaModuleGetRowIndex();
+    void setRowCount(int32_t vRowCount);
+    double luaModuleGetRowCount();
     
     // todo : to test
-    double stringToEpoch(const std::string& vDateTime, double vHourOffset);
+    double luaModuleStringToEpoch(const std::string& vDateTime, double vHourOffset);
 
     // todo : to test
-    std::string epochToString(double vEpochTime, double vHourOffset);
+    std::string luaModuleEpochToString(double vEpochTime, double vHourOffset);
 
-    void addSignalTag(double vEpoch,
+    void luaModuleAddSignalTag(double vEpoch,
                       double r,
                       double g,
                       double b,
                       double a,
                       const std::string& vName,
                       const std::string& vHelp);
-    void addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue);
-    void addSignalStatus(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStatus);
-    void addSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg);
-    void addSignalEndZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vEndMsg);
+    void luaModuleAddSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue);
+    void luaModuleAddSignalStatus(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStatus);
+    void luaModuleAddSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg);
+    void luaModuleAddSignalEndZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vEndMsg);
 };
