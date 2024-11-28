@@ -50,22 +50,18 @@ bool DataBase::IsFileASqlite3DB(const DBFile& vDBFilePathName) {
 bool DataBase::CreateDBFile(const DBFile& vDBFilePathName) {
     if (!vDBFilePathName.empty()) {
         m_DataBaseFilePathName = vDBFilePathName;
-
         return CreateDB();
     }
-
     return false;
 }
 
 bool DataBase::OpenDBFile(const DBFile& vDBFilePathName) {
     if (!m_SqliteDB) {
         m_DataBaseFilePathName = vDBFilePathName;
-
         return OpenDB();
     } else {
         LogVarInfo("%s", "Database already opened\n");
     }
-
     return (m_SqliteDB != nullptr);
 }
 
@@ -77,13 +73,10 @@ bool DataBase::BeginTransaction() {
     if (OpenDB()) {
         if (sqlite3_exec(m_SqliteDB, "begin transaction;", nullptr, nullptr, &m_LastErrorMsg) == SQLITE_OK) {
             m_TransactionStarted = true;
-
             return true;
         }
     }
-
     LogVarError("Fail to start transaction : %s", m_LastErrorMsg);
-
     return false;
 }
 
@@ -91,7 +84,6 @@ void DataBase::CommitTransaction() {
     if (sqlite3_exec(m_SqliteDB, "COMMIT;", nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK) {
         LogVarError("Fail to commit : %s", m_LastErrorMsg);
     }
-
     // we will close the db so force it to reset
     m_TransactionStarted = false;
 }
@@ -100,7 +92,6 @@ void DataBase::RollbackTransaction() {
     if (sqlite3_exec(m_SqliteDB, "ROLLBACK;", nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK) {
         LogVarError("Fail to ROLLBACK : %s", m_LastErrorMsg);
     }
-
     // we will close the db so force it to reset
     m_TransactionStarted = false;
 }
@@ -189,21 +180,23 @@ void DataBase::AddSignalTick(const SourceFileID& vSourceFileID,
                              const SignalCategory& vSignalCategory,
                              const SignalName& vSignalName,
                              const SignalEpochTime& vDate,
-                             const SignalValue& vValue) {
+                             const SignalValue& vValue,
+                             const SignalDesc& vDesc) {
     AddSignalCategory(vSignalCategory);
     AddSignalName(vSignalName);
 
     auto insert_query = ez::str::toStr(
         u8R"(insert or ignore into signal_ticks 
-(id_signal_source, id_signal_category, id_signal_name, epoch_time, signal_value) values(%i,
+(id_signal_source, id_signal_category, id_signal_name, epoch_time, signal_value, signal_desc) values(%i,
 (select rowid from signal_categories where signal_categories.category = "%s"),
 (select rowid from signal_names where signal_names.name = "%s"),
-%f,%f);)",
+%f,%f,"%s");)",
         (int32_t)vSourceFileID,
         vSignalCategory.c_str(),
         vSignalName.c_str(),
         vDate,
-        vValue);
+        vValue,
+        vDesc.c_str());
     if (sqlite3_exec(m_SqliteDB, insert_query.c_str(), nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK) {
         LogVarError("Fail to insert a tick in database : %s", m_LastErrorMsg);
     }
@@ -223,7 +216,7 @@ void DataBase::AddSignalStatus(const SourceFileID& vSourceFileID,
 (id_signal_source, id_signal_category, id_signal_name, epoch_time, signal_string, signal_status) values(%i,
 (select rowid from signal_categories where signal_categories.category = "%s"),
 (select rowid from signal_names where signal_names.name = "%s"),
-%f,"%s", "%s");)",
+%f,"%s","%s");)",
         (int32_t)vSourceFileID,
         vSignalCategory.c_str(),
         vSignalName.c_str(),
@@ -322,7 +315,7 @@ commit;
 }
 
 void DataBase::GetSourceFiles(std::function<void(const SourceFileID&, const SourceFilePathName&)> vCallback) {
-    // no interest to call that without a claaback for retrieve datas
+    // no interest to call that without a callback for retrieve datas
     assert(vCallback);
 
     std::string select_query =
@@ -364,11 +357,15 @@ ORDER BY
     sqlite3_finalize(stmt);
 }
 
-void DataBase::GetDatas(
-    std::function<
-        void(const SourceFileID&, const SignalEpochTime&, const SignalCategory&, const SignalName&, const SignalValue&, const SignalString&, const SignalStatus&)>
-        vCallback) {
-    // no interest to call that without a claaback for retrieve datas
+void DataBase::GetDatas(std::function<void(const SourceFileID&,
+                                           const SignalEpochTime&,
+                                           const SignalCategory&,
+                                           const SignalName&,
+                                           const SignalValue&,
+                                           const SignalString&,
+                                           const SignalStatus&,
+                                           const SignalDesc&)> vCallback) {
+    // no interest to call that without a callback for retrieve datas
     assert(vCallback);
 
     std::string select_query =
@@ -380,7 +377,8 @@ SELECT
   signal_names.name as name, 
   signal_ticks.signal_value as value,
   signal_ticks.signal_string as string,
-  signal_ticks.signal_status as string
+  signal_ticks.signal_status as string,
+  signal_ticks.signal_desc as string
 FROM 
  signal_ticks
  LEFT JOIN signal_sources ON signal_ticks.id_signal_source = signal_sources.rowid
@@ -406,6 +404,7 @@ order by
                   signal_names.name				string
                   signal_ticks.signal_value		double
                   signal_ticks.signal_string	string
+                  signal_ticks.signal_desc	    string
                 */
 
                 auto source_file_id = sqlite3_column_int(stmt, 0);
@@ -429,8 +428,12 @@ order by
                 auto signal_status_cstr = (const char*)sqlite3_column_text(stmt, 6);
                 std::string signal_status = (signal_status_cstr != nullptr) ? signal_status_cstr : "";
 
+                // can be null
+                auto signal_desc_cstr = (const char*)sqlite3_column_text(stmt, 7);
+                std::string signal_desc = (signal_desc_cstr != nullptr) ? signal_desc_cstr : "";
+
                 // call callback with datas passed in args
-                vCallback(source_file_id, epoch_time, category_string, name_string, signal_value, signal_string, signal_status);
+                vCallback(source_file_id, epoch_time, category_string, name_string, signal_value, signal_string, signal_status, signal_desc);
             }
         }
     }
@@ -439,7 +442,7 @@ order by
 }
 
 void DataBase::GetTags(std::function<void(const SignalEpochTime&, const SignalTagColor&, const SignalTagName&, const SignalTagHelp&)> vCallback) {
-    // no interest to call that without a claaback for retrieve datas
+    // no interest to call that without a callback for retrieve datas
     assert(vCallback);
 
     std::string select_query =
@@ -551,7 +554,8 @@ create table signal_ticks (
 	epoch_time integer, 
 	signal_value double, 
 	signal_string varchar(255), 
-	signal_status varchar(255)
+	signal_status varchar(255), 
+	signal_desc varchar(255)
 );
 
 create table signal_tags (

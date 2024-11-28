@@ -38,5 +38,6 @@ public:
     SignalValue value = 0.0;
     SignalString string;
     SignalStatus status;
+    SignalDesc desc;
     SignalSerieWeak parent;
 };

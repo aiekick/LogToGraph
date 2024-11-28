@@ -221,8 +221,12 @@ void ScriptingEngine::AddSourceFilePathName(const SourceFilePathName& vFilePathN
     m_sourceFilePathNames.push_back(vFilePathName);
 }
 
-void ScriptingEngine::AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue) {
-    LogEngine::Instance()->AddSignalTick(source_file_parent, vCategory, vName, vDate, vValue);
+void ScriptingEngine::AddSignalValue(const SignalCategory& vCategory,
+                                     const SignalName& vName,
+                                     const SignalEpochTime& vDate,
+                                     const SignalValue& vValue,
+                                     const SignalDesc& vDesc) {
+    LogEngine::Instance()->AddSignalTick(source_file_parent, vCategory, vName, vDate, vValue, vDesc);
 }
 
 void ScriptingEngine::AddSignalStatus(const SignalCategory& vCategory,
@@ -331,7 +335,7 @@ void ScriptingEngine::addSignalStatus(const std::string& vCategory, const std::s
     DataBase::Instance()->AddSignalStatus(source_file_id, vCategory, vName, vEpoch, vStatus, "");
 }
 
-void ScriptingEngine::addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue) {
+void ScriptingEngine::addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue, const std::string& vDesc) {
     if (vCategory.empty() || vName.empty()) {
         if (vCategory.empty()) {
             LogVarLightError("%s", "Lua code error : the category passed to AddSignalValue is empty");
@@ -341,7 +345,7 @@ void ScriptingEngine::addSignalValue(const std::string& vCategory, const std::st
         }
         return;
     }
-    DataBase::Instance()->AddSignalTick(source_file_id, vCategory, vName, vEpoch, vValue);
+    DataBase::Instance()->AddSignalTick(source_file_id, vCategory, vName, vEpoch, vValue, vDesc);
 }
 
 void ScriptingEngine::addSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg) {

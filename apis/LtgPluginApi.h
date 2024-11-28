@@ -145,42 +145,13 @@ typedef std::vector<ScriptingError> ErrorContainer;
 
 // lua_register(lua_state_ptr, "print", lua_int_print_args);
 struct IDatasModel {
-    // is the entry point of the script. this function is needed
-    //virtual void init() = 0;
-    // will set the description of your script in app
-    //virtual void setScriptDescription(const std::string& vKey) = 0;
-    // set the lua string varaible name who will be filled with the content of the row file
-    //virtual void setRowBufferName(const std::string& vKey) = 0;
-    // set the function name who will be called at each row of the file
-    //virtual void setFunctionForEachRow(const std::string& vKey) = 0;
-    // set the function name who will be called at the end of the file
-    //virtual void setFunctionForEndFile(const std::string& vKey) = 0;
-
-    // will log the message in the in app console
-    //virtual void logInfo(const std::string& vKey) = 0;
-    // will log the message in the in app console
-    //virtual void logWarning(const std::string& vKey) = 0;
-    // will log the message in the in app console
-    //virtual void logError(const std::string& vKey) = 0;
-    // will log the message in the in app console
-    //virtual void logDebug(const std::string& vKey) = 0;
-
-    // return the row number of the file
-    //virtual int32_t getRowIndex() = 0;
-    // return the number of rows of the file
-    //virtual int32_t getRowCount() = 0;
-    // get epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or
-    // "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
-    //virtual std::string getEpochTime(const std::string& vDateTime, int32_t vHourOffset) = 0;
-
-    // Add Signal ticks
     // add a signal tag with date, color a name. the help will be displayed when mouse over the tag
     // rgba are normalized [0.0:1.0]
     virtual void addSignalTag(double vEpoch, double r, double g, double b, double a, const std::string& vName, const std::string& vHelp) = 0;
     // will add a signal string status
     virtual void addSignalStatus(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStatus) = 0;
-    // will add a signal numerical value
-    virtual void addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue) = 0;
+    // will add a signal numerical value, the desc is related to the value and will be shown only over the graph
+    virtual void addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue, const std::string& vDesc) = 0;
     // will add a signal start zone
     virtual void addSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg) = 0;
     // will add a signal end zone

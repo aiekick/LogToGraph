@@ -64,7 +64,9 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
             "epochToString", &LuaDatasModel::luaModuleEpochToString,
             "addSignalTag", &LuaDatasModel::luaModuleAddSignalTag,
             "addSignalStatus", &LuaDatasModel::luaModuleAddSignalStatus,
-            "addSignalValue", &LuaDatasModel::luaModuleAddSignalValue,
+            "addSignalValue",sol::overload(
+                &LuaDatasModel::luaModuleAddSignalValue,
+                &LuaDatasModel::luaModuleAddSignalValueWithDesc),
             "addSignalStartZone", &LuaDatasModel::luaModuleAddSignalStartZone,
             "addSignalEndZone", &LuaDatasModel::luaModuleAddSignalEndZone,
             "logInfo", &LuaDatasModel::luaModuleLogInfo,
@@ -76,9 +78,7 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
         );
         // clang-format on
 
-        m_luaDatasModelPtr = LuaDatasModel::create(vDatasModel);
-
-        (*m_luaPtr)["ltg"] = m_luaDatasModelPtr;
+        (*m_luaPtr)["ltg"] = m_luaDatasModelPtr = LuaDatasModel::create(vDatasModel);
 
         return (m_luaPtr != nullptr) && (m_luaDatasModelPtr != nullptr) && (!m_datasModel.expired());
     } catch (std::exception& ex) {

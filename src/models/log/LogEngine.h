@@ -81,7 +81,8 @@ public:
                        const SignalCategory& vCategory,
                        const SignalName& vName,
                        const SignalEpochTime& vDate,
-                       const SignalValue& vValue);
+                       const SignalValue& vValue,
+                       const SignalDesc& vDesc);
     void AddSignalStatus(const SourceFileWeak& vSourceFile,
                          const SignalCategory& vCategory,
                          const SignalName& vName,
