@@ -24,7 +24,7 @@ limitations under the License.
 #include <models/log/SignalTick.h>
 #include <models/log/SignalTag.h>
 
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 
 #include <models/graphs/GraphGroup.h>
 
@@ -575,6 +575,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
                         double last_value = _data_ptr_0->value, current_value;
                         std::string last_string = _data_ptr_0->string, current_string;
                         std::string last_status = _data_ptr_0->status, current_status;
+                        std::string last_desc = _data_ptr_0->desc, current_desc;
 
                         ImPlotPoint last_point = ImPlotPoint(last_time, _data_ptr_0->value);
                         last_value_pos = ImPlot::PlotToPixels(last_point);
@@ -586,6 +587,10 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
                                 current_value = _data_ptr_i->value;
                                 current_string = _data_ptr_i->string;
                                 current_status = _data_ptr_i->status;
+                                current_desc = _data_ptr_i->desc;
+                                if (i == 1U && !current_desc.empty() && last_desc.empty()) {
+                                    last_desc = current_desc;
+                                }
 
                                 ImPlotPoint current_point = ImPlotPoint(current_time, current_value);
 
@@ -664,12 +669,17 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
                                     if (last_string.empty()) {
                                         // tofix : to refactor
                                         const auto p_min = ImGui::GetCursorScreenPos() - ImVec2(spacing_L, spacing_U);
-                                        const auto p_max =
-                                            ImVec2(p_min.x + ImGui::GetContentRegionAvail().x + spacing_R, p_min.y + (ImGui::GetFrameHeight() - spacing_D));
+                                        const auto p_max = ImVec2(  //
+                                            p_min.x + ImGui::GetContentRegionAvail().x + spacing_R,
+                                            p_min.y + (ImGui::GetFrameHeight() - spacing_D) * 2.0f);
                                         ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, _color);
                                         const bool pushed = ImGui::PushStyleColorWithContrast4(
                                             _color, ImGuiCol_Text, ImGui::CustomStyle::puContrastedTextColor, ImGui::CustomStyle::puContrastRatio);
-                                        ImGui::Text("%s : %f", name_str.c_str(), last_value);
+                                        if (!last_desc.empty()) {
+                                            ImGui::Text("%f (%s)\n%s", last_value, last_desc.c_str(), name_str.c_str());
+                                        } else {
+                                            ImGui::Text("%f\n%s", last_value, name_str.c_str());
+                                        }
                                         if (pushed)
                                             ImGui::PopStyleColor();
                                     } else {
@@ -695,6 +705,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
                                 last_value = current_value;
                                 last_string = current_string;
                                 last_status = current_status;
+                                last_desc = current_desc;
                             }
                         }
 

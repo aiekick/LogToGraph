@@ -28,7 +28,7 @@ limitations under the License.
 #include <panes/LogPaneSecondView.h>
 
 #include <models/database/DataBase.h>
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 
 #include <panes/ToolPane.h>
 #include <panes/LogPane.h>
@@ -221,8 +221,12 @@ void ScriptingEngine::AddSourceFilePathName(const SourceFilePathName& vFilePathN
     m_sourceFilePathNames.push_back(vFilePathName);
 }
 
-void ScriptingEngine::AddSignalValue(const SignalCategory& vCategory, const SignalName& vName, const SignalEpochTime& vDate, const SignalValue& vValue) {
-    LogEngine::Instance()->AddSignalTick(source_file_parent, vCategory, vName, vDate, vValue);
+void ScriptingEngine::AddSignalValue(const SignalCategory& vCategory,
+                                     const SignalName& vName,
+                                     const SignalEpochTime& vDate,
+                                     const SignalValue& vValue,
+                                     const SignalDesc& vDesc) {
+    LogEngine::Instance()->AddSignalTick(source_file_parent, vCategory, vName, vDate, vValue, vDesc);
 }
 
 void ScriptingEngine::AddSignalStatus(const SignalCategory& vCategory,
@@ -324,24 +328,26 @@ void ScriptingEngine::addSignalStatus(const std::string& vCategory, const std::s
             LogVarLightError("%s", "Lua code error : the category passed to addSignalStatus is empty");
         }
         if (vName.empty()) {
-            LogVarLightError("%s", "Lua code error : the category passed to addSignalStatus is empty");
+            LogVarLightError("%s", "Lua code error : the name passed to addSignalStatus is empty");
         }
         return;
     }
     DataBase::Instance()->AddSignalStatus(source_file_id, vCategory, vName, vEpoch, vStatus, "");
 }
 
-void ScriptingEngine::addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue) {
+void ScriptingEngine::addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue, const std::string& vDesc) {
     if (vCategory.empty() || vName.empty()) {
         if (vCategory.empty()) {
-            LogVarLightError("%s", "Lua code error : the category passed to AddSignalValue is empty");
+            LogVarLightError("Lua code error : the category passed to addSignalValue(%s,%s,%f,%f,%s) is empty", //
+                vCategory.c_str(), vName.c_str(), vEpoch, vValue, vDesc.c_str());
         }
         if (vName.empty()) {
-            LogVarLightError("%s", "Lua code error : the category passed to AddSignalValue is empty");
+            LogVarLightError("Lua code error : the name passed to addSignalValue(%s,%s,%f,%f,%s) is empty", //
+                vCategory.c_str(), vName.c_str(), vEpoch, vValue, vDesc.c_str());
         }
         return;
     }
-    DataBase::Instance()->AddSignalTick(source_file_id, vCategory, vName, vEpoch, vValue);
+    DataBase::Instance()->AddSignalTick(source_file_id, vCategory, vName, vEpoch, vValue, vDesc);
 }
 
 void ScriptingEngine::addSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg) {
@@ -350,7 +356,7 @@ void ScriptingEngine::addSignalStartZone(const std::string& vCategory, const std
             LogVarLightError("%s", "Lua code error : the category passed to addSignalStartZone is empty");
         }
         if (vName.empty()) {
-            LogVarLightError("%s", "Lua code error : the category passed to addSignalStartZone is empty");
+            LogVarLightError("%s", "Lua code error : the name passed to addSignalStartZone is empty");
         }
         return;
     }
@@ -363,7 +369,7 @@ void ScriptingEngine::addSignalEndZone(const std::string& vCategory, const std::
             LogVarLightError("%s", "Lua code error : the category passed to addSignalEndZone is empty");
         }
         if (vName.empty()) {
-            LogVarLightError("%s", "Lua code error : the category passed to addSignalEndZone is empty");
+            LogVarLightError("%s", "Lua code error : the name passed to addSignalEndZone is empty");
         }
         return;
     }

@@ -4,7 +4,7 @@
 #include "App.h"
 
 #include <headers/LogToGraphBuild.h>
-#include <Backend/MainBackend.h>
+#include <backend/MainBackend.h>
 
 #include <ezlibs/ezLog.hpp>
 

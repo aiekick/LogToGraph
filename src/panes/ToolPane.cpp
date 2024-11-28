@@ -18,7 +18,7 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "ToolPane.h"
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 #include <cinttypes>  // printf zu
 #include <panes/LogPane.h>
 #include <panes/CodePane.h>
@@ -37,7 +37,7 @@ limitations under the License.
 ///////////////////////////////////////////////////////////////////////////////////
 
 void ToolPane::Clear() {
-    m_SignalSeries.clear();
+    m_SignalTree.clear();
 }
 
 bool ToolPane::Init() {
@@ -121,7 +121,7 @@ bool ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImR
 }
 
 void ToolPane::UpdateTree() {
-    PrepareLogAfterSearch(ProjectFile::Instance()->m_SearchString);
+    m_SignalTree.prepare(ProjectFile::Instance()->m_SearchString);
 }
 
 void ToolPane::DrawTable() {
@@ -249,26 +249,6 @@ void ToolPane::DrawTable() {
     }
 }
 
-void ToolPane::DisplayItem(const SignalSerieWeak& vDatasSerie) {
-    if (!vDatasSerie.expired()) {
-        auto ptr = vDatasSerie.lock();
-        if (ptr) {
-            auto name_str = ez::str::toStr("%s (%u)", ptr->name.c_str(), (uint32_t)ptr->count_base_records);
-            if (ImGui::Selectable(name_str.c_str(), ptr->show)) {
-                ptr->show = !ptr->show;
-
-                LogEngine::Instance()->ShowHideSignal(ptr->category, ptr->name, ptr->show);
-
-                if (ProjectFile::Instance()->m_CollapseLogSelection) {
-                    LogPane::Instance()->PrepareLog();
-                }
-
-                ProjectFile::Instance()->SetProjectChange();
-            }
-        }
-    }
-}
-
 void ToolPane::DrawTree() {
     auto& search_string = ProjectFile::Instance()->m_SearchString;
 
@@ -303,73 +283,18 @@ void ToolPane::DrawTree() {
     if (ImGui::ContrastedButton("R##ToolPane_DrawTree")) {
         search_string.clear();
         m_search_buffer[0] = '\0';
+        m_SignalTree.prepare(search_string);
     }
     ImGui::SameLine();
     if (ImGui::InputText("##ToolPane_DrawTree_Search", m_search_buffer, 1024)) {
         search_string = ez::str::toLower(m_search_buffer);
-        PrepareLogAfterSearch(search_string);
+        m_SignalTree.prepare(search_string);
     }
 
     if (ImGui::BeginChild("##Items_ToolPane_DrawTree")) {
-        if (!search_string.empty()) {
-            // if first frame is not built
-            if (m_SignalSeries.empty()) {
-                PrepareLogAfterSearch(search_string);
-            }
-
-            ImGui::Indent();
-
-            // affichage ordonne sans les categorie
-            for (auto& item_name : m_SignalSeries) {
-                DisplayItem(item_name.second);
-            }
-
-            ImGui::Unindent();
-        } else {
-            // affichage arborescent ordonne par categorie
-            for (auto& item_cat : LogEngine::Instance()->GetSignalSeries()) {
-                if (_collapse_all) {
-                    ImGui::SetNextItemOpen(false);
-                }
-
-                if (_expand_all) {
-                    ImGui::SetNextItemOpen(true);
-                }
-
-                auto cat_str = ez::str::toStr("%s (%u)", item_cat.first.c_str(), (uint32_t)item_cat.second.size());
-                if (ImGui::TreeNode(cat_str.c_str())) {
-                    ImGui::Indent();
-
-                    for (auto& item_name : item_cat.second) {
-                        DisplayItem(item_name.second);
-                    }
-
-                    ImGui::Unindent();
-
-                    ImGui::TreePop();
-                }
-            }
-        }
+        m_SignalTree.displayTree(_collapse_all, _expand_all);
     }
     ImGui::EndChild();
-}
-
-void ToolPane::PrepareLogAfterSearch(const std::string& vSearchString) {
-    if (!vSearchString.empty()) {
-        m_SignalSeries.clear();
-
-        for (auto& item_cat : LogEngine::Instance()->GetSignalSeries()) {
-            for (auto& item_name : item_cat.second) {
-                if (item_name.second) {
-                    if (item_name.second->low_case_name_for_search.find(vSearchString) == std::string::npos) {
-                        continue;
-                    }
-
-                    m_SignalSeries[item_name.first] = item_name.second;
-                }
-            }
-        }
-    }
 }
 
 void ToolPane::HideAllGraphs() {

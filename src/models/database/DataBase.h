@@ -19,7 +19,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <functional>
-#include <Headers/DatasDef.h>
+#include <headers/DatasDef.h>
 
 struct sqlite3;
 class DataBase {
@@ -99,12 +99,14 @@ public:
     /// <param name="vSignalCategory"></param>
     /// <param name="vName"></param>
     /// <param name="vDate"></param>
-    /// <param name="vValue"></param>
+    /// <param name="vValue"></param>>
+    /// <param name="vDesc">description of the value. displayed only when mouse hover a graph</param>
     void AddSignalTick(const SourceFileID& vSourceFileID,
                        const SignalCategory& vSignalCategory,
                        const SignalName& vSignalName,
                        const SignalEpochTime& vDate,
-                       const SignalValue& vValue);
+                       const SignalValue& vValue,
+                       const SignalDesc& vDesc);
 
     /// <summary>
     /// add a signal Status in database with value of type string
@@ -168,8 +170,14 @@ public:
     /// <param name="vCallback">callback func called for each database line retrieved</param>
     /// </summary>
     void GetDatas(
-        std::function<
-            void(const SourceFileID&, const SignalEpochTime&, const SignalCategory&, const SignalName&, const SignalValue&, const SignalString&, const SignalStatus&)>
+        std::function<void(const SourceFileID&,
+                                     const SignalEpochTime&,
+                                     const SignalCategory&,
+                                     const SignalName&,
+                                     const SignalValue&,
+                                     const SignalString&,
+                                     const SignalStatus&,
+                                     const SignalDesc&)>
             vCallback);
 
     /// <summary>

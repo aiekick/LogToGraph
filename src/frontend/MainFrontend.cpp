@@ -17,13 +17,13 @@ limitations under the License.
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <Headers/DatasDef.h>
+#include <headers/DatasDef.h>
 
 #include "MainFrontend.h"
 
-#include <Backend/MainBackend.h>
+#include <backend/MainBackend.h>
 
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 
 #include <systems/PluginManager.h>
 
@@ -49,7 +49,7 @@ limitations under the License.
 
 #include <systems/TranslationHelper.h>
 
-#include <Headers/LogToGraphBuild.h>
+#include <headers/LogToGraphBuild.h>
 
 // panes
 #define DEBUG_PANE_ICON ICON_SDFM_BUG
@@ -102,7 +102,7 @@ bool MainFrontend::init() {
     LayoutManager::Instance()->AddPane(SignalsHoveredDiff::Instance(), ICON_FONT_VECTOR_DIFFERENCE " Signals Hovered Diff", "", "RIGHT", 0.25f, false, false);
     LayoutManager::Instance()->AddPane(ToolPane::Instance(), ICON_FONT_CUBE_SCAN " Tool", "", "LEFT", 0.25f, true, true);
 
-    // InitPänes is done in m_InitPanes, because a specific order is needed
+    // InitPanes is done in m_InitPanes, because a specific order is needed
 
     return m_build();
 }

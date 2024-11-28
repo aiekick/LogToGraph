@@ -33,9 +33,9 @@
 #include <panes/SignalsHoveredMap.h>
 #include <models/script/ScriptingEngine.h>
 
-#include <Panes/GraphPane.h>
+#include <panes/GraphPane.h>
 #include <LayoutManager.h>
-#include <Systems/SettingsDialog.h>
+#include <systems/SettingsDialog.h>
 
 #include <ezlibs/ezFile.hpp>
 

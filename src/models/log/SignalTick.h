@@ -21,7 +21,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <Headers/DatasDef.h>
+#include <headers/DatasDef.h>
 
 class SignalTick {
 public:
@@ -38,5 +38,6 @@ public:
     SignalValue value = 0.0;
     SignalString string;
     SignalStatus status;
+    SignalDesc desc;
     SignalSerieWeak parent;
 };

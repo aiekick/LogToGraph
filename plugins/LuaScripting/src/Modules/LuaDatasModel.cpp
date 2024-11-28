@@ -1,4 +1,5 @@
 #include <Modules/LuaDatasModel.h>
+#include <ezlibs/ezTools.hpp>
 #include <ezlibs/ezLog.hpp>
 
 LuaDatasModelPtr LuaDatasModel::create(Ltg::IDatasModelWeak vIDatasModel) {
@@ -88,17 +89,18 @@ std::string LuaDatasModel::luaModuleEpochToString(double vEpochTime, double vHou
 void LuaDatasModel::luaModuleAddSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue) {
     auto ptr = m_DatasModel.lock();
     if (ptr != nullptr) {
-        ptr->addSignalValue(vCategory, vName, vEpoch, vValue);
+        ptr->addSignalValue(vCategory, vName, vEpoch, vValue, {});
     }
 }
 
-void LuaDatasModel::luaModuleAddSignalTag(double vEpoch,
-                                 double r,
-                                 double g,
-                                 double b,
-                                 double a,
-                                 const std::string& vName,
-                                 const std::string& vHelp) {
+void LuaDatasModel::luaModuleAddSignalValueWithDesc(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue, const std::string& vDesc) {
+    auto ptr = m_DatasModel.lock();
+    if (ptr != nullptr) {
+        ptr->addSignalValue(vCategory, vName, vEpoch, vValue, vDesc);
+    }
+}
+
+void LuaDatasModel::luaModuleAddSignalTag(double vEpoch, double r, double g, double b, double a, const std::string& vName, const std::string& vHelp) {
     auto ptr = m_DatasModel.lock();
     if (ptr != nullptr) {
         ptr->addSignalTag(vEpoch, r, g, b, a, vName, vHelp);

@@ -1,7 +1,7 @@
 // This is an independent project of an individual developer. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <Headers/LuaScriptingBuild.h>
+#include <headers/LuaScriptingBuild.h>
 #include "LuaScripting.h"
 
 #include <ezlibs/ezLog.hpp>

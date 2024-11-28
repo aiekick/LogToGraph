@@ -1,4 +1,4 @@
-#include <Frontend/MainFrontend.h>
+#include <frontend/MainFrontend.h>
 
 ImGuiTheme GetOrangeBlueTheme() {
     ImGuiTheme res;

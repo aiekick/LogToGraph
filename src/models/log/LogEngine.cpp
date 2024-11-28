@@ -32,7 +32,7 @@ limitations under the License.
 #include <panes/GraphListPane.h>
 #include <panes/ToolPane.h>
 
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 
 ///////////////////////////////////////////////////
 /// STATIC'S //////////////////////////////////////
@@ -88,7 +88,8 @@ void LogEngine::AddSignalTick(const SourceFileWeak& vSourceFile,
                               const SignalCategory& vCategory,
                               const SignalName& vName,
                               const SignalEpochTime& vDate,
-                              const SignalValue& vValue) {
+                              const SignalValue& vValue,
+                              const SignalDesc& vDesc) {
     if (!vName.empty()) {
         auto tick_Ptr = SignalTick::Create();
         tick_Ptr->category = vCategory;
@@ -96,6 +97,7 @@ void LogEngine::AddSignalTick(const SourceFileWeak& vSourceFile,
         tick_Ptr->time_epoch = vDate;
         tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(vDate);
         tick_Ptr->value = vValue;
+        tick_Ptr->desc = vDesc;
 
         m_Range_ticks_time.x = ez::mini(m_Range_ticks_time.x, vDate);
         m_Range_ticks_time.y = ez::maxi(m_Range_ticks_time.y, vDate);
@@ -214,13 +216,14 @@ void LogEngine::Finalize() {
                                                          const SignalName& vSignalName,
                                                          const SignalValue& vSignalValue,
                                                          const SignalString& vSignalString,
-                                                         const SignalStatus& vSignalStatus) {
+                                                         const SignalStatus& vSignalStatus,
+                                                         const SignalDesc& vSignalDesc) {
         if (_SourceFiles.find(vSourceFileID) != _SourceFiles.end())  // found
         {
             auto source_file_parent_weak = _SourceFiles.at(vSourceFileID);
 
             if (vSignalString.empty()) {
-                AddSignalTick(source_file_parent_weak, vSignalCategory, vSignalName, vSignalEpochTime, vSignalValue);
+                AddSignalTick(source_file_parent_weak, vSignalCategory, vSignalName, vSignalEpochTime, vSignalValue, vSignalDesc);
             } else {
                 AddSignalStatus(source_file_parent_weak, vSignalCategory, vSignalName, vSignalEpochTime, vSignalString, vSignalStatus);
             }
@@ -256,7 +259,9 @@ void LogEngine::Finalize() {
                             tick_Ptr->time_epoch = global_first_time_tick;
                             tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(global_first_time_tick);
                             tick_Ptr->value =
-                                (ProjectFile::Instance()->m_UsePredefinedZeroValue ? ProjectFile::Instance()->m_PredefinedZeroValue : local_first_tick_ptr->value);
+                                (ProjectFile::Instance()->m_UsePredefinedZeroValue ? //
+                                    ProjectFile::Instance()->m_PredefinedZeroValue : //
+                                    local_first_tick_ptr->value);
 
                             m_VirtualTicks.push_back(tick_Ptr);  // for retain the shared_pointer
                             item_name.second->InsertTick(tick_Ptr, 0U, false);

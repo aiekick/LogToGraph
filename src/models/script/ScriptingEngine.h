@@ -24,7 +24,7 @@ limitations under the License.
 #include <vector>
 #include <string>
 #include <functional>
-#include <Headers/DatasDef.h>
+#include <headers/DatasDef.h>
 #include <apis/LtgPluginApi.h>
 
 class ScriptingEngine : public Ltg::IDatasModel, public ez::xml::Config {
@@ -82,7 +82,8 @@ public:
         const SignalCategory& vCategory,
         const SignalName& vName,
         const SignalEpochTime& vDate,
-        const SignalValue& vValue);
+        const SignalValue& vValue,
+        const SignalDesc& vDesc);
 
     void AddSignalStatus(  //
         const SignalCategory& vCategory,
@@ -103,7 +104,7 @@ public:
     // interface with script languagesn so must be mutex protected
     void addSignalTag(double vEpoch, double r, double g, double b, double a, const std::string& vName, const std::string& vHelp) final;
     void addSignalStatus(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStatus) final;
-    void addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue) final;
+    void addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue, const std::string& vDesc) final;
     void addSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg) final;
     void addSignalEndZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vEndMsg) final;
 

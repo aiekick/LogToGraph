@@ -23,7 +23,7 @@ limitations under the License.
 #include <string>
 #include <stdint.h>
 #include <unordered_map>
-#include <Headers/DatasDef.h>
+#include <headers/DatasDef.h>
 #include <ezlibs/ezXmlConfig.hpp>
 
 struct SignalSetting {
@@ -81,7 +81,8 @@ public:
                        const SignalCategory& vCategory,
                        const SignalName& vName,
                        const SignalEpochTime& vDate,
-                       const SignalValue& vValue);
+                       const SignalValue& vValue,
+                       const SignalDesc& vDesc);
     void AddSignalStatus(const SourceFileWeak& vSourceFile,
                          const SignalCategory& vCategory,
                          const SignalName& vName,

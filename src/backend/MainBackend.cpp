@@ -22,24 +22,24 @@
 #include <algorithm>  // std::min, std::max
 #include <stdexcept>  // std::exception
 
-#include <Backend/MainBackend.h>
+#include <backend/MainBackend.h>
 #include <systems/PluginManager.h>
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 
 #include <LayoutManager.h>
 
 #include <ImGuiPack.h>
 #include <iagp/iagp.h>
 
-#include <Frontend/MainFrontend.h>
+#include <frontend/MainFrontend.h>
 
 #include <panes/ConsolePane.h>
 
-#include <Systems/SettingsDialog.h>
+#include <systems/SettingsDialog.h>
 
 // we include the cpp just for embedded fonts
-#include <Res/fontIcons.cpp>
-#include <Res/Roboto_Medium.cpp>
+#include <res/fontIcons.cpp>
+#include <res/Roboto_Medium.cpp>
 
 #include <filesystem>
 namespace fs = std::filesystem;

@@ -20,7 +20,7 @@ limitations under the License.
 #include "AnnotationPane.h"
 #include <ezlibs/ezLog.hpp>
 
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 #include <cinttypes>  // printf zu
 #include <models/graphs/GraphAnnotationModel.h>
 #include <models/graphs/GraphAnnotation.h>

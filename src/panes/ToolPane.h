@@ -20,16 +20,17 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <cstdint>
-#include <Headers/DatasDef.h>
+#include <headers/DatasDef.h>
 #include <models/log/LogEngine.h>
+#include <models/log/SignalTree.h>
 
 class ProjectFile;
 class ToolPane : public AbstractPane {
 private:
     ImGuiListClipper m_FileListClipper;
-    std::map<SignalName, SignalSerieWeak> m_SignalSeries;
     char m_search_buffer[1024 + 1] = "";
     int32_t m_CurrentSourceEdited = -1;
+    SignalTree m_SignalTree;
 
 public:
     void Clear();
@@ -54,8 +55,6 @@ public:
 
 private:
     void DrawTable();
-    static void DisplayItem(const SignalSerieWeak& vDatasSerie);
     void DrawTree();
-    void PrepareLogAfterSearch(const std::string& vSearchString);
     static void HideAllGraphs();
 };
