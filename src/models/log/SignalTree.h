@@ -12,6 +12,7 @@ struct SignalItem {
     SignalContainerWeak signals;
     SignalItemContainer childs;
     bool isLeaf() const { return childs.empty(); }
+    bool isEmpty() const { return childs.empty() && signals.empty(); }
     void clear() {
         signals.clear();
         childs.clear();
@@ -31,5 +32,5 @@ public:
 
 private:
     void prepareRecurs(const std::string& vSearchString, const SignalCategory& vCategory, const SignalContainer& vSignals, SignalItem& vSignalItemRef);
-    void displayItemRecurs(SignalItem& vSignalItemRef);
+    void displayItemRecurs(SignalItem& vSignalItemRef, bool vCollapseAll, bool vExpandAll);
 };
