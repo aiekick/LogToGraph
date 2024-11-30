@@ -282,7 +282,9 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     node.addChild("show_variable_signals_in_graph_view").setContent(m_ShowVariableSignalsInGraphView);
     node.addChild("show_variable_signals_in_hovered_list_view").setContent(m_ShowVariableSignalsInHoveredListView);
     node.addChild("show_variable_signals_in_log_view").setContent(m_ShowVariableSignalsInLogView);
-    node.addChild("show_variable_signals_in_log2nd_view").setContent(m_ShowVariableSignalsInLog2ndView);
+    node.addChild("show_variable_signals_in_log_2nd_view").setContent(m_ShowVariableSignalsInLog2ndView);
+    node.addChild("auto_resize_columns_log_view").setContent(m_AutoResizeLogColumns);
+    node.addChild("auto_resize_columns_log_2nd_view").setContent(m_AutoResizeLog2ndColumns);
     node.addChild("last_log_file_path").setContent(m_LastLogFilePath);
     node.addChild("script_file").setContent(m_ScriptFilePathName);
     auto& childNode = node.addChild("log_files");
@@ -356,8 +358,12 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
             m_ShowVariableSignalsInHoveredListView = ez::dvariant(strValue).GetB();
         } else if (strName == "show_variable_signals_in_log_view") {
             m_ShowVariableSignalsInLogView = ez::dvariant(strValue).GetB();
-        } else if (strName == "show_variable_signals_in_log2nd_view") {
+        } else if (strName == "show_variable_signals_in_log_2nd_view") {
             m_ShowVariableSignalsInLog2ndView = ez::dvariant(strValue).GetB();
+        } else if (strName == "auto_resize_columns_log_view") {
+            m_AutoResizeLogColumns = ez::dvariant(strValue).GetB();
+        } else if (strName == "auto_resize_columns_log_2nd_view") {
+            m_AutoResizeLog2ndColumns = ez::dvariant(strValue).GetB();
         } else if (strName == "last_log_file_path") {
             m_LastLogFilePath = strValue;
         } else if (strName == "script_file") {

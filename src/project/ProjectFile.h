@@ -67,6 +67,8 @@ public:  // to save
     bool m_ShowVariableSignalsInAllGraphView = false;
     bool m_ShowVariableSignalsInGraphView = false;
     bool m_ShowVariableSignalsInHoveredListView = false;
+    bool m_AutoResizeLogColumns = false;
+    bool m_AutoResizeLog2ndColumns = false;
 
 private:  // dont save
     bool m_IsLoaded = false;

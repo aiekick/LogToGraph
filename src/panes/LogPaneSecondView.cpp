@@ -105,11 +105,14 @@ void LogPaneSecondView::CheckItem(const SignalTickPtr& vSignalTick) {
 void LogPaneSecondView::DrawMenuBar() {
     bool need_update = false;
     if (ImGui::BeginMenu("Settings")) {
-        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInLog2ndView)) {
-            LogEngine::Instance()->SetHoveredTime(LogEngine::Instance()->GetHoveredTime());
+        if (ImGui::MenuItem("Collapse Selection", nullptr, &ProjectFile::Instance()->m_CollapseLog2ndSelection)) {
             need_update = true;
         }
-        if (ImGui::MenuItem("Collapse Selection", nullptr, &ProjectFile::Instance()->m_CollapseLog2ndSelection)) {
+        if (ImGui::MenuItem("Auto resize columns", nullptr, &ProjectFile::Instance()->m_AutoResizeLog2ndColumns)) {
+            need_update = true;
+        }
+        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInLog2ndView)) {
+            LogEngine::Instance()->SetHoveredTime(LogEngine::Instance()->GetHoveredTime());
             need_update = true;
         }
         if (ImGui::MenuItem("Hide some values", nullptr, &ProjectFile::Instance()->m_HideSomeLog2ndValues)) {
@@ -144,10 +147,13 @@ void LogPaneSecondView::DrawMenuBar() {
 }
 
 void LogPaneSecondView::DrawTable() {
-    static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
-         ImGuiTableFlags_Resizable |
+    ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
         ImGuiTableFlags_NoHostExtendY;
 
+    if (!ProjectFile::Instance()->m_AutoResizeLog2ndColumns) {
+        flags |= ImGuiTableFlags_Resizable;
+    }
+    
     // first display
     if (m_LogDatas.empty()) {
         PrepareLog();
