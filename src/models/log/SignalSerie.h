@@ -38,7 +38,7 @@ public:
     SignalCategory category;
     SignalName name;
     bool is_zone = false;
-
+    std::string label; // label displayed by imgui
     uint32_t color_u32 = ImGui::GetColorU32(ImVec4(0, 0, 0, 1));
     ImVec4 color_v4 = ImVec4(0, 0, 0, 1);
 
@@ -51,10 +51,12 @@ public:                 // to save
     bool show = false;  // signal must be shown on graph screen
 
 public:
-    void InsertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount = false);
-    void AddTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount = false);
+    void insertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount = false);
+    void addTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount = false);
 
-    void AddGraphAnnotation(GraphAnnotationWeak vGraphAnnotation);
+    void addGraphAnnotation(GraphAnnotationWeak vGraphAnnotation);
 
-    void DrawAnnotations();
+    void drawAnnotations();
+
+    void finalize();
 };

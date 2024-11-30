@@ -649,7 +649,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
                                         } else {
                                             m_CurrentAnnotationPtr = GraphAnnotationModel::Instance()->NewGraphAnnotation(ImPlot::PixelsToPlot(projected_point));
                                             m_CurrentAnnotationPtr->SetSignalSerieParent(datas_ptr);
-                                            datas_ptr->AddGraphAnnotation(m_CurrentAnnotationPtr);
+                                            datas_ptr->addGraphAnnotation(m_CurrentAnnotationPtr);
                                         }
                                     }
 
@@ -710,7 +710,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
                         }
 
                         // draw annotations
-                        datas_ptr->DrawAnnotations();
+                        datas_ptr->drawAnnotations();
                     }
                 }
 
@@ -881,7 +881,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
                                                             m_CurrentAnnotationPtr =
                                                                 GraphAnnotationModel::Instance()->NewGraphAnnotation(ImPlot::PixelsToPlot(projected_point));
                                                             m_CurrentAnnotationPtr->SetSignalSerieParent(datas_ptr);
-                                                            datas_ptr->AddGraphAnnotation(m_CurrentAnnotationPtr);
+                                                            datas_ptr->addGraphAnnotation(m_CurrentAnnotationPtr);
                                                         }
                                                     }
 
@@ -957,7 +957,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
                                         }
 
                                         // draw annotations
-                                        datas_ptr->DrawAnnotations();
+                                        datas_ptr->drawAnnotations();
                                     }
                                 }
 
