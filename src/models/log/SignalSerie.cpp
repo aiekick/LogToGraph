@@ -76,3 +76,7 @@ void SignalSerie::drawAnnotations() {
 void SignalSerie::finalize() {
     label = ez::str::toStr("%s (%u)", name.c_str(), static_cast<uint32_t>(count_base_records));
 }
+
+bool SignalSerie::isConstant() {
+    return ez::isEqual(range_value.x, range_value.y);
+}

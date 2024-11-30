@@ -59,6 +59,8 @@ public:  // to save
     SourceFileName m_ScriptFileName;
     std::vector<std::pair<SourceFileName, SourceFilePathName>> m_SourceFilePathNames;
     Ltg::ScriptingModuleName m_ScriptingModuleName;
+    bool m_ShowVariableSignalsInAllGraphView = false;
+    bool m_ShowVariableSignalsInGraphView = false;
 
 private:  // dont save
     bool m_IsLoaded = false;

@@ -53,6 +53,7 @@ public:
 
 private:
     void DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSerie);
+    void DrawMenuBar();
     void DrawTree();
     void PrepareLog(const std::string& vSearchString);
     void HideAllGraphs();
