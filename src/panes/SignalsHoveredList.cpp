@@ -52,6 +52,10 @@ bool SignalsHoveredList::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpe
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
             if (ProjectFile::Instance()->IsProjectLoaded()) {
+                if (ImGui::BeginMenuBar()) {
+                    DrawMenuBar();
+                    ImGui::EndMenuBar();
+                }
                 DrawTable();
             }
         }
@@ -79,6 +83,16 @@ int SignalsHoveredList::CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize,   /*
     }
 
     return count;
+}
+
+void SignalsHoveredList::DrawMenuBar() {
+    if (ImGui::BeginMenu("Settings")) {
+        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInHoveredListView)) {
+            ProjectFile::Instance()->SetProjectChange();
+            LogEngine::Instance()->SetHoveredTime(LogEngine::Instance()->GetHoveredTime());
+        }
+        ImGui::EndMenu();
+    }
 }
 
 void SignalsHoveredList::DrawTable() {

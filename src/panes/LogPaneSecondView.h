@@ -39,20 +39,21 @@ public:
 
     void Clear();
     void CheckItem(const SignalTickPtr& vSignalTick);
-    void PrepareLog();
+    void PrepareLog();               // Prevent unwanted destruction};
+
+private:
+    void DrawMenuBar();
+    void DrawTable();
 
 public:  // singleton
     static std::shared_ptr<LogPaneSecondView> Instance() {
         static auto _instance = std::make_shared<LogPaneSecondView>();
         return _instance;
-    }
+    }                  
 
 public:
     LogPaneSecondView() = default;                                             // Prevent construction
     LogPaneSecondView(const LogPaneSecondView&) = delete;                      // Prevent construction by copying
     LogPaneSecondView& operator=(const LogPaneSecondView&) { return *this; };  // Prevent assignment
-    virtual ~LogPaneSecondView() = default;                                    // Prevent unwanted destruction};
-
-private:
-    void DrawTable();
+    virtual ~LogPaneSecondView() = default;
 };

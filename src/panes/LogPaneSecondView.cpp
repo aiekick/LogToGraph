@@ -52,6 +52,10 @@ bool LogPaneSecondView::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpen
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
             if (ProjectFile::Instance()->IsProjectLoaded()) {
+                if (ImGui::BeginMenuBar()) {
+                    DrawMenuBar();
+                    ImGui::EndMenuBar();
+                }
                 DrawTable();
             }
         }
@@ -98,39 +102,48 @@ void LogPaneSecondView::CheckItem(const SignalTickPtr& vSignalTick) {
     }
 }
 
-void LogPaneSecondView::DrawTable() {
-    if (ImGui::BeginMenuBar()) {
-        bool need_update = ImGui::Checkbox("Collapse Selection", &ProjectFile::Instance()->m_CollapseLogSelection);
-        need_update |= ImGui::Checkbox("Hide some values", &ProjectFile::Instance()->m_HideSomeValues);
-
-        if (ProjectFile::Instance()->m_HideSomeValues) {
-            ImGui::Text("(?)");
-            if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("%s", "you can define many values, ex : 1,2,3.2,5.8");
-            }
-
-            if (ImGui::ContrastedButton("R##ResetLogPaneSecondViewTable")) {
-                ProjectFile::Instance()->m_ValuesToHide.clear();
-                need_update = true;
-            }
-
-            static char _values_hide_buffer[1024 + 1] = "";
-            snprintf(_values_hide_buffer, 1024, "%s", ProjectFile::Instance()->m_ValuesToHide.c_str());
-            if (ImGui::InputText("##Valuestohide", _values_hide_buffer, 1024)) {
-                need_update = true;
-                ProjectFile::Instance()->m_ValuesToHide = _values_hide_buffer;
-            }
+void LogPaneSecondView::DrawMenuBar() {
+    bool need_update = false;
+    if (ImGui::BeginMenu("Settings")) {
+        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInLog2ndView)) {
+            LogEngine::Instance()->SetHoveredTime(LogEngine::Instance()->GetHoveredTime());
+            need_update = true;
         }
-
-        if (need_update) {
-            PrepareLog();
-
-            ProjectFile::Instance()->SetProjectChange();
+        if (ImGui::MenuItem("Collapse Selection", nullptr, &ProjectFile::Instance()->m_CollapseLog2ndSelection)) {
+            need_update = true;
         }
-
-        ImGui::EndMenuBar();
+        if (ImGui::MenuItem("Hide some values", nullptr, &ProjectFile::Instance()->m_HideSomeLog2ndValues)) {
+            need_update = true;
+        }
+        ImGui::EndMenu();
     }
 
+    if (ProjectFile::Instance()->m_HideSomeLog2ndValues) {
+        ImGui::Text("(?)");
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", "you can define many values, ex : 1,2,3.2,5.8");
+        }
+
+        if (ImGui::ContrastedButton("R##ResetLogPaneTable")) {
+            ProjectFile::Instance()->m_Log2ndValuesToHide.clear();
+            need_update = true;
+        }
+
+        static char _values_hide_buffer[1024 + 1] = "";
+        snprintf(_values_hide_buffer, 1024, "%s", ProjectFile::Instance()->m_Log2ndValuesToHide.c_str());
+        if (ImGui::InputText("##Valuestohide", _values_hide_buffer, 1024)) {
+            need_update = true;
+            ProjectFile::Instance()->m_Log2ndValuesToHide = _values_hide_buffer;
+        }
+    }
+
+    if (need_update) {
+        PrepareLog();
+        ProjectFile::Instance()->SetProjectChange();
+    }
+}
+
+void LogPaneSecondView::DrawTable() {
     static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
          ImGuiTableFlags_Resizable |
         ImGuiTableFlags_NoHostExtendY;
@@ -250,25 +263,32 @@ void LogPaneSecondView::PrepareLog() {
 
     m_LogDatas.clear();
 
-    if (ProjectFile::Instance()->m_HideSomeValues) {
+    if (ProjectFile::Instance()->m_HideSomeLog2ndValues) {
         m_ValuesToHide.clear();
-        auto arr = ez::str::splitStringToVector(ProjectFile::Instance()->m_ValuesToHide, ",");
+        auto arr = ez::str::splitStringToVector(ProjectFile::Instance()->m_Log2ndValuesToHide, ",");
         for (const auto& a : arr) {
             m_ValuesToHide.push_back(ez::dvariant(a).GetD());
         }
     }
 
     const auto _count_logs = LogEngine::Instance()->GetSignalTicks().size();
-    const auto _collapseSelection = ProjectFile::Instance()->m_CollapseLogSelection;
+    const auto _collapseSelection = ProjectFile::Instance()->m_CollapseLog2ndSelection;
 
     for (size_t idx = 0U; idx < _count_logs; ++idx) {
         const auto& infos_ptr = LogEngine::Instance()->GetSignalTicks().at(idx);
         if (infos_ptr) {
+            auto parent_ptr = infos_ptr->parent.lock();
+            if (parent_ptr != nullptr) {
+                if (ProjectFile::Instance()->m_ShowVariableSignalsInLog2ndView && parent_ptr->isConstant()) {
+                    continue;
+                }
+            }
+
             auto selected = LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name);
             if (_collapseSelection && !selected)
                 continue;
 
-            if (ProjectFile::Instance()->m_HideSomeValues) {
+            if (ProjectFile::Instance()->m_HideSomeLog2ndValues) {
                 bool found = false;
 
                 for (const auto& a : m_ValuesToHide) {
