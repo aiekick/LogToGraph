@@ -4,16 +4,24 @@
 #include <string>
 #include <map>
 
+struct SignalItem;
+typedef std::map<SignalName, SignalItem> SignalItemContainer;
 struct SignalItem {
-    SignalName name;
-    SignalSerieWeak signal;
-    std::map<SignalName, SignalItem> items;
+    uint32_t count = 0U;
+    std::string label; // label displayed in imgui tree
+    SignalContainerWeak signals;
+    SignalItemContainer childs;
+    bool isLeaf() const { return childs.empty(); }
+    void clear() {
+        signals.clear();
+        childs.clear();
+    }
 };
 
 class SignalTree {
 private:
     std::string searchPattern;
-    std::map<SignalName, SignalItem> m_SignalSeries;
+    SignalItem m_RootItem;
     std::map<SignalName, SignalSerieWeak> m_SignalSeriesOld;
 
 public:
@@ -22,6 +30,6 @@ public:
     void displayTree(bool vCollapseAll, bool vExpandAll);
 
 private:
-    void prepareRecurs(const std::string& vSearchString, const std::string& vName, const SignalSeriePtr& vSignalSeriePtr);
-    void displayItemRecurs(const SignalSerieWeak& vDatasSerie);
+    void prepareRecurs(const std::string& vSearchString, const SignalCategory& vCategory, const SignalContainer& vSignals, SignalItem& vSignalItemRef);
+    void displayItemRecurs(SignalItem& vSignalItemRef);
 };

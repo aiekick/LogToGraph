@@ -84,11 +84,13 @@ class SignalSerie;
 typedef std::shared_ptr<SignalSerie> SignalSeriePtr;
 typedef std::weak_ptr<SignalSerie> SignalSerieWeak;
 
-typedef std::map<SignalCategory, std::map<SignalName, SignalSeriePtr>> SignalSeriesContainer;
-typedef std::map<SignalCategory, std::map<SignalName, SignalSeriePtr>>& SignalSeriesContainerRef;
+typedef std::map<SignalName, SignalSeriePtr> SignalContainer;
+typedef std::map<SignalCategory, SignalContainer> SignalSeriesContainer;
+typedef std::map<SignalCategory, SignalContainer>& SignalSeriesContainerRef;
 
-typedef std::map<SignalCategory, std::map<SignalName, SignalSerieWeak>> SignalSeriesWeakContainer;
-typedef std::map<SignalCategory, std::map<SignalName, SignalSerieWeak>>& SignalSeriesWeakContainerRef;
+typedef std::map<SignalName, SignalSerieWeak> SignalContainerWeak;
+typedef std::map<SignalCategory, SignalContainerWeak> SignalSeriesWeakContainer;
+typedef std::map<SignalCategory, SignalContainerWeak>& SignalSeriesWeakContainerRef;
 
 class GraphGroup;
 typedef std::shared_ptr<GraphGroup> GraphGroupPtr;

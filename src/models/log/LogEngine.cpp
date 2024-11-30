@@ -115,7 +115,7 @@ void LogEngine::AddSignalTick(const SourceFileWeak& vSourceFile,
             if (_datas_name_ptr) {
                 _datas_name_ptr->category = vCategory;
                 _datas_name_ptr->name = vName;
-                _datas_name_ptr->AddTick(tick_Ptr, true);
+                _datas_name_ptr->addTick(tick_Ptr, true);
                 _datas_name_ptr->low_case_name_for_search = ez::str::toLower(vName);  // save low case signal name for search
                 _datas_name_ptr->show = false;
                 _datas_name_ptr->m_SourceFileParent = vSourceFile;
@@ -125,7 +125,7 @@ void LogEngine::AddSignalTick(const SourceFileWeak& vSourceFile,
             auto& _datas_name_ptr = _datas_cat.at(vName);
             if (_datas_name_ptr) {
                 // on set le time et la valeur de cette frame
-                _datas_name_ptr->AddTick(tick_Ptr, true);
+                _datas_name_ptr->addTick(tick_Ptr, true);
                 // by default not visible
                 _datas_name_ptr->show = false;
             }
@@ -164,7 +164,7 @@ void LogEngine::AddSignalStatus(const SourceFileWeak& vSourceFile,
             if (_datas_name_ptr) {
                 _datas_name_ptr->category = vCategory;
                 _datas_name_ptr->name = vName;
-                _datas_name_ptr->AddTick(tick_Ptr, true);
+                _datas_name_ptr->addTick(tick_Ptr, true);
                 _datas_name_ptr->low_case_name_for_search = ez::str::toLower(vName);  // save low case signal name for search
                 _datas_name_ptr->show = false;
                 _datas_name_ptr->m_SourceFileParent = vSourceFile;
@@ -175,7 +175,7 @@ void LogEngine::AddSignalStatus(const SourceFileWeak& vSourceFile,
             auto& _datas_name_ptr = _datas_cat.at(vName);
             if (_datas_name_ptr) {
                 // on set le time et la valeur de cette frame
-                _datas_name_ptr->AddTick(tick_Ptr, true);
+                _datas_name_ptr->addTick(tick_Ptr, true);
                 // by default not visible
                 _datas_name_ptr->show = false;
             }
@@ -236,6 +236,7 @@ void LogEngine::Finalize() {
             AddSignalTag(vSignalEpochTime, vSignalTagColor, vSignalTagName, vSignalTagHelp);
         });
 
+    // consolide
     if (!m_SignalTicks.empty() && m_SignalTicks.front() && m_SignalTicks.back()) {
         // first tick of all signals
         auto global_first_time_tick = m_SignalTicks.front()->time_epoch;
@@ -264,7 +265,7 @@ void LogEngine::Finalize() {
                                     local_first_tick_ptr->value);
 
                             m_VirtualTicks.push_back(tick_Ptr);  // for retain the shared_pointer
-                            item_name.second->InsertTick(tick_Ptr, 0U, false);
+                            item_name.second->insertTick(tick_Ptr, 0U, false);
                         }
 
                         // last tick
@@ -277,10 +278,19 @@ void LogEngine::Finalize() {
                             tick_Ptr->value = local_last_tick_ptr->value;
 
                             m_VirtualTicks.push_back(tick_Ptr);  // for retain the shared_pointer
-                            item_name.second->AddTick(tick_Ptr, false);
+                            item_name.second->addTick(tick_Ptr, false);
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // finalize signals
+    for (auto& signal_cnt : m_SignalSeries) {
+        for (auto& signal : signal_cnt.second) {
+            if (signal.second != nullptr) {
+                signal.second->finalize();
             }
         }
     }

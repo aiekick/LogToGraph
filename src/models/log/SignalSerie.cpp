@@ -20,6 +20,7 @@ limitations under the License.
 #include "SignalSerie.h"
 #include <models/log/SignalTick.h>
 #include <models/graphs/GraphAnnotation.h>
+#include <ezlibs/ezStr.hpp>
 
 SignalSeriePtr SignalSerie::Create() {
     auto res = std::make_shared<SignalSerie>();
@@ -27,7 +28,7 @@ SignalSeriePtr SignalSerie::Create() {
     return res;
 }
 
-void SignalSerie::InsertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount) {
+void SignalSerie::insertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount) {
     if (vIdx < datas_values.size()) {
         auto ptr = vTick.lock();
         if (ptr) {
@@ -44,7 +45,7 @@ void SignalSerie::InsertTick(const SignalTickWeak& vTick, const size_t& vIdx, co
     }
 }
 
-void SignalSerie::AddTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount) {
+void SignalSerie::addTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount) {
     auto ptr = vTick.lock();
     if (ptr) {
         ptr->parent = m_This;
@@ -59,15 +60,19 @@ void SignalSerie::AddTick(const SignalTickWeak& vTick, const bool& vIncBaseRecor
     }
 }
 
-void SignalSerie::AddGraphAnnotation(GraphAnnotationWeak vGraphAnnotation) {
+void SignalSerie::addGraphAnnotation(GraphAnnotationWeak vGraphAnnotation) {
     m_GraphAnnotations.push_back(vGraphAnnotation);
 }
 
-void SignalSerie::DrawAnnotations() {
+void SignalSerie::drawAnnotations() {
     for (const auto& anno : m_GraphAnnotations) {
         auto ptr = anno.lock();
         if (ptr) {
             ptr->Draw();
         }
     }
+}
+
+void SignalSerie::finalize() {
+    label = ez::str::toStr("%s (%u)", name.c_str(), static_cast<uint32_t>(count_base_records));
 }
