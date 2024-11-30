@@ -155,7 +155,7 @@ void MainFrontend::Display(const uint32_t& vCurrentFrame, const ImVec2& vPos, co
             ProjectFile::Instance()->SetProjectChange();
         }
 
-        DrawDialogsAndPopups(vCurrentFrame, ImRect(m_DisplayPos, m_DisplaySize), context_ptr, {});
+        DrawDialogsAndPopups(vCurrentFrame, ImRect(ImVec2(0,0), m_DisplaySize), context_ptr, {});
 
         ImGuiThemeHelper::Instance()->Draw();
         LayoutManager::Instance()->InitAfterFirstDisplay(io.DisplaySize);
@@ -732,8 +732,8 @@ void MainFrontend::IWantToCloseTheApp() {
 ///////////////////////////////////////////////////////
 
 void MainFrontend::JustDropFiles(int count, const char** paths) {
-    assert(0);
-
+    EZ_TOOLS_DEBUG_BREAK;
+    /*
     std::map<std::string, std::string> dicoFont;
     std::string prj;
 
@@ -762,6 +762,7 @@ void MainFrontend::JustDropFiles(int count, const char** paths) {
     if (!prj.empty()) {
         MainBackend::Instance()->NeedToLoadProject(prj);
     }
+    */
 }
 
 //////////////////////////////////////////////////////////////////////////////////
