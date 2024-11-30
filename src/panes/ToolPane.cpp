@@ -259,17 +259,15 @@ void ToolPane::DrawTree() {
 
     const float fw = ImGui::GetContentRegionAvail().x;
 
-    if (search_string.empty()) {
-        const float aw = (fw - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
-        if (ImGui::ContrastedButton("Collapse All##ToolPane_DrawTree", nullptr, nullptr, aw)) {
-            _collapse_all = true;
-        }
+    const float aw = (fw - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+    if (ImGui::ContrastedButton("Collapse All##ToolPane_DrawTree", nullptr, nullptr, aw)) {
+        _collapse_all = true;
+    }
 
-        ImGui::SameLine();
+    ImGui::SameLine();
 
-        if (ImGui::ContrastedButton("Expand All##ToolPane_DrawTree", nullptr, nullptr, aw)) {
-            _expand_all = true;
-        }
+    if (ImGui::ContrastedButton("Expand All##ToolPane_DrawTree", nullptr, nullptr, aw)) {
+        _expand_all = true;
     }
 
     if (ImGui::ContrastedButton("Hide All Graphs##ToolPane_DrawTree", nullptr, nullptr, fw)) {
