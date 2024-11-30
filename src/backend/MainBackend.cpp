@@ -269,7 +269,7 @@ void MainBackend::m_MainLoop() {
                 size = viewport->WorkSize;
             }
 
-            MainFrontend::Instance()->Display(m_CurrentFrame, ImVec2(0,0), size);
+            MainFrontend::Instance()->Display(m_CurrentFrame, pos, size);
 
             ScriptingEngine::Instance()->FinishIfRequired();
 
