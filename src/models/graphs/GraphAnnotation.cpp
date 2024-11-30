@@ -20,7 +20,7 @@ limitations under the License.
 #include "GraphAnnotation.h"
 
 #include <models/log/SignalSerie.h>
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 #include <chrono>
 
 //////////////////////////////////////////////////////

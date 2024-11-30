@@ -18,7 +18,7 @@ limitations under the License.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include "SignalsHoveredDiff.h"
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 #include <cinttypes>  // printf zu
 #include <panes/CodePane.h>
 

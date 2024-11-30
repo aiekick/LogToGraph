@@ -20,7 +20,7 @@ limitations under the License.
 #include "LogPaneSecondView.h"
 #include <panes/ToolPane.h>
 #include <panes/GraphListPane.h>
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 #include <cinttypes>  // printf zu
 
 #include <models/log/LogEngine.h>

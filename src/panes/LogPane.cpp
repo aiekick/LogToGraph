@@ -21,7 +21,7 @@ limitations under the License.
 #include <panes/ToolPane.h>
 #include <panes/SignalsHoveredMap.h>
 #include <panes/GraphGroupPane.h>
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 #include <cinttypes>  // printf zu
 
 #include <models/log/LogEngine.h>

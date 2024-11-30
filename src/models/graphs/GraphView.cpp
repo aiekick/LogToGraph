@@ -24,7 +24,7 @@ limitations under the License.
 #include <models/log/SignalTick.h>
 #include <models/log/SignalTag.h>
 
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 
 #include <models/graphs/GraphGroup.h>
 

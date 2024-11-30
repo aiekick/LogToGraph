@@ -19,9 +19,9 @@ limitations under the License.
 #include <ImGuiPack.h>
 #include <ezlibs/ezXmlConfig.hpp>
 
-#include <Systems/FrameActionSystem.h>
+#include <systems/FrameActionSystem.h>
 
-#include <Backend/MainBackend.h>
+#include <backend/MainBackend.h>
 
 #include <functional>
 #include <string>

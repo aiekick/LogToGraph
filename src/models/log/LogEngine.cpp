@@ -32,7 +32,7 @@ limitations under the License.
 #include <panes/GraphListPane.h>
 #include <panes/ToolPane.h>
 
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 
 ///////////////////////////////////////////////////
 /// STATIC'S //////////////////////////////////////

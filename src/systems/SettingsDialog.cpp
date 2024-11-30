@@ -1,10 +1,10 @@
-#include <Systems/SettingsDialog.h>
+#include <systems/SettingsDialog.h>
 
 #include <systems/PluginManager.h>
 
 #include <ImGuiPack/ImGuiPack.h>
 
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 
 bool SettingsDialog::init() {
     const auto& pluginSettings = PluginManager::Instance()->getPluginSettings();

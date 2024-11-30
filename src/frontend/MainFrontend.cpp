@@ -21,9 +21,9 @@ limitations under the License.
 
 #include "MainFrontend.h"
 
-#include <Backend/MainBackend.h>
+#include <backend/MainBackend.h>
 
-#include <Project/ProjectFile.h>
+#include <project/ProjectFile.h>
 
 #include <systems/PluginManager.h>
 
