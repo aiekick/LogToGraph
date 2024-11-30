@@ -38,6 +38,7 @@ public:
     void SetHoveredTime(const SignalEpochTime& vHoveredTime);
 
 private:
+    void DrawMenuBar();
     void DrawTable();
     static int CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize, ImVec2& vOutButtonSize);
     int DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, ImVec2 vGlyphSize);

@@ -389,45 +389,34 @@ SignalSeriesContainerRef LogEngine::GetSignalSeries() {
 
 void LogEngine::SetHoveredTime(const SignalEpochTime& vHoveredTime) {
     m_HoveredTime = vHoveredTime;
-
     ProjectFile::Instance()->SetProjectChange();
-
-    if (m_PreviewTicks.empty()) {
-        m_PreviewTicks.resize(m_SignalsCount);
-    }
-
-    size_t idx = 0U;
+    m_PreviewTicks.clear();
+    m_PreviewTicks.reserve(m_SignalsCount);
     size_t visible_idx = 0U;
     for (auto& item_cat : m_SignalSeries) {
         for (auto& item_name : item_cat.second) {
             if (item_name.second) {
+                if (ProjectFile::Instance()->m_ShowVariableSignalsInHoveredListView && item_name.second->isConstant()) {
+                    continue;
+                }
                 SignalTickPtr last_ptr = nullptr;
                 for (const auto& tick_weak : item_name.second->datas_values) {
                     auto ptr = tick_weak.lock();
                     if (last_ptr && vHoveredTime >= last_ptr->time_epoch && ptr && vHoveredTime <= ptr->time_epoch) {
-                        if (idx < (size_t)m_SignalsCount) {
-                            m_PreviewTicks[idx] = last_ptr;
+                        m_PreviewTicks.push_back(last_ptr);
+                        if (ProjectFile::Instance()->m_AutoColorize) {
+                            auto parent_ptr = last_ptr->parent.lock();
+                            if (parent_ptr && parent_ptr->show) {
+                                parent_ptr->color_u32 = ImGui::GetColorU32(GraphView::GetRainBow((int32_t)visible_idx, m_VisibleCount));
+                                parent_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(parent_ptr->color_u32);
 
-                            if (ProjectFile::Instance()->m_AutoColorize) {
-                                auto parent_ptr = last_ptr->parent.lock();
-                                if (parent_ptr && parent_ptr->show) {
-                                    parent_ptr->color_u32 = ImGui::GetColorU32(GraphView::GetRainBow((int32_t)visible_idx, m_VisibleCount));
-                                    parent_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(parent_ptr->color_u32);
-
-                                    ++visible_idx;
-                                }
+                                ++visible_idx;
                             }
-                        } else {
-                            EZ_TOOLS_DEBUG_BREAK;
                         }
-
                         break;
                     }
-
                     last_ptr = ptr;
                 }
-
-                ++idx;
             }
         }
     }

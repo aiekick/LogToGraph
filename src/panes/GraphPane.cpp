@@ -51,7 +51,6 @@ bool GraphPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGu
             if (ProjectFile::Instance()->IsProjectLoaded()) {
                 if (ImGui::BeginMenuBar()) {
                     GraphView::Instance()->DrawMenuBar();
-
                     ImGui::EndMenuBar();
                 }
 

@@ -262,8 +262,10 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     node.addChild("auto_colorize").setContent(m_AutoColorize);
     node.addChild("search_string").setContent(m_SearchString);
     node.addChild("all_graphs_signals_search_string").setContent(m_AllGraphSignalsSearchString);
-    node.addChild("values_to_hide").setContent(m_ValuesToHide);
-    node.addChild("hide_some_values").setContent(m_HideSomeValues);
+    node.addChild("log_values_to_hide").setContent(m_LogValuesToHide);
+    node.addChild("log_2nd_values_to_hide").setContent(m_Log2ndValuesToHide);
+    node.addChild("hide_some_log_values").setContent(m_HideSomeLogValues);
+    node.addChild("hide_some_log_2nd_values").setContent(m_HideSomeLog2ndValues);
     node.addChild("signals_preview_count_x").setContent(m_SignalPreview_CountX);
     node.addChild("signals_preview_size_x").setContent(m_SignalPreview_SizeX);
     node.addChild("graph_diff_first_mark").setContent(m_DiffFirstMark);
@@ -278,6 +280,9 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     node.addChild("predefined_zero_value").setContent(m_PredefinedZeroValue);
     node.addChild("show_variable_signals_in_all_graph_view").setContent(m_ShowVariableSignalsInAllGraphView);
     node.addChild("show_variable_signals_in_graph_view").setContent(m_ShowVariableSignalsInGraphView);
+    node.addChild("show_variable_signals_in_hovered_list_view").setContent(m_ShowVariableSignalsInHoveredListView);
+    node.addChild("show_variable_signals_in_log_view").setContent(m_ShowVariableSignalsInLogView);
+    node.addChild("show_variable_signals_in_log2nd_view").setContent(m_ShowVariableSignalsInLog2ndView);
     node.addChild("last_log_file_path").setContent(m_LastLogFilePath);
     node.addChild("script_file").setContent(m_ScriptFilePathName);
     auto& childNode = node.addChild("log_files");
@@ -311,10 +316,14 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
             m_SearchString = strValue;
         } else if (strName == "all_graphs_signals_search_string") {
             m_AllGraphSignalsSearchString = strValue;
-        } else if (strName == "values_to_hide") {
-            m_ValuesToHide = strValue;
-        } else if (strName == "hide_some_values") {
-            m_HideSomeValues = ez::ivariant(strValue).GetB();
+        } else if (strName == "log_values_to_hide") {
+            m_LogValuesToHide = strValue;
+        } else if (strName == "log_2nd_values_to_hide") {
+            m_Log2ndValuesToHide = strValue;
+        } else if (strName == "hide_some_log_values") {
+            m_HideSomeLogValues = ez::ivariant(strValue).GetB();
+        } else if (strName == "hide_some_log_2nd_values") {
+            m_HideSomeLog2ndValues = ez::ivariant(strValue).GetB();
         } else if (strName == "signals_preview_count_x") {
             m_SignalPreview_CountX = ez::uvariant(strValue).GetU();
         } else if (strName == "signals_preview_size_x") {
@@ -326,11 +335,7 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
         } else if (strName == "graph_synchronize") {
             m_SyncGraphs = ez::ivariant(strValue).GetB();
         } else if (strName == "graph_sync_limits") {
-            auto v4 = ez::dvariant(strValue).GetV4();
-            m_SyncGraphsLimits.X.Min = v4.x;
-            m_SyncGraphsLimits.X.Max = v4.y;
-            m_SyncGraphsLimits.Y.Min = v4.z;
-            m_SyncGraphsLimits.Y.Max = v4.w;
+            m_SyncGraphsLimits = ez::dvariant(strValue).GetV4();
         } else if (strName == "code_file_path_name") {
             m_CodeFilePathName = strValue;
         } else if (strName == "curve_radius_detection") {
@@ -347,6 +352,12 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
             m_ShowVariableSignalsInAllGraphView = ez::dvariant(strValue).GetB();
         } else if (strName == "show_variable_signals_in_graph_view") {
             m_ShowVariableSignalsInGraphView = ez::dvariant(strValue).GetB();
+        } else if (strName == "show_variable_signals_in_hovered_list_view") {
+            m_ShowVariableSignalsInHoveredListView = ez::dvariant(strValue).GetB();
+        } else if (strName == "show_variable_signals_in_log_view") {
+            m_ShowVariableSignalsInLogView = ez::dvariant(strValue).GetB();
+        } else if (strName == "show_variable_signals_in_log2nd_view") {
+            m_ShowVariableSignalsInLog2ndView = ez::dvariant(strValue).GetB();
         } else if (strName == "last_log_file_path") {
             m_LastLogFilePath = strValue;
         } else if (strName == "script_file") {

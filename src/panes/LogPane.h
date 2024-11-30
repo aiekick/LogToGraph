@@ -41,6 +41,10 @@ public:
     void CheckItem(SignalTickPtr vSignalTick);
     void PrepareLog();
 
+private:
+    void DrawMenuBar();
+    void DrawTable();
+
 public:  // singleton
     static std::shared_ptr<LogPane> Instance() {
         static auto _instance = std::make_shared<LogPane>();
@@ -52,7 +56,4 @@ public:
     LogPane(const LogPane&) = delete;                      // Prevent construction by copying
     LogPane& operator=(const LogPane&) { return *this; };  // Prevent assignment
     virtual ~LogPane() = default;                          // Prevent unwanted destruction};
-
-private:
-    void DrawTable();
 };

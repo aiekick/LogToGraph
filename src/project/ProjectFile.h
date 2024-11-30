@@ -34,7 +34,9 @@ class ProjectFile : public Ltg::IProject, public ez::xml::Config {
 public:  // to save
     GraphColor m_GraphColors;
     bool m_CollapseLogSelection = false;
-    bool m_HideSomeValues = false;
+    bool m_CollapseLog2ndSelection = false;
+    bool m_HideSomeLogValues = false;
+    bool m_HideSomeLog2ndValues = false;
     bool m_AutoColorize = true;
     bool m_SyncGraphs = true;
     std::string m_ProjectFileName;
@@ -42,7 +44,8 @@ public:  // to save
     std::string m_ProjectFilePath;
     std::string m_SearchString;
     std::string m_AllGraphSignalsSearchString;
-    std::string m_ValuesToHide;
+    std::string m_LogValuesToHide;
+    std::string m_Log2ndValuesToHide;
     std::string m_CodeFilePathName;
     std::string m_LastLogFilePath;
     uint32_t m_SignalPreview_CountX = 20U;
@@ -59,8 +62,11 @@ public:  // to save
     SourceFileName m_ScriptFileName;
     SourceFileContainer m_SourceFilePathNames;
     Ltg::ScriptingModuleName m_ScriptingModuleName;
+    bool m_ShowVariableSignalsInLogView = false;
+    bool m_ShowVariableSignalsInLog2ndView = false;
     bool m_ShowVariableSignalsInAllGraphView = false;
     bool m_ShowVariableSignalsInGraphView = false;
+    bool m_ShowVariableSignalsInHoveredListView = false;
 
 private:  // dont save
     bool m_IsLoaded = false;
