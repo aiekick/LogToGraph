@@ -1,8 +1,8 @@
 #pragma once
 
-#include <Modules/LuaDatasModel.h>
+#include <modules/LuaDatasModel.h>
 #include <apis/LtgPluginApi.h>
-#include <Settings/Settings.h>
+#include <settings/Settings.h>
 #include <string>
 #include <vector>
 #include <memory>

@@ -1,4 +1,4 @@
-#include <Settings/Settings.h>
+#include <settings/Settings.h>
 
 #include <ImGuiPack.h>
 

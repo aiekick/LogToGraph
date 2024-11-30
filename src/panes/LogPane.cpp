@@ -108,11 +108,14 @@ void LogPane::CheckItem(SignalTickPtr vSignalTick) {
 void LogPane::DrawMenuBar() {
     bool need_update = false;
     if (ImGui::BeginMenu("Settings")) {
-        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInLogView)) {
-            LogEngine::Instance()->SetHoveredTime(LogEngine::Instance()->GetHoveredTime());
+        if (ImGui::MenuItem("Collapse Selection", nullptr, &ProjectFile::Instance()->m_CollapseLogSelection)) {
             need_update = true;
         }
-        if (ImGui::MenuItem("Collapse Selection", nullptr, &ProjectFile::Instance()->m_CollapseLogSelection)) {
+        if (ImGui::MenuItem("Auto resize columns", nullptr, &ProjectFile::Instance()->m_AutoResizeLogColumns)) {
+            need_update = true;
+        }
+        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInLogView)) {
+            LogEngine::Instance()->SetHoveredTime(LogEngine::Instance()->GetHoveredTime());
             need_update = true;
         }
         if (ImGui::MenuItem("Hide some values", nullptr, &ProjectFile::Instance()->m_HideSomeLogValues)) {
@@ -147,10 +150,11 @@ void LogPane::DrawMenuBar() {
 }
 
 void LogPane::DrawTable() {
+    ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_NoHostExtendY;
 
-    static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
-        ImGuiTableFlags_Resizable |
-        ImGuiTableFlags_NoHostExtendY;
+    if (!ProjectFile::Instance()->m_AutoResizeLogColumns) {
+        flags |= ImGuiTableFlags_Resizable;
+    }
 
     // first display
     if (m_LogDatas.empty()) {
@@ -162,9 +166,8 @@ void LogPane::DrawTable() {
     m_need_re_preparation = false;
 
     auto listViewID = ImGui::GetID("##LogPane_DrawTable");
-    if (ImGui::BeginTableEx("##LogPane_DrawTable", listViewID, 5, flags))  //-V112
-    {
-        ImGui::TableSetupScrollFreeze(0, 1);  // Make header always visible
+    if (ImGui::BeginTableEx("##LogPane_DrawTable", listViewID, 5, flags)) {  //-V112
+        ImGui::TableSetupScrollFreeze(0, 1);                                 // Make header always visible
         ImGui::TableSetupColumn("Epoch", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultHide);
         ImGui::TableSetupColumn("Date", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Cat", ImGuiTableColumnFlags_WidthFixed);
@@ -173,8 +176,7 @@ void LogPane::DrawTable() {
 
         ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 
-        for (int column = 0; column < 5; column++)  //-V112
-        {
+        for (int column = 0; column < 5; column++) {  //-V112
             ImGui::TableSetColumnIndex(column);
             const char* column_name = ImGui::TableGetColumnName(column);  // Retrieve name passed to TableSetupColumn()
             ImGui::PushID(column);

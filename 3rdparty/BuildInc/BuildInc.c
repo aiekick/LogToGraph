@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2022-2023 Stephane Cuillerdier (aka aiekick)
+Copyright (c) 2022-2022 Stephane Cuillerdier (aka aiekick)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,16 +27,17 @@ SOFTWARE.
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_LENGTH 1024
+#define MAX_LENGTH 2048
 #define BUILD_PREFIX "Prefix"
 #define BUILD_WORD "BuildNumber"
 #define MINOR_WORD "MinorNumber"
 #define MAJOR_WORD "MajorNumber"
 #define BUILD_ID_WORD "BuildId"
 
-static int rule_maxBuildNumber            = 1000;
-static int rule_maxMinorNumber            = 10;
+static int rule_maxBuildNumber = 1000;
+static int rule_maxMinorNumber = 10;
 static char prefix_buffer[MAX_LENGTH + 1] = "";
+static int rule_enabled = 0;
 
 // return 1 if a prefix was found
 int ParsePrefix(const char* vPrefix) {
@@ -60,9 +61,9 @@ int ParseRule(const char* vRule) {
     if (vRule && strlen(vRule)) {
         int maxBuild, maxMinor;
 #ifdef _MSC_VER
-        int res = sscanf_s(vRule, "%i:%i", &maxBuild, &maxMinor);
+        int res = sscanf_s(vRule, "-rule=%i:%i", &maxBuild, &maxMinor);
 #else
-        int res  = sscanf(vRule, "%i:%i", &maxBuild, &maxMinor);
+        int res  = sscanf(vRule, "-rule=%i:%i", &maxBuild, &maxMinor);
 #endif
         if (res == 2) {
             rule_maxBuildNumber = maxBuild;
@@ -71,10 +72,6 @@ int ParseRule(const char* vRule) {
             return 1;
         }
     }
-
-    printf("-- The rule is missing or wrong\n");
-    printf("-- The rule must respect this format max_build_number:max_minor_number\n");
-    printf("-- The default rule of 1000:10 will be applied\n");
 
     return 0;
 }
@@ -100,8 +97,8 @@ void ParseFile(const char* vFile) {
         {
             // read
             while (!feof(fp) && idx < 3) {
-                fgets(bufLine, MAX_LENGTH, fp);
-                if (ferror(fp)) {
+                char* ptr = fgets(bufLine, MAX_LENGTH, fp);
+                if (!ptr || ferror(fp)) {
                     fprintf(stderr, "-- Reading error with code %d\n", errno);
                     break;
                 }
@@ -153,13 +150,15 @@ void ParseFile(const char* vFile) {
             fp == NULL) { // fichier non existant
             // treatment
             ++BuildNumber;
-            if (BuildNumber > rule_maxBuildNumber) {
-                BuildNumber = 0;
-                ++MinorNumber;
-            }
-            if (MinorNumber > rule_maxMinorNumber) {
-                MinorNumber = 0;
-                ++MajorNumber;
+            if (rule_enabled == 1) {
+                if (BuildNumber > rule_maxBuildNumber) {
+                    BuildNumber = 0;
+                    ++MinorNumber;
+                }
+                if (MinorNumber > rule_maxMinorNumber) {
+                    MinorNumber = 0;
+                    ++MajorNumber;
+                }
             }
 
             // print vars :
@@ -233,7 +232,7 @@ int main(int argc, char* argv[]) {  // Don't forget first integral argument 'arg
     if (argc == 1) {
         printf("-------------------- BuildInc --------------------\n");
         printf("-- this func will increment in a c/c++ include file, 3 vars : MajorNumber, MinorNumber and BuildNumber, according to a rule\n");
-        printf("-- the syntax is : BuildInc -prefix=\"prefix\" rule include_file\n");
+        printf("-- the syntax is : BuildInc -prefix=<\"prefix\"> -rule=<rule> include_file\n");
         printf("-- the rule is 'max_build_number:max_minor_number' \n");
         printf("-- by ex with a rule of 1000:10 the corresponding pseudo code will be :\n");
         printf("-- if (BuildNumber > 1000) ++MinorNumber;\n");
@@ -246,10 +245,13 @@ int main(int argc, char* argv[]) {  // Don't forget first integral argument 'arg
     if (argc > 1) {
         ParsePrefix(argv[idx++]);
         int res = ParseRule(argv[idx]);
-        if (res)
+        if (res) {
+            rule_enabled = 1;
             ++idx;
-        if (argc > 2 || res == 0)
+        }
+        if (argc > 2 || res == 0) {
             ParseFile(argv[idx]);
+        }
     }
 
     return 0;
