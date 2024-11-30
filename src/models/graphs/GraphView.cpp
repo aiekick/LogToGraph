@@ -283,6 +283,10 @@ void GraphView::DrawMenuBar() {
     if (ImGui::BeginMenu("Settings")) {
         ImGui::MenuItem("Synchronize Graphs", nullptr, &ProjectFile::Instance()->m_SyncGraphs);
 
+        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInGraphView)) {
+            ProjectFile::Instance()->SetProjectChange();
+        }
+
         if (ImGui::BeginMenu("Axis Labels")) {
             if (ImGui::MenuItem(m_show_hide_x_axis ? "Show X Axis LabelsR##GraphPaneDrawPanes" : "Hide X Axis LabelsR##GraphPaneDrawPanes")) {
                 m_show_hide_x_axis = !m_show_hide_x_axis;
@@ -739,6 +743,9 @@ void GraphView::DrawAloneGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImVec
             for (auto& name : cat.second) {
                 auto datas_ptr = name.second.lock();
                 if (datas_ptr) {
+                    if (ProjectFile::Instance()->m_ShowVariableSignalsInGraphView && datas_ptr->isConstant()) {
+                        continue;
+                    }
                     prDrawSignalGraph_ImPlot(datas_ptr, vSize, vFirstGraph);
 
                     vFirstGraph = false;
@@ -786,6 +793,9 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
                     for (auto& name : cat.second) {
                         auto datas_ptr = name.second.lock();
                         if (datas_ptr && datas_ptr->show_hide_temporary) {
+                            if (ProjectFile::Instance()->m_ShowVariableSignalsInGraphView && datas_ptr->isConstant()) {
+                                continue;
+                            }
                             const auto& name_str = datas_ptr->category + " / " + datas_ptr->name;
                             if (ImPlot::BeginItem(name_str.c_str())) {
                                 bool _is_zone_reached = false;

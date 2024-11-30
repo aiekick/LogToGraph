@@ -276,6 +276,8 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     node.addChild("default_curve_display_thickness").setContent(m_DefaultCurveDisplayThickNess);
     node.addChild("use_predefined_zero_value").setContent(m_UsePredefinedZeroValue);
     node.addChild("predefined_zero_value").setContent(m_PredefinedZeroValue);
+    node.addChild("show_variable_signals_in_all_graph_view").setContent(m_ShowVariableSignalsInAllGraphView);
+    node.addChild("show_variable_signals_in_graph_view").setContent(m_ShowVariableSignalsInGraphView);
     node.addChild("last_log_file_path").setContent(m_LastLogFilePath);
     node.addChild("script_file").setContent(m_ScriptFilePathName);
     auto& childNode = node.addChild("log_files");
@@ -341,6 +343,10 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
             m_UsePredefinedZeroValue = ez::ivariant(strValue).GetB();
         } else if (strName == "predefined_zero_value") {
             m_PredefinedZeroValue = ez::dvariant(strValue).GetD();
+        } else if (strName == "show_variable_signals_in_all_graph_view") {
+            m_ShowVariableSignalsInAllGraphView = ez::dvariant(strValue).GetB();
+        } else if (strName == "show_variable_signals_in_graph_view") {
+            m_ShowVariableSignalsInGraphView = ez::dvariant(strValue).GetB();
         } else if (strName == "last_log_file_path") {
             m_LastLogFilePath = strValue;
         } else if (strName == "script_file") {

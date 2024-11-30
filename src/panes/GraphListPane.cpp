@@ -60,6 +60,10 @@ bool GraphListPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, 
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
             if (ProjectFile::Instance()->IsProjectLoaded()) {
+                if (ImGui::BeginMenuBar()) {
+                    DrawMenuBar();
+                    ImGui::EndMenuBar();
+                }
                 DrawTree();
             }
         }
@@ -90,6 +94,7 @@ void GraphListPane::DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSe
             ImGui::PushID(vIdx);
             ImGui::TableSetColumnIndex(0);
             if (ImGui::Selectable(datas_ptr->category.c_str(), &datas_ptr->show, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, GRAPHS_HEIGHT))) {
+                ProjectFile::Instance()->SetProjectChange();
                 LogEngine::Instance()->ShowHideSignal(datas_ptr->category, datas_ptr->name, datas_ptr->show);
                 if (ProjectFile::Instance()->m_CollapseLogSelection) {
                     LogPane::Instance()->PrepareLog();
@@ -99,6 +104,7 @@ void GraphListPane::DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSe
 
             ImGui::TableSetColumnIndex(1);
             if (ImGui::Selectable(datas_ptr->name.c_str(), &datas_ptr->show, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, GRAPHS_HEIGHT))) {
+                ProjectFile::Instance()->SetProjectChange();
                 LogEngine::Instance()->ShowHideSignal(datas_ptr->category, datas_ptr->name, datas_ptr->show);
                 if (ProjectFile::Instance()->m_CollapseLogSelection) {
                     LogPane::Instance()->PrepareLog();
@@ -159,28 +165,45 @@ void GraphListPane::DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSe
     }
 }
 
+void GraphListPane::DrawMenuBar() {
+    bool change = false;
+
+    if (ImGui::BeginMenu("Settings")) {
+        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInAllGraphView)) {
+            ProjectFile::Instance()->SetProjectChange();
+            change = true;
+        }
+
+        ImGui::EndMenu();
+    }
+
+    ImGui::Text("%s", "Search : ");
+
+    auto& search_string = ProjectFile::Instance()->m_AllGraphSignalsSearchString;
+    snprintf(m_search_buffer, 1024, "%s", search_string.c_str());
+
+    if (ImGui::ContrastedButton("R##GraphListPane_SearchDrawTree")) {
+        ProjectFile::Instance()->SetProjectChange();
+        search_string.clear();
+        m_search_buffer[0] = '\0';
+        change = true;
+    }
+
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+    if (ImGui::InputText("##GraphListPane_Search", m_search_buffer, 1024)) {
+        ProjectFile::Instance()->SetProjectChange();
+        search_string = ez::str::toLower(m_search_buffer);
+        change = true;
+    }
+    ImGui::PopItemWidth();
+
+    if (change) {
+        PrepareLog(search_string);
+    }
+}
+
 void GraphListPane::DrawTree() {
     auto& search_string = ProjectFile::Instance()->m_AllGraphSignalsSearchString;
-
-    if (ImGui::BeginMenuBar()) {
-        ImGui::Text("%s", "Search : ");
-
-        snprintf(m_search_buffer, 1024, "%s", search_string.c_str());
-        if (ImGui::ContrastedButton("R##GraphListPane_SearchDrawTree")) {
-            search_string.clear();
-            m_search_buffer[0] = '\0';
-            PrepareLog(search_string);
-        }
-
-        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-        if (ImGui::InputText("##GraphListPane_Search", m_search_buffer, 1024)) {
-            search_string = ez::str::toLower(m_search_buffer);
-            PrepareLog(search_string);
-        }
-        ImGui::PopItemWidth();
-
-        ImGui::EndMenuBar();
-    }
 
     static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
         ImGuiTableFlags_NoHostExtendY | ImGuiTableFlags_Resizable;
@@ -232,7 +255,9 @@ void GraphListPane::PrepareLog(const std::string& vSearchString) {
                 if (is_their_some_search && signal_ptr->low_case_name_for_search.find(vSearchString) == std::string::npos) {
                     continue;
                 }
-
+                if (ProjectFile::Instance()->m_ShowVariableSignalsInAllGraphView && signal_ptr->isConstant()) {
+                    continue;
+                }
                 m_FilteredSignalSeries.push_back(item_name);
             }
         }
