@@ -57,7 +57,7 @@ public:  // to save
     double m_PredefinedZeroValue = 0.0;            // the predefined zero value for signals
     SourceFilePathName m_ScriptFilePathName;
     SourceFileName m_ScriptFileName;
-    std::vector<std::pair<SourceFileName, SourceFilePathName>> m_SourceFilePathNames;
+    SourceFileContainer m_SourceFilePathNames;
     Ltg::ScriptingModuleName m_ScriptingModuleName;
     bool m_ShowVariableSignalsInAllGraphView = false;
     bool m_ShowVariableSignalsInGraphView = false;
