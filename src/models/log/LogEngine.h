@@ -99,6 +99,7 @@ public:
     void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName);
     void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool vFlag);
     bool isSignalShown(const SignalCategory& vCategory, const SignalName& vName, SignalColor* vOutColorPtr = nullptr);
+    bool isSomeSelection() const;
 
     SourceFilesContainerRef GetSourceFiles();
     SignalValueRangeConstRef GetTicksTimeSerieRange() const;

@@ -67,7 +67,7 @@ double LuaDatasModel::luaModuleStringToEpoch(const std::string& vDateTime, doubl
     if (epochSeconds == -1) {
         throw std::runtime_error("Failed to convert to epoch time");
     }
-    epochSeconds -= std::difftime(std::mktime(std::gmtime(&epochSeconds)), std::mktime(std::localtime(&epochSeconds)));
+    epochSeconds -= static_cast<time_t>(std::difftime(std::mktime(std::gmtime(&epochSeconds)), std::mktime(std::localtime(&epochSeconds))));
     return static_cast<double>(epochSeconds) + static_cast<double>(microseconds) / 1000000.0;
 }
 

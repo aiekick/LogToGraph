@@ -33,21 +33,14 @@ limitations under the License.
 #include <models/graphs/GraphAnnotation.h>
 #include <models/graphs/GraphAnnotationModel.h>
 
+#include <ezlibs/ezTools.hpp>
+
 #define DRAG_LINE_LOG_HOVERED_TIME 0
 #define DRAG_LINE_FIRST_DIFF_MARK 1
 #define DRAG_LINE_SECOND_DIFF_MARK 2
 #define DRAG_LINE_MOUSE_HOVERED_TIME 2
 
 static GraphColor s_DefaultGraphColors;
-
-// todo : to put in a common file
-// https://www.shadertoy.com/view/ld3fzf
-ez::fvec4 GraphView::GetRainBow(const int32_t& vIdx, const int32_t& vCount) {
-    float r = (float)(vIdx + 1U) / (float)vCount;
-    auto c = ez::cos(ez::fvec4(0.0f, 23.0f, 21.0f, 1.0f) + r * 6.3f) * 0.5f + 0.5f;
-    c.w = 0.75f;
-    return c;
-}
 
 GraphView::GraphView() {
     Clear();
@@ -125,11 +118,10 @@ void GraphView::RemoveEmptyGroups() {
         // first pass : we will save the group id of empty groups
         size_t idx = 0U;
         for (const auto& group_ptr : m_GraphGroups) {
-            if (group_ptr &&                           // valid group ptr
+            if (group_ptr &&  // valid group ptr
                 group_ptr != m_GraphGroups.front() &&  // not the first group (must always be selectable, so we keep it)
-                group_ptr != m_GraphGroups.back() &&   // not the last group (must always be selectable, so we keep it)
-                group_ptr->GetSignalSeries().empty())  // no signals series
-            {
+                group_ptr != m_GraphGroups.back() &&  // not the last group (must always be selectable, so we keep it)
+                group_ptr->GetSignalSeries().empty()) {  // no signals series
                 // we insert in front
                 // like that we will erase in inverse order
                 // because if we delete e index 1 before a 2
@@ -162,10 +154,8 @@ size_t GraphView::GetGroupID(const GraphGroupPtr& vToGroupPtr) const {
         if (group_ptr == vToGroupPtr) {
             break;
         }
-
         ++idx;
     }
-
     return idx;
 }
 
@@ -176,7 +166,6 @@ GraphGroupsRef GraphView::GetGraphGroups() {
 void GraphView::DrawGraphGroupTable() {
     if (ImGui::BeginMenuBar()) {
         ImGui::MenuItem("ReColorize (Rainbow)", nullptr, &ProjectFile::Instance()->m_AutoColorize);
-
         ImGui::EndMenuBar();
     }
 
@@ -210,7 +199,7 @@ void GraphView::DrawGraphGroupTable() {
                 if (datas_ptr) {
                     if (datas_ptr->show) {
                         if (ProjectFile::Instance()->m_AutoColorize) {
-                            datas_ptr->color_u32 = ImGui::GetColorU32(GetRainBow(visible_idx, visible_count));
+                            datas_ptr->color_u32 = ImGui::GetColorU32(ez::getRainBowColor(visible_idx, visible_count));
                             datas_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(datas_ptr->color_u32);
                         }
 
@@ -429,7 +418,7 @@ bool GraphView::prBeginPlot(const std::string& vLabel, ez::dvec2 vRangeValue, co
                 LogEngine::Instance()->SetSecondDiffMark(ImPlot::GetPlotMousePos().x);
             }
 
-            // second mark
+            // reset mark
             if (ImGui::IsKeyPressed(ImGuiKey_R)) {
                 LogEngine::Instance()->SetFirstDiffMark(0.0);
                 LogEngine::Instance()->SetSecondDiffMark(0.0);

@@ -1,1 +1,0 @@
-set(JSON_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/3rdparty/json)

@@ -24,10 +24,6 @@ limitations under the License.
 #include <headers/DatasDef.h>
 
 class GraphView {
-public:
-    // https://www.shadertoy.com/view/ld3fzf
-    static ez::fvec4 GetRainBow(const int32_t& vIdx, const int32_t& vCount);
-
 private:
     GraphGroups m_GraphGroups;
     SignalValueRange m_Range_Value = SignalValueRange(0.5, -0.5) * DBL_MAX;

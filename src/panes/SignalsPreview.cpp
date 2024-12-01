@@ -86,13 +86,11 @@ void SignalsPreview::SetHoveredTime(const SignalEpochTime& vHoveredTime) {
                     if (last_ptr && vHoveredTime >= last_ptr->time_epoch && ptr && vHoveredTime <= ptr->time_epoch) {
                         if (idx < count_signals) {
                             m_PreviewTicks[idx] = last_ptr;
-
                             if (ProjectFile::Instance()->m_AutoColorize) {
                                 auto parent_ptr = last_ptr->parent.lock();
                                 if (parent_ptr && parent_ptr->show) {
-                                    parent_ptr->color_u32 = ImGui::GetColorU32(GraphView::GetRainBow((int32_t)visible_idx, (int32_t)visible_count));
+                                    parent_ptr->color_u32 = ImGui::GetColorU32(ez::getRainBowColor((int32_t)visible_idx, (int32_t)visible_count));
                                     parent_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(parent_ptr->color_u32);
-
                                     ++visible_idx;
                                 }
                             }

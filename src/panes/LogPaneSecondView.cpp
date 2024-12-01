@@ -121,6 +121,21 @@ void LogPaneSecondView::DrawMenuBar() {
         ImGui::EndMenu();
     }
 
+    if (LogEngine::Instance()->isSomeSelection()) {
+        if (!ProjectFile::Instance()->m_CollapseLogSelection) {
+            if (m_LogListClipper.DisplayStart > 0) {
+                if (ImGui::MenuItem(ICON_FONT_ARROW_UP_THICK)) {
+                    m_backSelectionNeeded = true;
+                }
+            }
+            if (m_LogListClipper.DisplayEnd < (static_cast<int32_t>(m_LogDatas.size()) - 1)) {
+                if (ImGui::MenuItem(ICON_FONT_ARROW_DOWN_THICK)) {
+                    m_nextSelectionNeeded = true;
+                }
+            }
+        }
+    }
+
     if (ProjectFile::Instance()->m_HideSomeLog2ndValues) {
         ImGui::Text("(?)");
         if (ImGui::IsItemHovered()) {
@@ -143,6 +158,32 @@ void LogPaneSecondView::DrawMenuBar() {
     if (need_update) {
         PrepareLog();
         ProjectFile::Instance()->SetProjectChange();
+    }
+}
+
+void LogPaneSecondView::goOnNextSelection() {
+    int32_t max_idx = m_LogDatas.size();
+    for (int32_t idx = m_LogListClipper.DisplayStart + 1; idx < max_idx; ++idx) {
+        const auto infos_ptr = m_LogDatas.at(idx).lock();
+        if (infos_ptr) {
+            if (LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name)) {
+                ImGui::SetScrollY(ImGui::GetScrollY() + ImGui::GetTextLineHeightWithSpacing() * (idx - m_LogListClipper.DisplayStart));
+                break;
+            }
+        }
+    }
+}
+
+void LogPaneSecondView::goOnBackSelection() {
+    int32_t max_idx = m_LogDatas.size();
+    for (int32_t idx = m_LogListClipper.DisplayStart - 1; idx >= 0; --idx) {
+        const auto infos_ptr = m_LogDatas.at(idx).lock();
+        if (infos_ptr) {
+            if (LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name)) {
+                ImGui::SetScrollY(ImGui::GetScrollY() + ImGui::GetTextLineHeightWithSpacing() * (idx - m_LogListClipper.DisplayStart));
+                break;
+            }
+        }
     }
 }
 
@@ -209,6 +250,16 @@ void LogPaneSecondView::DrawTable() {
                         }
                     } else {
                         color = 0U;
+                    }
+
+                    if (m_nextSelectionNeeded) {
+                        m_nextSelectionNeeded = false;
+                        goOnNextSelection();
+                    }
+
+                    if (m_backSelectionNeeded) {
+                        m_backSelectionNeeded = false;
+                        goOnBackSelection();
                     }
 
                     if (ImGui::TableNextColumn())  // time
