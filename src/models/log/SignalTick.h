@@ -40,4 +40,5 @@ public:
     SignalStatus status;
     SignalDesc desc;
     SignalSerieWeak parent;
+    bool just_changed = false; // for hovered list view
 };

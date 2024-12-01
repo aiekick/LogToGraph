@@ -64,7 +64,7 @@ public:
     void PostRenderingActions();
 
     bool IsNeedToCloseApp();
-    void NeedToCloseApp(const bool& vFlag = true);
+    void NeedToCloseApp(const bool vFlag = true);
     void CloseApp();
 
     void setAppTitle(const std::string& vFilePathName = {});
@@ -78,7 +78,7 @@ public:  // configuration
     ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") final;
     bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) final;
 
-    void SetConsoleVisibility(const bool& vFlag);
+    void SetConsoleVisibility(const bool vFlag);
     void SwitchConsoleVisibility();
     bool GetConsoleVisibility();
 

@@ -92,7 +92,7 @@ public:
         const SignalString& vString,
         const SignalStatus& vStatus);
 
-    void StartWorkerThread(const bool& vFirstLoad);
+    void StartWorkerThread(const bool vFirstLoad);
     bool StopWorkerThread();
     bool IsJoinable();
     void Join();

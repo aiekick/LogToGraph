@@ -21,6 +21,7 @@
 #include <headers/DatasDef.h>
 #include <apis/LtgPluginApi.h>
 #include <ezlibs/ezXmlConfig.hpp>
+#include <ezlibs/ezVec4.hpp>
 
 struct GraphColor {
     ImVec4 graphBarColor = ImVec4(0.2f, 0.5f, 0.8f, 0.5f);
@@ -28,6 +29,7 @@ struct GraphColor {
     ImVec4 graphMouseHoveredTimeColor = ImVec4(0.2f, 0.8f, 0.2f, 0.8f);
     ImVec4 graphFirstDiffMarkColor = ImVec4(0.8f, 0.2f, 0.2f, 0.8f);
     ImVec4 graphSecondDiffMarkColor = ImVec4(0.2f, 0.2f, 0.8f, 0.8f);
+    ImVec4 graphHoveredUpdatedRectColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
 };
 
 class ProjectFile : public Ltg::IProject, public ez::xml::Config {
@@ -69,6 +71,7 @@ public:  // to save
     bool m_ShowVariableSignalsInHoveredListView = false;
     bool m_AutoResizeLogColumns = false;
     bool m_AutoResizeLog2ndColumns = false;
+    float m_HoveredListChangedTextRectThickNess = 2.0f;
 
 private:  // dont save
     bool m_IsLoaded = false;

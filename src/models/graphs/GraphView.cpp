@@ -377,7 +377,7 @@ void GraphView::prEraseGroupAt(const size_t& vIdx) {
     }
 }
 
-bool GraphView::prBeginPlot(const std::string& vLabel, ez::dvec2 vRangeValue, const ImVec2& vSize, const bool& vFirstGraph) const {
+bool GraphView::prBeginPlot(const std::string& vLabel, ez::dvec2 vRangeValue, const ImVec2& vSize, const bool vFirstGraph) const {
     const auto& time_range = LogEngine::Instance()->GetTicksTimeSerieRange();
     if (ImPlot::BeginPlot(vLabel.c_str(), vSize, ImPlotFlags_NoChild | ImPlotFlags_NoTitle)) {
         if (m_need_show_hide_x_axis) {
@@ -487,7 +487,7 @@ static bool ImPLotHoveredLineX(int n_id, double* value, const ImVec4& col, float
     return hovered;
 }
 
-void GraphView::prEndPlot(const bool& vFirstGraph) {
+void GraphView::prEndPlot(const bool vFirstGraph) {
     // draw diff first marks
     auto first_mark = ProjectFile::Instance()->m_DiffFirstMark;
     if (first_mark > 0.0) {
@@ -533,7 +533,7 @@ void GraphView::prEndPlot(const bool& vFirstGraph) {
     ImPlot::EndPlot();
 }
 
-void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool& vFirstGraph) {
+void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool vFirstGraph) {
     auto datas_ptr = vSignalSerie.lock();
     if (datas_ptr && datas_ptr->show_hide_temporary) {
         ImDrawList* draw_list = ImPlot::GetPlotDrawList();
@@ -600,7 +600,7 @@ void GraphView::prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, co
 
                                 value_pos = ImPlot::PlotToPixels(current_point);
 
-                                const bool& _is_hovered = (ImPlot::IsPlotHovered() && hovered_time >= last_time && hovered_time <= current_time);
+                                const bool _is_hovered = (ImPlot::IsPlotHovered() && hovered_time >= last_time && hovered_time <= current_time);
                                 const ImU32& _color = _is_hovered ? _GraphMouseHoveredTimeColor : datas_ptr->color_u32;
 
                                 if (last_string.empty()) {
@@ -832,7 +832,7 @@ void GraphView::DrawGroupedGraphs(const GraphGroupPtr& vGraphGroupPtr, const ImV
 
                                                 ImPlot::FitPoint(ImPlotPoint(current_time, current_value));
 
-                                                const bool& _is_v_hovered = (ImPlot::IsPlotHovered() && hovered_time >= last_time && hovered_time <= current_time);
+                                                const bool _is_v_hovered = (ImPlot::IsPlotHovered() && hovered_time >= last_time && hovered_time <= current_time);
                                                 ImU32 _color = datas_ptr->color_u32;
 
                                                 if (last_string.empty()) {

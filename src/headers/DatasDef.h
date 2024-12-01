@@ -13,6 +13,7 @@
 #include <ImGuiPack.h>
 #include <ezlibs/ezTools.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
+#include <ezlibs/ezCnt.hpp>
 
 #define declareMember(type, var, def)   \
 private:                                \
@@ -81,6 +82,9 @@ typedef std::vector<SignalTickPtr>& SignalTicksContainerRef;
 
 typedef std::vector<SignalTickWeak> SignalTicksWeakContainer;
 typedef std::vector<SignalTickWeak>& SignalTicksWeakContainerRef;
+
+typedef ez::cnt::DicoVector<SignalName, SignalTickWeak> SignalTicksWeakPreviewContainer;
+typedef ez::cnt::DicoVector<SignalName, SignalTickWeak>& SignalTicksWeakPreviewContainerRef;
 
 typedef std::vector<std::pair<SignalTickWeak, SignalTickWeak>> SignalDiffWeakContainer;
 typedef std::vector<std::pair<SignalTickWeak, SignalTickWeak>>& SignalDiffWeakContainerRef;

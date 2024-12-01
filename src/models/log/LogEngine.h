@@ -67,7 +67,7 @@ private:
     std::unordered_map<SignalName, std::unordered_map<SignalCategory, SignalSetting>> m_SignalSettings;
 
     // hovered preview ticks
-    SignalTicksWeakContainer m_PreviewTicks;
+    SignalTicksWeakPreviewContainer m_PreviewTicks;
 
     // diff check
     SignalTicksWeakContainer m_DiffFirstTicks;   // first mark container
@@ -97,7 +97,7 @@ public:
 
     // iter SignalDatasContainer
     void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName);
-    void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool& vFlag);
+    void ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool vFlag);
     bool isSignalShown(const SignalCategory& vCategory, const SignalName& vName, SignalColor* vOutColorPtr = nullptr);
 
     SourceFilesContainerRef GetSourceFiles();
@@ -106,12 +106,12 @@ public:
     SignalTagsContainerRef GetSignalTags();
     SignalSeriesContainerRef GetSignalSeries();
 
-    void SetHoveredTime(const SignalEpochTime& vSignalEpochTime);
+    void SetHoveredTime(const SignalEpochTime& vSignalEpochTime, const bool vForce = false);
     double GetHoveredTime() const;
 
     void UpdateVisibleSignalsColoring();
 
-    SignalTicksWeakContainerRef GetPreviewTicks();
+    SignalTicksWeakPreviewContainerRef GetPreviewTicks();
 
     void PrepareForSave();
     void PrepareAfterLoad();

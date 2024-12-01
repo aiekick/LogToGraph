@@ -241,7 +241,7 @@ void ScriptingEngine::AddSignalStatus(const SignalCategory& vCategory,
 //// THREAD ///////////////////////////////////////////
 ///////////////////////////////////////////////////////
 
-void ScriptingEngine::StartWorkerThread(const bool& vFirstLoad) {
+void ScriptingEngine::StartWorkerThread(const bool vFirstLoad) {
     if (!StopWorkerThread()) {
         if (!vFirstLoad) {
             LogEngine::Instance()->PrepareForSave();

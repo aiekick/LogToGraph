@@ -62,10 +62,10 @@ private:
     void RemoveEmptyGroups();
 
     void prEraseGroupAt(const size_t& vIdx);
-    void prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool& vFirstGraph);
+    void prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool vFirstGraph);
 
-    bool prBeginPlot(const std::string& vLabel, ez::dvec2 vRangeValue, const ImVec2& vSize, const bool& vFirstGraph) const;
-    static void prEndPlot(const bool& vFirstGraph);
+    bool prBeginPlot(const std::string& vLabel, ez::dvec2 vRangeValue, const ImVec2& vSize, const bool vFirstGraph) const;
+    static void prEndPlot(const bool vFirstGraph);
 
 public:  // singleton
     static std::shared_ptr<GraphView> Instance() {
