@@ -24,7 +24,7 @@ PLUGIN_PREFIX void deleter(LuaScripting* ptr) {
 }
 }
 
-#include <Modules/Module.h>
+#include <modules/Module.h>
 
 LuaScripting::LuaScripting() = default;
 
