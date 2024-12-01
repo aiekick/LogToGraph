@@ -146,6 +146,32 @@ void LogPaneSecondView::DrawMenuBar() {
     }
 }
 
+void LogPaneSecondView::goOnNextSelection() {
+    int32_t max_idx = m_LogDatas.size();
+    for (int32_t idx = m_LogListClipper.DisplayStart + 1; idx < max_idx; ++idx) {
+        const auto infos_ptr = m_LogDatas.at(idx).lock();
+        if (infos_ptr) {
+            if (LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name)) {
+                ImGui::SetScrollY(ImGui::GetScrollY() + ImGui::GetTextLineHeightWithSpacing() * (idx - m_LogListClipper.DisplayStart));
+                break;
+            }
+        }
+    }
+}
+
+void LogPaneSecondView::goOnBackSelection() {
+    int32_t max_idx = m_LogDatas.size();
+    for (int32_t idx = m_LogListClipper.DisplayStart - 1; idx >= 0; --idx) {
+        const auto infos_ptr = m_LogDatas.at(idx).lock();
+        if (infos_ptr) {
+            if (LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name)) {
+                ImGui::SetScrollY(ImGui::GetScrollY() + ImGui::GetTextLineHeightWithSpacing() * (idx - m_LogListClipper.DisplayStart));
+                break;
+            }
+        }
+    }
+}
+
 void LogPaneSecondView::DrawTable() {
     ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
         ImGuiTableFlags_NoHostExtendY;
@@ -209,6 +235,16 @@ void LogPaneSecondView::DrawTable() {
                         }
                     } else {
                         color = 0U;
+                    }
+
+                    if (m_nextSelectionNeeded) {
+                        m_nextSelectionNeeded = false;
+                        goOnNextSelection();
+                    }
+
+                    if (m_backSelectionNeeded) {
+                        m_backSelectionNeeded = false;
+                        goOnBackSelection();
                     }
 
                     if (ImGui::TableNextColumn())  // time

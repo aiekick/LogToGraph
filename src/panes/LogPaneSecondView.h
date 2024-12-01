@@ -31,6 +31,8 @@ private:
     SignalTicksWeakContainer m_LogDatas;
     std::vector<double> m_ValuesToHide;
     bool m_need_re_preparation = false;
+    bool m_nextSelectionNeeded = false;
+    bool m_backSelectionNeeded = false;
 
 public:
     bool Init() override;
@@ -42,6 +44,8 @@ public:
     void PrepareLog();               // Prevent unwanted destruction};
 
 private:
+    void goOnNextSelection();
+    void goOnBackSelection();
     void DrawMenuBar();
     void DrawTable();
 
