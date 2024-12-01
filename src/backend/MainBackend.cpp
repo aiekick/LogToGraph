@@ -164,7 +164,7 @@ bool MainBackend::IsNeedToCloseApp() {
     return m_NeedToCloseApp;
 }
 
-void MainBackend::NeedToCloseApp(const bool& vFlag) {
+void MainBackend::NeedToCloseApp(const bool vFlag) {
     m_NeedToCloseApp = vFlag;
 }
 
@@ -200,7 +200,7 @@ int MainBackend::GetMouseButton(int vButton) {
 //// CONSOLE ///////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void MainBackend::SetConsoleVisibility(const bool& vFlag) {
+void MainBackend::SetConsoleVisibility(const bool vFlag) {
     m_ConsoleVisiblity = vFlag;
 
     if (m_ConsoleVisiblity) {

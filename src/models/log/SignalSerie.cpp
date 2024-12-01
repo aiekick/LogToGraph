@@ -28,7 +28,7 @@ SignalSeriePtr SignalSerie::Create() {
     return res;
 }
 
-void SignalSerie::insertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount) {
+void SignalSerie::insertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool vIncBaseRecordsCount) {
     if (vIdx < datas_values.size()) {
         auto ptr = vTick.lock();
         if (ptr) {
@@ -45,7 +45,7 @@ void SignalSerie::insertTick(const SignalTickWeak& vTick, const size_t& vIdx, co
     }
 }
 
-void SignalSerie::addTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount) {
+void SignalSerie::addTick(const SignalTickWeak& vTick, const bool vIncBaseRecordsCount) {
     auto ptr = vTick.lock();
     if (ptr) {
         ptr->parent = m_This;

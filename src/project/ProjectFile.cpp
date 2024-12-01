@@ -258,6 +258,7 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     node.addChild("graph_mouse_current_time_colors").setContent(m_GraphColors.graphMouseHoveredTimeColor);
     node.addChild("graph_diff_first_mark_color").setContent(m_GraphColors.graphFirstDiffMarkColor);
     node.addChild("graph_diff_second_mark_color").setContent(m_GraphColors.graphSecondDiffMarkColor);
+    node.addChild("graph_hovered_updated_rect_color").setContent(m_GraphColors.graphHoveredUpdatedRectColor);
     node.addChild("selection_collapsing").setContent(m_CollapseLogSelection);
     node.addChild("auto_colorize").setContent(m_AutoColorize);
     node.addChild("search_string").setContent(m_SearchString);
@@ -285,6 +286,7 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     node.addChild("show_variable_signals_in_log_2nd_view").setContent(m_ShowVariableSignalsInLog2ndView);
     node.addChild("auto_resize_columns_log_view").setContent(m_AutoResizeLogColumns);
     node.addChild("auto_resize_columns_log_2nd_view").setContent(m_AutoResizeLog2ndColumns);
+    node.addChild("hovered_list_changed_text_rect_thickness").setContent(m_HoveredListChangedTextRectThickNess);
     node.addChild("last_log_file_path").setContent(m_LastLogFilePath);
     node.addChild("script_file").setContent(m_ScriptFilePathName);
     auto& childNode = node.addChild("log_files");
@@ -310,6 +312,8 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
             m_GraphColors.graphFirstDiffMarkColor = ez::fvariant(strValue).GetV4();
         } else if (strName == "graph_diff_second_mark_color") {
             m_GraphColors.graphSecondDiffMarkColor = ez::fvariant(strValue).GetV4();
+        } else if (strName == "graph_hovered_updated_rect_color") {
+            m_GraphColors.graphHoveredUpdatedRectColor = ez::fvariant(strValue).GetV4();
         } else if (strName == "selection_collapsing") {
             m_CollapseLogSelection = ez::ivariant(strValue).GetB();
         } else if (strName == "auto_colorize") {
@@ -364,6 +368,8 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
             m_AutoResizeLogColumns = ez::dvariant(strValue).GetB();
         } else if (strName == "auto_resize_columns_log_2nd_view") {
             m_AutoResizeLog2ndColumns = ez::dvariant(strValue).GetB();
+        } else if (strName == "hovered_list_changed_text_rect_thickness") {
+            m_HoveredListChangedTextRectThickNess = ez::fvariant(strValue).GetF();
         } else if (strName == "last_log_file_path") {
             m_LastLogFilePath = strValue;
         } else if (strName == "script_file") {

@@ -324,7 +324,7 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
     }
 }
 
-void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool& vFlag) {
+void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName, const bool vFlag) {
     if (m_SignalSeries.find(vCategory) != m_SignalSeries.end()) {
         auto& cat = m_SignalSeries.at(vCategory);
         if (cat.find(vName) != cat.end()) {
@@ -387,35 +387,45 @@ SignalSeriesContainerRef LogEngine::GetSignalSeries() {
     return m_SignalSeries;
 }
 
-void LogEngine::SetHoveredTime(const SignalEpochTime& vHoveredTime) {
-    m_HoveredTime = vHoveredTime;
-    ProjectFile::Instance()->SetProjectChange();
-    m_PreviewTicks.clear();
-    m_PreviewTicks.reserve(m_SignalsCount);
-    size_t visible_idx = 0U;
-    for (auto& item_cat : m_SignalSeries) {
-        for (auto& item_name : item_cat.second) {
-            if (item_name.second) {
-                if (ProjectFile::Instance()->m_ShowVariableSignalsInHoveredListView && item_name.second->isConstant()) {
-                    continue;
-                }
-                SignalTickPtr last_ptr = nullptr;
-                for (const auto& tick_weak : item_name.second->datas_values) {
-                    auto ptr = tick_weak.lock();
-                    if (last_ptr && vHoveredTime >= last_ptr->time_epoch && ptr && vHoveredTime <= ptr->time_epoch) {
-                        m_PreviewTicks.push_back(last_ptr);
-                        if (ProjectFile::Instance()->m_AutoColorize) {
-                            auto parent_ptr = last_ptr->parent.lock();
-                            if (parent_ptr && parent_ptr->show) {
-                                parent_ptr->color_u32 = ImGui::GetColorU32(GraphView::GetRainBow((int32_t)visible_idx, m_VisibleCount));
-                                parent_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(parent_ptr->color_u32);
-
-                                ++visible_idx;
-                            }
-                        }
-                        break;
+void LogEngine::SetHoveredTime(const SignalEpochTime& vHoveredTime, const bool vForce) {
+    if (vForce || m_HoveredTime != vHoveredTime) {
+        m_HoveredTime = vHoveredTime;
+        ProjectFile::Instance()->SetProjectChange();
+        auto last_previewed_ticks = m_PreviewTicks;
+        m_PreviewTicks.clear();
+        m_PreviewTicks.reserve(m_SignalsCount);
+        size_t visible_idx = 0U;
+        for (auto& item_cat : m_SignalSeries) {
+            for (auto& item_name : item_cat.second) {
+                if (item_name.second) {
+                    if (ProjectFile::Instance()->m_ShowVariableSignalsInHoveredListView && item_name.second->isConstant()) {
+                        continue;
                     }
-                    last_ptr = ptr;
+                    SignalTickPtr last_ptr = nullptr;
+                    for (const auto& tick_weak : item_name.second->datas_values) {
+                        auto ptr = tick_weak.lock();
+                        if (last_ptr && vHoveredTime >= last_ptr->time_epoch && ptr != nullptr && vHoveredTime <= ptr->time_epoch) {
+                            if (m_PreviewTicks.tryAdd(item_name.second->name, last_ptr)) {
+                                if (ProjectFile::Instance()->m_AutoColorize) {
+                                    auto parent_ptr = last_ptr->parent.lock();
+                                    if (parent_ptr && parent_ptr->show) {
+                                        parent_ptr->color_u32 = ImGui::GetColorU32(GraphView::GetRainBow((int32_t)visible_idx, m_VisibleCount));
+                                        parent_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(parent_ptr->color_u32);
+
+                                        ++visible_idx;
+                                    }
+                                }
+                                if (last_previewed_ticks.exist(item_name.second->name)) {
+                                    auto last_previewed_tick_ptr = last_previewed_ticks.value(item_name.second->name).lock();
+                                    if (last_previewed_tick_ptr != nullptr) {
+                                        last_ptr->just_changed = ez::isDifferent(last_previewed_tick_ptr->value, last_ptr->value);
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                        last_ptr = ptr;
+                    }
                 }
             }
         }
@@ -452,7 +462,7 @@ void LogEngine::UpdateVisibleSignalsColoring() {
     }
 }
 
-SignalTicksWeakContainerRef LogEngine::GetPreviewTicks() {
+SignalTicksWeakPreviewContainerRef LogEngine::GetPreviewTicks() {
     return m_PreviewTicks;
 }
 

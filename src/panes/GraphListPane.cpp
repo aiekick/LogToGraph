@@ -244,7 +244,7 @@ void GraphListPane::DrawTree() {
 }
 
 void GraphListPane::PrepareLog(const std::string& vSearchString) {
-    const bool& is_their_some_search = !vSearchString.empty();
+    const bool is_their_some_search = !vSearchString.empty();
 
     m_FilteredSignalSeries.clear();
 

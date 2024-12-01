@@ -52,8 +52,8 @@ public:                 // to save
     bool show = false;  // signal must be shown on graph screen
 
 public:
-    void insertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool& vIncBaseRecordsCount = false);
-    void addTick(const SignalTickWeak& vTick, const bool& vIncBaseRecordsCount = false);
+    void insertTick(const SignalTickWeak& vTick, const size_t& vIdx, const bool vIncBaseRecordsCount = false);
+    void addTick(const SignalTickWeak& vTick, const bool vIncBaseRecordsCount = false);
 
     void addGraphAnnotation(GraphAnnotationWeak vGraphAnnotation);
 

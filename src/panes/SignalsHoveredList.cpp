@@ -26,6 +26,8 @@ limitations under the License.
 #include <models/log/SignalSerie.h>
 #include <models/log/SignalTick.h>
 
+static GraphColor s_DefaultGraphColors;
+
 ///////////////////////////////////////////////////////////////////////////////////
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -65,8 +67,9 @@ bool SignalsHoveredList::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpe
     return change;
 }
 
-int SignalsHoveredList::CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize,   /* cell size						*/
-                                                      ImVec2& vOutButtonSize) /* button size (cell - paddings)	*/
+int SignalsHoveredList::CalcSignalsButtonCountAndSize(
+    ImVec2& vOutCellSize, /* cell size						*/
+    ImVec2& vOutButtonSize) /* button size (cell - paddings)	*/
 {
     float aw = ImGui::GetContentRegionAvail().x;
 
@@ -89,8 +92,27 @@ void SignalsHoveredList::DrawMenuBar() {
     if (ImGui::BeginMenu("Settings")) {
         if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInHoveredListView)) {
             ProjectFile::Instance()->SetProjectChange();
-            LogEngine::Instance()->SetHoveredTime(LogEngine::Instance()->GetHoveredTime());
+            LogEngine::Instance()->SetHoveredTime(LogEngine::Instance()->GetHoveredTime(), true);
         }
+
+        {  // color of updated text rect
+            if (ImGui::ContrastedButton("R##ResetSelectionColor")) {
+                ProjectFile::Instance()->SetProjectChange();
+                ProjectFile::Instance()->m_GraphColors.graphHoveredUpdatedRectColor = s_DefaultGraphColors.graphHoveredUpdatedRectColor;
+            }
+            ImGui::SameLine();
+            if (ImGui::ColorEdit4(
+                    "Updated values rect color##ResetSelectionColor",  //
+                    &ProjectFile::Instance()->m_GraphColors.graphHoveredUpdatedRectColor.x,
+                    ImGuiColorEditFlags_NoInputs)) {
+                ProjectFile::Instance()->SetProjectChange();
+            }
+        }
+
+        if (ImGui::SliderFloatDefault(
+                150.0f, "Updated values rect thickness", &ProjectFile::Instance()->m_HoveredListChangedTextRectThickNess, 0.01f, 10.0f, 2.0f)) {
+        }
+
         ImGui::EndMenu();
     }
 }
@@ -114,6 +136,10 @@ void SignalsHoveredList::DrawTable() {
                 ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed);
 
                 ImGui::TableHeadersRow();
+
+                const auto& updatedRectColor = ProjectFile::Instance()->m_GraphColors.graphHoveredUpdatedRectColor;
+                const auto& updatedRectOffset = ImVec2(2.0f, 2.0f);
+                const auto updatedRectTickness = ProjectFile::Instance()->m_HoveredListChangedTextRectThickNess;
 
                 int32_t count_color_push = 0;
                 ImU32 color = 0U;
@@ -142,35 +168,40 @@ void SignalsHoveredList::DrawTable() {
                                 color = 0U;
                             }
 
-                            if (ImGui::TableNextColumn())  // time
-                            {
+                            if (ImGui::TableNextColumn()) {  // time
                                 ImGui::Selectable(ez::str::toStr("%f", infos_ptr->time_epoch).c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
                             }
-                            if (ImGui::TableNextColumn())  // date time
-                            {
+                            if (ImGui::TableNextColumn()) {  // date time
                                 ImGui::Selectable(infos_ptr->time_date_time.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
                             }
-                            if (ImGui::TableNextColumn())  // category
-                            {
+                            if (ImGui::TableNextColumn()) {  // category
                                 ImGui::Selectable(infos_ptr->category.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
                             }
-                            if (ImGui::TableNextColumn())  // name
-                            {
+                            if (ImGui::TableNextColumn()) {  // name
                                 ImGui::Selectable(infos_ptr->name.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
                             }
-                            if (ImGui::TableNextColumn())  // value
-                            {
+                            if (ImGui::TableNextColumn()) {  // value
+                                // clang-format off
                                 if (infos_ptr->string.empty()) {
-                                    ImGui::Text("%f", infos_ptr->value);
+                                    ImGui::DrawRectOverText(infos_ptr->just_changed, 
+                                        updatedRectColor, updatedRectOffset, updatedRectTickness, 
+                                        "%f", infos_ptr->value);
                                 } else {
                                     if (infos_ptr->status == LogEngine::sc_START_ZONE) {
-                                        ImGui::Text(ICON_FONT_ARROW_RIGHT_THICK " %s", infos_ptr->string.c_str());
+                                        ImGui::DrawRectOverText(infos_ptr->just_changed, 
+                                            updatedRectColor, updatedRectOffset, updatedRectTickness, 
+                                            ICON_FONT_ARROW_RIGHT_THICK " %s", infos_ptr->string.c_str());
                                     } else if (infos_ptr->status == LogEngine::sc_END_ZONE) {
-                                        ImGui::Text("%s " ICON_FONT_ARROW_LEFT_THICK, infos_ptr->string.c_str());
+                                        ImGui::DrawRectOverText(infos_ptr->just_changed, 
+                                            updatedRectColor, updatedRectOffset, updatedRectTickness, 
+                                            "%s " ICON_FONT_ARROW_LEFT_THICK, infos_ptr->string.c_str());
                                     } else {
-                                        ImGui::Text("%s", infos_ptr->string.c_str());
+                                        ImGui::DrawRectOverText(infos_ptr->just_changed, 
+                                            updatedRectColor, updatedRectOffset, updatedRectTickness, 
+                                            "%s", infos_ptr->string.c_str());
                                     }
                                 }
+                                // clang-format on
                             }
 
                             if (color) {
