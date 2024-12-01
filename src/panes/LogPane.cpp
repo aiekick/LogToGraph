@@ -63,8 +63,6 @@ bool LogPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiC
             }
         }
 
-        // MainFrame::sAnyWindowsHovered |= ImGui::IsWindowHovered();
-
         ImGui::End();
     }
     return change;
@@ -124,6 +122,16 @@ void LogPane::DrawMenuBar() {
         ImGui::EndMenu();
     }
 
+    if (!ProjectFile::Instance()->m_CollapseLogSelection) {
+        if (ImGui::MenuItem("<<")) {
+            m_backSelectionNeeded = true;
+        }
+
+        if (ImGui::MenuItem(">>")) {
+            m_nextSelectionNeeded = true;
+        }
+    }
+
     if (ProjectFile::Instance()->m_HideSomeLogValues) {
         ImGui::Text("(?)");
         if (ImGui::IsItemHovered()) {
@@ -146,6 +154,32 @@ void LogPane::DrawMenuBar() {
     if (need_update) {
         PrepareLog();
         ProjectFile::Instance()->SetProjectChange();
+    }
+}
+
+void LogPane::goOnNextSelection() {
+    int32_t max_idx = m_LogDatas.size();
+    for (int32_t idx = m_LogListClipper.DisplayStart + 1; idx < max_idx; ++idx) {
+        const auto infos_ptr = m_LogDatas.at(idx).lock();
+        if (infos_ptr) {
+            if (LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name)) {
+                ImGui::SetScrollY(ImGui::GetScrollY() + ImGui::GetTextLineHeightWithSpacing() * (idx - m_LogListClipper.DisplayStart));
+                break;
+            }
+        }
+    }
+}
+
+void LogPane::goOnBackSelection() {
+    int32_t max_idx = m_LogDatas.size();
+    for (int32_t idx = m_LogListClipper.DisplayStart - 1; idx >= 0; --idx) {
+        const auto infos_ptr = m_LogDatas.at(idx).lock();
+        if (infos_ptr) {
+            if (LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name)) {
+                ImGui::SetScrollY(ImGui::GetScrollY() + ImGui::GetTextLineHeightWithSpacing() * (idx - m_LogListClipper.DisplayStart));
+                break;
+            }
+        }
     }
 }
 
@@ -189,7 +223,7 @@ void LogPane::DrawTable() {
         bool selected = false;
         m_LogListClipper.Begin((int)_count_logs, ImGui::GetTextLineHeightWithSpacing());
         while (m_LogListClipper.Step()) {
-            for (int i = m_LogListClipper.DisplayStart; i < m_LogListClipper.DisplayEnd; ++i) {
+            for (int32_t i = m_LogListClipper.DisplayStart; i < m_LogListClipper.DisplayEnd; ++i) {
                 if (i < 0)
                     continue;
 
@@ -209,6 +243,16 @@ void LogPane::DrawTable() {
                         }
                     } else {
                         color = 0U;
+                    }
+
+                    if (m_nextSelectionNeeded) {
+                        m_nextSelectionNeeded = false;
+                        goOnNextSelection();
+                    }
+
+                    if (m_backSelectionNeeded) {
+                        m_backSelectionNeeded = false;
+                        goOnBackSelection();
                     }
 
                     if (ImGui::TableNextColumn())  // time
@@ -291,8 +335,9 @@ void LogPane::PrepareLog() {
             }
 
             auto selected = LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name);
-            if (_collapseSelection && !selected)
+            if (_collapseSelection && !selected) {
                 continue;
+            }
 
             if (ProjectFile::Instance()->m_HideSomeLogValues) {
                 bool found = false;
