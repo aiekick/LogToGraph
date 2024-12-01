@@ -34,6 +34,8 @@ limitations under the License.
 
 #include <project/ProjectFile.h>
 
+#include <ezlibs/ezTools.hpp>
+
 ///////////////////////////////////////////////////
 /// STATIC'S //////////////////////////////////////
 ///////////////////////////////////////////////////
@@ -319,6 +321,7 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
 
                 ProjectFile::Instance()->SetProjectChange();
                 GraphView::Instance()->ComputeGraphsCount();
+                UpdateVisibleSignalsColoring();
             }
         }
     }
@@ -342,6 +345,7 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
 
                 ProjectFile::Instance()->SetProjectChange();
                 GraphView::Instance()->ComputeGraphsCount();
+                UpdateVisibleSignalsColoring();
             }
         }
     }
@@ -365,6 +369,10 @@ bool LogEngine::isSignalShown(const SignalCategory& vCategory, const SignalName&
     }
 
     return res;
+}
+
+bool LogEngine::isSomeSelection() const {
+    return (m_VisibleCount > 0);
 }
 
 SourceFilesContainerRef LogEngine::GetSourceFiles() {
@@ -409,7 +417,7 @@ void LogEngine::SetHoveredTime(const SignalEpochTime& vHoveredTime, const bool v
                                 if (ProjectFile::Instance()->m_AutoColorize) {
                                     auto parent_ptr = last_ptr->parent.lock();
                                     if (parent_ptr && parent_ptr->show) {
-                                        parent_ptr->color_u32 = ImGui::GetColorU32(GraphView::GetRainBow((int32_t)visible_idx, m_VisibleCount));
+                                        parent_ptr->color_u32 = ImGui::GetColorU32(ez::getRainBowColor((int32_t)visible_idx, m_VisibleCount));
                                         parent_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(parent_ptr->color_u32);
 
                                         ++visible_idx;
@@ -447,9 +455,8 @@ void LogEngine::UpdateVisibleSignalsColoring() {
                         if (last_ptr) {
                             auto parent_ptr = last_ptr->parent.lock();
                             if (parent_ptr && parent_ptr->show) {
-                                parent_ptr->color_u32 = ImGui::GetColorU32(GraphView::GetRainBow((int32_t)visible_idx, m_VisibleCount));
+                                parent_ptr->color_u32 = ImGui::GetColorU32(ez::getRainBowColor((int32_t)visible_idx, m_VisibleCount));
                                 parent_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(parent_ptr->color_u32);
-
                                 ++visible_idx;
                             }
                         }

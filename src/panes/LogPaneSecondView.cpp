@@ -121,6 +121,21 @@ void LogPaneSecondView::DrawMenuBar() {
         ImGui::EndMenu();
     }
 
+    if (LogEngine::Instance()->isSomeSelection()) {
+        if (!ProjectFile::Instance()->m_CollapseLogSelection) {
+            if (m_LogListClipper.DisplayStart > 0) {
+                if (ImGui::MenuItem(ICON_FONT_ARROW_UP_THICK)) {
+                    m_backSelectionNeeded = true;
+                }
+            }
+            if (m_LogListClipper.DisplayEnd < (static_cast<int32_t>(m_LogDatas.size()) - 1)) {
+                if (ImGui::MenuItem(ICON_FONT_ARROW_DOWN_THICK)) {
+                    m_nextSelectionNeeded = true;
+                }
+            }
+        }
+    }
+
     if (ProjectFile::Instance()->m_HideSomeLog2ndValues) {
         ImGui::Text("(?)");
         if (ImGui::IsItemHovered()) {
