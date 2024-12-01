@@ -111,6 +111,9 @@ typedef std::map<SignalName, SignalSerieWeak> SignalContainerWeak;
 typedef std::map<SignalCategory, SignalContainerWeak> SignalSeriesWeakContainer;
 typedef std::map<SignalCategory, SignalContainerWeak>& SignalSeriesWeakContainerRef;
 
+class SignalItem;
+typedef std::map<SignalName, SignalItem> SignalItemContainer;
+
 class GraphGroup;
 typedef std::shared_ptr<GraphGroup> GraphGroupPtr;
 typedef std::weak_ptr<GraphGroup> GraphGroupWeak;

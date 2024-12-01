@@ -7,13 +7,11 @@
 
 void SignalTree::clear() {
     m_RootItem.clear();
-    m_SignalSeriesOld.clear();
 }
 
 void SignalTree::prepare(const std::string& vSearchString) {
     searchPattern = vSearchString;
     m_RootItem.clear();
-    m_SignalSeriesOld.clear();
 
     for (const auto& signal_cnt : LogEngine::Instance()->GetSignalSeries()) {
         prepareRecurs(vSearchString, signal_cnt.first, signal_cnt.second, m_RootItem);
@@ -35,8 +33,7 @@ void SignalTree::prepareRecurs(const std::string& vSearchString, const SignalCat
     auto& item = vSignalItemRef.childs.at(left_category);
     if (!right_category.empty()) {  // no leaf, recurs
         prepareRecurs(vSearchString, right_category, vSignals, item);
-        item.count = static_cast<uint32_t>(item.childs.size());
-
+        item.count = static_cast<uint32_t>(item.childs.size() + item.signals.size());
     } else {  // leaf : add
         item.count = static_cast<uint32_t>(vSignals.size());
         for (const auto& sig : vSignals) {
@@ -56,49 +53,53 @@ void SignalTree::prepareRecurs(const std::string& vSearchString, const SignalCat
     }
 }
 
+const SignalItem& SignalTree::getRootItem() const {
+    return m_RootItem;
+}
+
 void SignalTree::displayTree(bool vCollapseAll, bool vExpandAll) {
     displayItemRecurs(m_RootItem, vCollapseAll, vExpandAll);
 }
 
 void SignalTree::displayItemRecurs(SignalItem& vSignalItemRef, bool vCollapseAll, bool vExpandAll) {
-    if (vSignalItemRef.isLeaf()) {
-        for (auto& signal : vSignalItemRef.signals) {
-            if (!signal.second.expired()) {
-                auto ptr = signal.second.lock();
-                if (ptr) {
-                    if (ImGui::Selectable(ptr->label.c_str(), ptr->show)) {
-                        ptr->show = !ptr->show;
-                        LogEngine::Instance()->ShowHideSignal(ptr->category, ptr->name, ptr->show);
-                        if (ProjectFile::Instance()->m_CollapseLogSelection) {
-                            LogPane::Instance()->PrepareLog();
-                        }
-                        ProjectFile::Instance()->SetProjectChange();
+    // display categories
+    for (auto& child : vSignalItemRef.childs) {
+        if (vCollapseAll) {
+            // can close only the first item for now
+            // or we need to reach the leaf
+            // and close from leaf so to do on many frames
+            // can be anoying for the user
+            // todo : by the way
+            ImGui::SetNextItemOpen(false);
+        }
+
+        if (vExpandAll) {
+            // will open all tree during recursion
+            ImGui::SetNextItemOpen(true);
+        }
+
+        if (ImGui::TreeNode(&child.second, "%s", child.second.label.c_str())) {
+            displayItemRecurs(child.second, vCollapseAll, vExpandAll);
+            ImGui::TreePop();
+        }
+    }
+
+    // display signals
+    ImGui::Indent();
+    for (auto& signal : vSignalItemRef.signals) {
+        if (!signal.second.expired()) {
+            auto ptr = signal.second.lock();
+            if (ptr) {
+                if (ImGui::Selectable(ptr->label.c_str(), ptr->show)) {
+                    ptr->show = !ptr->show;
+                    LogEngine::Instance()->ShowHideSignal(ptr->category, ptr->name, ptr->show);
+                    if (ProjectFile::Instance()->m_CollapseLogSelection) {
+                        LogPane::Instance()->PrepareLog();
                     }
+                    ProjectFile::Instance()->SetProjectChange();
                 }
             }
         }
-    } else {  // display categories
-        for (auto& child : vSignalItemRef.childs) {
-            if (vCollapseAll) {
-                // can close only the first item for now
-                // or we need to reach the leaf
-                // and close from leaf so to do on many frames
-                // can be anoying for the user
-                // todo : by the way
-                ImGui::SetNextItemOpen(false);
-            }
-
-            if (vExpandAll) {
-                // will open all tree during recursion
-                ImGui::SetNextItemOpen(true);
-            }
-
-            if (ImGui::TreeNode(&child.second, "%s", child.second.label.c_str())) {
-                ImGui::Indent();
-                displayItemRecurs(child.second, vCollapseAll, vExpandAll);
-                ImGui::Unindent();
-                ImGui::TreePop();
-            }
-        }
     }
+    ImGui::Unindent();
 }
