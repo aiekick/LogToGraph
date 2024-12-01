@@ -4,13 +4,15 @@
 #include <string>
 #include <map>
 
-struct SignalItem;
-typedef std::map<SignalName, SignalItem> SignalItemContainer;
-struct SignalItem {
+
+class SignalItem {
+public:
     uint32_t count = 0U;
-    std::string label; // label displayed in imgui tree
+    std::string label;  // label displayed in imgui tree
     SignalContainerWeak signals;
     SignalItemContainer childs;
+
+public:
     bool isLeaf() const { return childs.empty(); }
     bool isEmpty() const { return childs.empty() && signals.empty(); }
     void clear() {
@@ -23,11 +25,11 @@ class SignalTree {
 private:
     std::string searchPattern;
     SignalItem m_RootItem;
-    std::map<SignalName, SignalSerieWeak> m_SignalSeriesOld;
 
 public:
     void clear();
     void prepare(const std::string& vSearchString);
+    const SignalItem& getRootItem() const;
     void displayTree(bool vCollapseAll, bool vExpandAll);
 
 private:
