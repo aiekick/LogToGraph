@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 
 set(PROJECT LogToGraph)
 
-enable_language(C CXX)
 project(${PROJECT} CXX)
+
+enable_language(C CXX)
 
 option(USE_BUILDING_AS_SHARED "Enable shared building" ON)
 option(USE_BUILDING_OF_TESTS "Enable the build of tests" OFF)
@@ -223,14 +224,12 @@ ENDFOREACH()
 ################# BUILD INCREMENT TOOL #################
 ########################################################
 
-## only for Debug
-add_subdirectory(3rdparty/BuildInc)
-## set_target_properties(BuildInc PROPERTIES FOLDER Tools)
-
-add_custom_command(
-	TARGET ${PROJECT} PRE_BUILD
-	COMMAND BuildInc -prefix=${PROJECT} $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/headers/${PROJECT}Build.h>
-	DEPENDS ${PROJECT})
+if (TARGET ezBuildInc AND $<CONFIG> STREQUAL "Debug")
+	add_custom_command(
+		TARGET ${PROJECT} PRE_BUILD
+		COMMAND ezBuildInc ${PROJECT} $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/headers/version.h>
+	)
+endif()
 
 ########################################################
 ##### TESTS ############################################
