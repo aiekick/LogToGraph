@@ -20,31 +20,25 @@ limitations under the License.
 #include <vector>
 #include <map>
 #include <headers/DatasDef.h>
-#include <ImGuiPack/ImGuiPack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
+#include <imguipack.h>
 
 class ProjectFile;
 class AnnotationPane : public AbstractPane {
+    DISABLE_CONSTRUCTORS(AnnotationPane)
+    DISABLE_DESTRUCTORS(AnnotationPane)
+    IMPLEMENT_SHARED_SINGLETON(AnnotationPane)
+
 private:
     ImGuiListClipper m_AnnotationsListClipper;
 
 public:
-    bool Init() override;
-    void Unit() override;
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
+    bool init() override;
+    void unit() override;
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
 
 private:
     void DrawContent();
     void CheckItem(SignalSeriePtr vSignalSeriePtr);
-
-public:  // singleton
-    static std::shared_ptr<AnnotationPane> Instance() {
-        static auto _instance = std::make_shared<AnnotationPane>();
-        return _instance;
-    }
-
-public:
-    AnnotationPane() = default;                                          // Prevent construction
-    AnnotationPane(const AnnotationPane&) = delete;                      // Prevent construction by copying
-    AnnotationPane& operator=(const AnnotationPane&) { return *this; };  // Prevent assignment
-    virtual ~AnnotationPane() = default;                                 // Prevent unwanted destruction};
 };

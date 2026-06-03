@@ -5,27 +5,22 @@
 #include <imgui_internal.h>
 #include <cinttypes>  // printf zu
 
-ConsolePane::ConsolePane() = default;
-ConsolePane::~ConsolePane() {
-    Unit();
-}
-
-bool ConsolePane::Init() {
+bool ConsolePane::init() {
     return true;
 }
 
-void ConsolePane::Unit() {}
+void ConsolePane::unit() {}
 
 ///////////////////////////////////////////////////////////////////////////////////
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-bool ConsolePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool ConsolePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
+    if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -36,7 +31,7 @@ bool ConsolePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, Im
             if (ImGui::BeginMenuBar()) {
                 ImGui::EndMenuBar();
             }
-            Messaging::Instance()->DrawConsolePane();
+            Messaging::ref().DrawConsolePane();
         }
         ImGui::End();
     }

@@ -1,5 +1,5 @@
 /*
-Copyright 2022-2023 Stephane Cuillerdier (aka aiekick)
+Copyright 2022-2026 Stephane Cuillerdier (aka aiekick)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,49 +18,44 @@ limitations under the License.
 
 #include <cstdint>
 #include <memory>
+#include <string>
 
 typedef int64_t LayoutPaneFlag;  // int64_t give 64 Panes max.
 typedef std::string LayoutPaneName;
+typedef void* LayoutPaneUserDatas;
 
-struct ImGuiContext;
 struct ImVec2;
 struct ImRect;
+struct ImGuiContext;
 
+// project-side override of imguipack's ILayoutPane (aligned with the new interface)
 class ILayoutPane {
 private:
     LayoutPaneName paneName;
     LayoutPaneFlag paneFlag = -1;
 
 public:
-    virtual bool Init() = 0;  // return false if the init was failed
-    virtual void Unit() = 0;
+    virtual bool init() = 0;  // return false if the init was failed
+    virtual void unit() = 0;
 
     // the return, is a user side use case here
-    virtual bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened, ImGuiContext* vContextPt, void* vUserDatas) = 0;
-    virtual bool DrawWidgets(const uint32_t& vCurrentFrame, ImGuiContext* vContextPtr, void* vUserDatas) = 0;
-    virtual bool DrawOverlays(const uint32_t& vCurrentFrame, const ImRect& vRect, ImGuiContext* vContextPtr, void* vUserDatas) = 0;
-    virtual bool DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const ImRect& vMaxRect, ImGuiContext* vContextPtr, void* vUserDatas) = 0;
+    virtual bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) = 0;
+    virtual bool drawWidgets(LayoutPaneUserDatas apUserDatas) = 0;
+    virtual bool drawOverlays(const ImRect& aRect, LayoutPaneUserDatas apUserDatas) = 0;
+    virtual bool drawDialogsAndPopups(const ImRect& aRect, LayoutPaneUserDatas apUserDatas) = 0;
 
     // if for any reason the pane must be hidden temporary, the user can control this here
-    virtual bool CanBeDisplayed() = 0;
-
-    virtual void DoVirtualLayout() {}
+    virtual bool canBeDisplayed() = 0;
 
 public:
-    void SetName(const LayoutPaneName& vName) {
-        paneName = vName;
-    }
-    const LayoutPaneName& GetName() const {
-        return paneName;
-    }
-    void SetFlag(const LayoutPaneFlag& vFlag) {
+    void setName(const LayoutPaneName& aName) { paneName = aName; }
+    const LayoutPaneName& getName() const { return paneName; }
+    void setFlag(LayoutPaneFlag aFlag) {
         if (paneFlag < 0) {  // ensure than this can be done only one time
-            paneFlag = vFlag;
+            paneFlag = aFlag;
         }
     }
-    const LayoutPaneFlag& GetFlag() const {
-        return paneFlag;
-    }
+    LayoutPaneFlag getFlag() const { return paneFlag; }
 };
 
 typedef std::weak_ptr<ILayoutPane> ILayoutPaneWeak;

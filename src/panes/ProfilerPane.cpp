@@ -18,32 +18,29 @@
 
 #include "ProfilerPane.h"
 
-#include <ImGuiPack.h>
+#include <imguipack.h>
 #include <iagp.h>
 
 #include <cinttypes>  // printf zu
-
-ProfilerPane::ProfilerPane() = default;
-ProfilerPane::~ProfilerPane() = default;
 
 ///////////////////////////////////////////////////////////////////////////////////
 //// OVERRIDES ////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-bool ProfilerPane::Init() {
+bool ProfilerPane::init() {
     return true;
 }
 
-void ProfilerPane::Unit() {}
+void ProfilerPane::unit() {}
 
-bool ProfilerPane::DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened, ImGuiContext* vContextPtr, void* vUserDatas) {
-    iagp::InAppGpuProfiler::Instance()->sIsActive = false;
+bool ProfilerPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    iagp::InAppGpuProfiler::ref().sIsActive = false;
 
-    if (vOpened != nullptr && *vOpened) {
-        iagp::InAppGpuProfiler::Instance()->sIsActive = true;  // is opened but can be invisible if repalce but another windows like a child flame graph
+    if (apOpened != nullptr && *apOpened) {
+        iagp::InAppGpuProfiler::ref().sIsActive = true;  // is opened but can be invisible if repalce but another windows like a child flame graph
 
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -52,16 +49,16 @@ bool ProfilerPane::DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened, ImGui
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
             // draw iagp frame
-            iagp::InAppGpuProfiler::Instance()->DrawFlamGraphNoWin();
+            iagp::InAppGpuProfiler::ref().DrawFlamGraphNoWin();
         }
 
         // MainFrame::sAnyWindowsHovered |= ImGui::IsWindowHovered();
 
         ImGui::End();
 
-        iagp::InAppGpuProfiler::Instance()->DrawFlamGraphChilds();
+        iagp::InAppGpuProfiler::ref().DrawFlamGraphChilds();
 
-        iagp::InAppGpuProfiler::Instance()->DrawDetails();
+        iagp::InAppGpuProfiler::ref().DrawDetails();
     }
 
     return false;

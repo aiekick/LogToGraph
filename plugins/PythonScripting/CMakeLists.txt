@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.20)
 
 set(PROJECT PythonScripting)
 
@@ -146,12 +146,12 @@ set(LOADED_LOG_TO_GRAPH_PLUGINS ${LOADED_LOG_TO_GRAPH_PLUGINS} ${PROJECT} PARENT
 ################# BUILD INCREMENT TOOL #################
 ########################################################
 
-## only for Debug
-add_custom_command(
-	TARGET ${PROJECT} PRE_BUILD
-	COMMAND BuildInc -prefix=${PROJECT} 1000000:10 $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/src/Headers/${PROJECT}Build.h>
-	DEPENDS ${PROJECT}
-)
+if (TARGET ezBuildInc AND $<CONFIG> STREQUAL "Debug")
+	add_custom_command(
+		TARGET ${PROJECT} PRE_BUILD
+		COMMAND ezBuildInc ${PROJECT} $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/src/headers/version.h>
+	)
+endif()
 
 ########################################################
 ########################################################

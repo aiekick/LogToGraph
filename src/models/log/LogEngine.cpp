@@ -42,7 +42,7 @@ limitations under the License.
 
 std::string LogEngine::sConvertEpochToDateTimeString(const double& vTime) {
     // 1668687822.067365000 => 17/11/2022 13:23:42.067365000
-    double seconds = ez::fract(vTime);  // 0.067365000
+    double seconds = ez::math::fract(vTime);  // 0.067365000
     auto _epoch_time = (std::time_t)vTime;
     auto tm = std::localtime(&_epoch_time);
     if (tm) {
@@ -101,8 +101,8 @@ void LogEngine::AddSignalTick(const SourceFileWeak& vSourceFile,
         tick_Ptr->value = vValue;
         tick_Ptr->desc = vDesc;
 
-        m_Range_ticks_time.x = ez::mini(m_Range_ticks_time.x, vDate);
-        m_Range_ticks_time.y = ez::maxi(m_Range_ticks_time.y, vDate);
+        m_Range_ticks_time.x = ez::math::mini(m_Range_ticks_time.x, vDate);
+        m_Range_ticks_time.y = ez::math::maxi(m_Range_ticks_time.y, vDate);
 
         m_SignalTicks.push_back(tick_Ptr);
 
@@ -150,8 +150,8 @@ void LogEngine::AddSignalStatus(const SourceFileWeak& vSourceFile,
         tick_Ptr->string = vString;
         tick_Ptr->status = vStatus;
 
-        m_Range_ticks_time.x = ez::mini(m_Range_ticks_time.x, vDate);
-        m_Range_ticks_time.y = ez::maxi(m_Range_ticks_time.y, vDate);
+        m_Range_ticks_time.x = ez::math::mini(m_Range_ticks_time.x, vDate);
+        m_Range_ticks_time.y = ez::math::maxi(m_Range_ticks_time.y, vDate);
 
         m_SignalTicks.push_back(tick_Ptr);
 
@@ -204,7 +204,7 @@ void LogEngine::AddSignalTag(const SignalEpochTime& vSignalEpochTime,
 void LogEngine::Finalize() {
     // get sources
     std::map<SourceFileID, SourceFileWeak> _SourceFiles;
-    DataBase::Instance()->GetSourceFiles([this, &_SourceFiles](const SourceFileID& vSourceFileID, const SourceFilePathName& vSourceFilePathName) {
+    DataBase::ref()->GetSourceFiles([this, &_SourceFiles](const SourceFileID& vSourceFileID, const SourceFilePathName& vSourceFilePathName) {
         if (_SourceFiles.find(vSourceFileID) == _SourceFiles.end())  // not found
         {
             _SourceFiles[vSourceFileID] = SetSourceFile(vSourceFilePathName);
@@ -212,7 +212,7 @@ void LogEngine::Finalize() {
     });
 
     // get datas
-    DataBase::Instance()->GetDatas([this, &_SourceFiles](const SourceFileID& vSourceFileID,
+    DataBase::ref()->GetDatas([this, &_SourceFiles](const SourceFileID& vSourceFileID,
                                                          const SignalEpochTime& vSignalEpochTime,
                                                          const SignalCategory& vSignalCategory,
                                                          const SignalName& vSignalName,
@@ -233,7 +233,7 @@ void LogEngine::Finalize() {
     });
 
     // get tags
-    DataBase::Instance()->GetTags(
+    DataBase::ref()->GetTags(
         [this](const SignalEpochTime& vSignalEpochTime, const SignalTagColor& vSignalTagColor, const SignalTagName& vSignalTagName, const SignalTagHelp& vSignalTagHelp) {
             AddSignalTag(vSignalEpochTime, vSignalTagColor, vSignalTagName, vSignalTagHelp);
         });
@@ -262,8 +262,8 @@ void LogEngine::Finalize() {
                             tick_Ptr->time_epoch = global_first_time_tick;
                             tick_Ptr->time_date_time = LogEngine::sConvertEpochToDateTimeString(global_first_time_tick);
                             tick_Ptr->value =
-                                (ProjectFile::Instance()->m_UsePredefinedZeroValue ? //
-                                    ProjectFile::Instance()->m_PredefinedZeroValue : //
+                                (ProjectFile::ref()->m_UsePredefinedZeroValue ? //
+                                    ProjectFile::ref()->m_PredefinedZeroValue : //
                                     local_first_tick_ptr->value);
 
                             m_VirtualTicks.push_back(tick_Ptr);  // for retain the shared_pointer
@@ -297,10 +297,10 @@ void LogEngine::Finalize() {
         }
     }
 
-    LogPane::Instance()->Clear();
-    LogPaneSecondView::Instance()->Clear();
-    GraphListPane::Instance()->UpdateDB();
-    ToolPane::Instance()->UpdateTree();
+    LogPane::ref()->Clear();
+    LogPaneSecondView::ref()->Clear();
+    GraphListPane::ref()->UpdateDB();
+    ToolPane::ref()->UpdateTree();
 }
 
 void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName& vName) {
@@ -311,16 +311,16 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
             if (ptr) {
                 ptr->show = !ptr->show;
                 m_VisibleCount += ptr->show ? 1 : -1;
-                m_VisibleCount = ez::maxi(m_VisibleCount, 0);
+                m_VisibleCount = ez::math::maxi(m_VisibleCount, 0);
 
                 if (ptr->show) {
-                    GraphView::Instance()->AddSerieToDefaultGroup(ptr);
+                    GraphView::ref()->AddSerieToDefaultGroup(ptr);
                 } else {
-                    GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_ptr);
+                    GraphView::ref()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_ptr);
                 }
 
-                ProjectFile::Instance()->SetProjectChange();
-                GraphView::Instance()->ComputeGraphsCount();
+                ProjectFile::ref()->SetProjectChange();
+                GraphView::ref()->ComputeGraphsCount();
                 UpdateVisibleSignalsColoring();
             }
         }
@@ -335,16 +335,16 @@ void LogEngine::ShowHideSignal(const SignalCategory& vCategory, const SignalName
             if (ptr) {
                 ptr->show = vFlag;
                 m_VisibleCount += vFlag ? 1 : -1;
-                m_VisibleCount = ez::maxi(m_VisibleCount, 0);
+                m_VisibleCount = ez::math::maxi(m_VisibleCount, 0);
 
                 if (ptr->show) {
-                    GraphView::Instance()->AddSerieToDefaultGroup(ptr);
+                    GraphView::ref()->AddSerieToDefaultGroup(ptr);
                 } else {
-                    GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_ptr);
+                    GraphView::ref()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_ptr);
                 }
 
-                ProjectFile::Instance()->SetProjectChange();
-                GraphView::Instance()->ComputeGraphsCount();
+                ProjectFile::ref()->SetProjectChange();
+                GraphView::ref()->ComputeGraphsCount();
                 UpdateVisibleSignalsColoring();
             }
         }
@@ -398,7 +398,7 @@ SignalSeriesContainerRef LogEngine::GetSignalSeries() {
 void LogEngine::SetHoveredTime(const SignalEpochTime& vHoveredTime, const bool vForce) {
     if (vForce || m_HoveredTime != vHoveredTime) {
         m_HoveredTime = vHoveredTime;
-        ProjectFile::Instance()->SetProjectChange();
+        ProjectFile::ref()->SetProjectChange();
         auto last_previewed_ticks = m_PreviewTicks;
         m_PreviewTicks.clear();
         m_PreviewTicks.reserve(m_SignalsCount);
@@ -406,7 +406,7 @@ void LogEngine::SetHoveredTime(const SignalEpochTime& vHoveredTime, const bool v
         for (auto& item_cat : m_SignalSeries) {
             for (auto& item_name : item_cat.second) {
                 if (item_name.second) {
-                    if (ProjectFile::Instance()->m_ShowVariableSignalsInHoveredListView && item_name.second->isConstant()) {
+                    if (ProjectFile::ref()->m_ShowVariableSignalsInHoveredListView && item_name.second->isConstant()) {
                         continue;
                     }
                     SignalTickPtr last_ptr = nullptr;
@@ -414,7 +414,7 @@ void LogEngine::SetHoveredTime(const SignalEpochTime& vHoveredTime, const bool v
                         auto ptr = tick_weak.lock();
                         if (last_ptr && vHoveredTime >= last_ptr->time_epoch && ptr != nullptr && vHoveredTime <= ptr->time_epoch) {
                             if (m_PreviewTicks.tryAdd(item_name.second->name, last_ptr)) {
-                                if (ProjectFile::Instance()->m_AutoColorize) {
+                                if (ProjectFile::ref()->m_AutoColorize) {
                                     auto parent_ptr = last_ptr->parent.lock();
                                     if (parent_ptr && parent_ptr->show) {
                                         parent_ptr->color_u32 = ImGui::GetColorU32(ez::getRainBowColor((int32_t)visible_idx, m_VisibleCount));
@@ -426,7 +426,7 @@ void LogEngine::SetHoveredTime(const SignalEpochTime& vHoveredTime, const bool v
                                 if (last_previewed_ticks.exist(item_name.second->name)) {
                                     auto last_previewed_tick_ptr = last_previewed_ticks.value(item_name.second->name).lock();
                                     if (last_previewed_tick_ptr != nullptr) {
-                                        last_ptr->just_changed = ez::isDifferent(last_previewed_tick_ptr->value, last_ptr->value);
+                                        last_ptr->just_changed = ez::math::isDifferent(last_previewed_tick_ptr->value, last_ptr->value);
                                     }
                                 }
                             }
@@ -445,7 +445,7 @@ double LogEngine::GetHoveredTime() const {
 }
 
 void LogEngine::UpdateVisibleSignalsColoring() {
-    if (ProjectFile::Instance()->m_AutoColorize) {
+    if (ProjectFile::ref()->m_AutoColorize) {
         size_t visible_idx = 0U;
         for (auto& item_cat : m_SignalSeries) {
             for (auto& item_name : item_cat.second) {
@@ -480,7 +480,7 @@ void LogEngine::PrepareForSave() {
                 SignalSetting ss;
                 ss.visibility = item_name.second->show;
                 ss.color = item_name.second->color_u32;
-                ss.group = (uint32_t)GraphView::Instance()->GetGroupID(item_name.second->graph_groupd_ptr);
+                ss.group = (uint32_t)GraphView::ref()->GetGroupID(item_name.second->graph_groupd_ptr);
                 m_SignalSettings[item_cat.first][item_name.first] = ss;
             }
         }
@@ -496,9 +496,9 @@ void LogEngine::PrepareAfterLoad() {
         }
     }
 
-    GraphView::Instance()->ComputeGraphsCount();
-    SetFirstDiffMark(ProjectFile::Instance()->m_DiffFirstMark);
-    SetSecondDiffMark(ProjectFile::Instance()->m_DiffSecondMark);
+    GraphView::ref()->ComputeGraphsCount();
+    SetFirstDiffMark(ProjectFile::ref()->m_DiffFirstMark);
+    SetSecondDiffMark(ProjectFile::ref()->m_DiffSecondMark);
 }
 
 bool LogEngine::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) {
@@ -564,13 +564,13 @@ void LogEngine::SetSignalSetting(const SignalCategory& vCategory, const SignalNa
                 // show
                 ptr->show = vSignalSetting.visibility;
                 m_VisibleCount += vSignalSetting.visibility ? 1 : -1;
-                m_VisibleCount = ez::maxi(m_VisibleCount, 0);
+                m_VisibleCount = ez::math::maxi(m_VisibleCount, 0);
 
                 // group
                 if (ptr->show) {
-                    GraphView::Instance()->AddSerieToGroupID(ptr, vSignalSetting.group);
+                    GraphView::ref()->AddSerieToGroupID(ptr, vSignalSetting.group);
                 } else {
-                    GraphView::Instance()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_ptr);
+                    GraphView::ref()->RemoveSerieFromGroup(ptr, ptr->graph_groupd_ptr);
                 }
 
                 // color
@@ -586,9 +586,9 @@ const int32_t& LogEngine::GetSignalsCount() const {
 }
 
 void LogEngine::SetFirstDiffMark(const SignalEpochTime& vSignalEpochTime) {
-    ProjectFile::Instance()->m_DiffFirstMark = vSignalEpochTime;
+    ProjectFile::ref()->m_DiffFirstMark = vSignalEpochTime;
 
-    ProjectFile::Instance()->SetProjectChange();
+    ProjectFile::ref()->SetProjectChange();
 
     if (m_DiffFirstTicks.empty()) {
         m_DiffFirstTicks.resize(m_SignalsCount);
@@ -601,8 +601,8 @@ void LogEngine::SetFirstDiffMark(const SignalEpochTime& vSignalEpochTime) {
                 SignalTickPtr last_ptr = nullptr;
                 for (const auto& tick_weak : item_name.second->datas_values) {
                     auto ptr = tick_weak.lock();
-                    if (last_ptr && ProjectFile::Instance()->m_DiffFirstMark >= last_ptr->time_epoch && ptr &&
-                        ProjectFile::Instance()->m_DiffFirstMark <= ptr->time_epoch) {
+                    if (last_ptr && ProjectFile::ref()->m_DiffFirstMark >= last_ptr->time_epoch && ptr &&
+                        ProjectFile::ref()->m_DiffFirstMark <= ptr->time_epoch) {
                         if (idx < (size_t)m_SignalsCount) {
                             m_DiffFirstTicks[idx] = last_ptr;
                         } else {
@@ -624,9 +624,9 @@ void LogEngine::SetFirstDiffMark(const SignalEpochTime& vSignalEpochTime) {
 }
 
 void LogEngine::SetSecondDiffMark(const SignalEpochTime& vSignalEpochTime) {
-    ProjectFile::Instance()->m_DiffSecondMark = vSignalEpochTime;
+    ProjectFile::ref()->m_DiffSecondMark = vSignalEpochTime;
 
-    ProjectFile::Instance()->SetProjectChange();
+    ProjectFile::ref()->SetProjectChange();
 
     if (m_DiffSecondTicks.empty()) {
         m_DiffSecondTicks.resize(m_SignalsCount);
@@ -639,8 +639,8 @@ void LogEngine::SetSecondDiffMark(const SignalEpochTime& vSignalEpochTime) {
                 SignalTickPtr last_ptr = nullptr;
                 for (const auto& tick_weak : item_name.second->datas_values) {
                     auto ptr = tick_weak.lock();
-                    if (last_ptr && ProjectFile::Instance()->m_DiffSecondMark >= last_ptr->time_epoch && ptr &&
-                        ProjectFile::Instance()->m_DiffSecondMark <= ptr->time_epoch) {
+                    if (last_ptr && ProjectFile::ref()->m_DiffSecondMark >= last_ptr->time_epoch && ptr &&
+                        ProjectFile::ref()->m_DiffSecondMark <= ptr->time_epoch) {
                         if (idx < (size_t)m_SignalsCount) {
                             m_DiffSecondTicks[idx] = last_ptr;
                         } else {
@@ -664,7 +664,7 @@ void LogEngine::SetSecondDiffMark(const SignalEpochTime& vSignalEpochTime) {
 void LogEngine::ComputeDiffResult() {
     m_DiffResult.clear();
 
-    if (ProjectFile::Instance()->m_DiffFirstMark > 0.0 && ProjectFile::Instance()->m_DiffSecondMark > 0.0) {
+    if (ProjectFile::ref()->m_DiffFirstMark > 0.0 && ProjectFile::ref()->m_DiffSecondMark > 0.0) {
         if (!m_DiffFirstTicks.empty() && m_DiffFirstTicks.size() == m_DiffSecondTicks.size()) {
             m_DiffResult.reserve(m_SignalsCount);
 
@@ -674,7 +674,7 @@ void LogEngine::ComputeDiffResult() {
                 const auto& second_ptr = m_DiffSecondTicks.at(idx).lock();
                 if (first_ptr && second_ptr) {
                     if (first_ptr->name == second_ptr->name) {
-                        if (ez::isDifferent(first_ptr->value, second_ptr->value)) {
+                        if (ez::math::isDifferent(first_ptr->value, second_ptr->value)) {
                             m_DiffResult.emplace_back(first_ptr, second_ptr);
                         }
                     } else {

@@ -16,7 +16,9 @@ limitations under the License.
 
 #pragma once
 
-#include <ImGuiPack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
+#include <imguipack.h>
 #include <models/log/LogEngine.h>
 #include <stdint.h>
 #include <string>
@@ -25,24 +27,16 @@ limitations under the License.
 
 class ProjectFile;
 class GraphGroupPane : public AbstractPane {
+    DISABLE_CONSTRUCTORS(GraphGroupPane)
+    DISABLE_DESTRUCTORS(GraphGroupPane)
+    IMPLEMENT_SHARED_SINGLETON(GraphGroupPane)
+
 private:
     ImGuiListClipper m_FileListClipper;
 
 public:
     void Clear();
-    bool Init() override;
-    void Unit() override;
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
-
-public:  // singleton
-    static std::shared_ptr<GraphGroupPane> Instance() {
-        static auto _instance = std::make_shared<GraphGroupPane>();
-        return _instance;
-    }
-
-public:
-    GraphGroupPane() = default;                                          // Prevent construction
-    GraphGroupPane(const GraphGroupPane&) = delete;                      // Prevent construction by copying
-    GraphGroupPane& operator=(const GraphGroupPane&) { return *this; };  // Prevent assignment
-    virtual ~GraphGroupPane() = default;                                 // Prevent unwanted destruction};
+    bool init() override;
+    void unit() override;
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
 };

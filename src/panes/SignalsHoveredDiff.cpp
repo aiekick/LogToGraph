@@ -36,18 +36,18 @@ void SignalsHoveredDiff::Clear() {
     m_PreviewTicks.clear();
 }
 
-bool SignalsHoveredDiff::Init() {
+bool SignalsHoveredDiff::init()  {
     return true;
 }
 
-void SignalsHoveredDiff::Unit() {}
+void SignalsHoveredDiff::unit() {}
 
-bool SignalsHoveredDiff::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool SignalsHoveredDiff::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
+    if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -55,7 +55,7 @@ bool SignalsHoveredDiff::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpe
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-            if (ProjectFile::Instance()->IsProjectLoaded()) {
+            if (ProjectFile::ref()->IsProjectLoaded()) {
                 DrawTable();
             }
         }
@@ -68,9 +68,9 @@ bool SignalsHoveredDiff::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpe
 void SignalsHoveredDiff::CheckItem(const SignalTickPtr& vSignalTick) {
     if (vSignalTick && ImGui::IsItemHovered()) {
         if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-            LogEngine::Instance()->ShowHideSignal(vSignalTick->category, vSignalTick->name);
-            LogEngine::Instance()->UpdateVisibleSignalsColoring();
-            ProjectFile::Instance()->SetProjectChange();
+            LogEngine::ref()->ShowHideSignal(vSignalTick->category, vSignalTick->name);
+            LogEngine::ref()->UpdateVisibleSignalsColoring();
+            ProjectFile::ref()->SetProjectChange();
         }
     }
 }
@@ -81,22 +81,22 @@ void SignalsHoveredDiff::DrawTable() {
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("Graph mark Colors")) {
                 if (ImGui::ContrastedButton("R##ResetBarFirstDiffMarkColor")) {
-                    ProjectFile::Instance()->m_GraphColors.graphFirstDiffMarkColor = s_DefaultGraphColors.graphFirstDiffMarkColor;
+                    ProjectFile::ref()->m_GraphColors.graphFirstDiffMarkColor = s_DefaultGraphColors.graphFirstDiffMarkColor;
                 }
 
                 ImGui::SameLine();
 
                 ImGui::ColorEdit4(
-                    "First diff mark color##ResetBarFirstDiffMarkColor", &ProjectFile::Instance()->m_GraphColors.graphFirstDiffMarkColor.x, ImGuiColorEditFlags_NoInputs);
+                    "First diff mark color##ResetBarFirstDiffMarkColor", &ProjectFile::ref()->m_GraphColors.graphFirstDiffMarkColor.x, ImGuiColorEditFlags_NoInputs);
 
                 if (ImGui::ContrastedButton("R##ResetBarSecondDiffMarkColor")) {
-                    ProjectFile::Instance()->m_GraphColors.graphSecondDiffMarkColor = s_DefaultGraphColors.graphSecondDiffMarkColor;
+                    ProjectFile::ref()->m_GraphColors.graphSecondDiffMarkColor = s_DefaultGraphColors.graphSecondDiffMarkColor;
                 }
 
                 ImGui::SameLine();
 
                 ImGui::ColorEdit4("Second diff mark color##ResetBarSecondDiffMarkColor",
-                                  &ProjectFile::Instance()->m_GraphColors.graphSecondDiffMarkColor.x,
+                                  &ProjectFile::ref()->m_GraphColors.graphSecondDiffMarkColor.x,
                                   ImGuiColorEditFlags_NoInputs);
 
                 ImGui::EndMenu();
@@ -110,7 +110,7 @@ void SignalsHoveredDiff::DrawTable() {
             ImGui::EndMenuBar();
         }
 
-        const auto& signals_count = LogEngine::Instance()->GetDiffResultTicks().size();
+        const auto& signals_count = LogEngine::ref()->GetDiffResultTicks().size();
         if (signals_count) {
             static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
                 ImGuiTableFlags_NoHostExtendY | ImGuiTableFlags_Resizable;
@@ -135,13 +135,13 @@ void SignalsHoveredDiff::DrawTable() {
                         if (i < 0)
                             continue;
 
-                        const auto& diff_item = LogEngine::Instance()->GetDiffResultTicks().at((size_t)i);
+                        const auto& diff_item = LogEngine::ref()->GetDiffResultTicks().at((size_t)i);
                         const auto& diff_first_mark_ptr = diff_item.first.lock();
                         const auto& diff_second_mark_ptr = diff_item.second.lock();
                         if (diff_first_mark_ptr && diff_second_mark_ptr) {
                             ImGui::TableNextRow();
 
-                            selected = LogEngine::Instance()->isSignalShown(diff_first_mark_ptr->category, diff_first_mark_ptr->name, &color);
+                            selected = LogEngine::ref()->isSignalShown(diff_first_mark_ptr->category, diff_first_mark_ptr->name, &color);
                             if (selected && color) {
                                 ImGui::PushStyleColor(ImGuiCol_Header, (ImU32)color);
                                 ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);

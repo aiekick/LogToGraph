@@ -21,8 +21,12 @@ limitations under the License.
 #include <string>
 #include <unordered_map>
 #include <headers/DatasDef.h>
+#include <ezlibs/ezClass.hpp>
 
 class GraphGroup {
+    DISABLE_CONSTRUCTORS(GraphGroup)
+    DISABLE_DESTRUCTORS(GraphGroup)
+
 public:
     static GraphGroupPtr Create();
 
@@ -43,16 +47,4 @@ public:
 
 private:
     void ComputeRange();
-
-public:  // singleton
-    static std::shared_ptr<GraphGroup> Instance() {
-        static auto _instance = std::make_shared<GraphGroup>();
-        return _instance;
-    }
-
-public:
-    GraphGroup() = default;                                      // Prevent construction
-    GraphGroup(const GraphGroup&) = delete;                      // Prevent construction by copying
-    GraphGroup& operator=(const GraphGroup&) { return *this; };  // Prevent assignment
-    virtual ~GraphGroup() = default;                             // Prevent unwanted destruction};
 };

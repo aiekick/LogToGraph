@@ -36,18 +36,18 @@ limitations under the License.
 
 void GraphGroupPane::Clear() {}
 
-bool GraphGroupPane::Init() {
+bool GraphGroupPane::init()  {
     return true;
 }
 
-void GraphGroupPane::Unit() {}
+void GraphGroupPane::unit() {}
 
-bool GraphGroupPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool GraphGroupPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
+    if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -55,8 +55,8 @@ bool GraphGroupPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened,
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-            if (ProjectFile::Instance()->IsProjectLoaded()) {
-                GraphView::Instance()->DrawGraphGroupTable();
+            if (ProjectFile::ref()->IsProjectLoaded()) {
+                GraphView::ref()->DrawGraphGroupTable();
             }
         }
 

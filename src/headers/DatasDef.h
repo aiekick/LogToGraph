@@ -10,7 +10,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <ImGuiPack.h>
+#include <imguipack.h>
 #include <ezlibs/ezTools.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
 #include <ezlibs/ezCnt.hpp>
@@ -37,8 +37,8 @@ typedef std::string SignalString;
 typedef std::string SignalStatus;
 typedef std::string SignalDesc;
 
-typedef ez::dvec2 SignalValueRange;
-typedef const ez::dvec2& SignalValueRangeConstRef;
+typedef ez::math::dvec2 SignalValueRange;
+typedef const ez::math::dvec2& SignalValueRangeConstRef;
 
 typedef uint32_t SignalColor;
 

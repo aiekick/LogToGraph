@@ -16,12 +16,24 @@ limitations under the License.
 
 #pragma once
 
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
 #include <string>
 
 enum class LanguageEnum { FR = 0, EN };
 
 class TranslationHelper : public ez::xml::Config {
+    DISABLE_DESTRUCTORS(TranslationHelper)
+    IMPLEMENT_SINGLETON(TranslationHelper)
+
+public:
+    TranslationHelper();                                             // custom ctor: defines the default language
+    TranslationHelper(const TranslationHelper&) = delete;            // Prevent construction by copying
+    TranslationHelper& operator=(const TranslationHelper&) = delete; // Prevent assignment
+    TranslationHelper(TranslationHelper&&) = delete;
+    TranslationHelper& operator=(TranslationHelper&&) = delete;
+
 public:
     static LanguageEnum s_HelpLanguage;
 
@@ -46,16 +58,4 @@ private:
 public:  // configuration
     ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") final;
     bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) final;
-
-public:
-    static TranslationHelper* Instance() {
-        static TranslationHelper _instance;
-        return &_instance;
-    }
-
-protected:
-    TranslationHelper();                                                       // Prevent construction
-    TranslationHelper(const TranslationHelper&) {};                            // Prevent construction by copying
-    TranslationHelper& operator=(const TranslationHelper&) { return *this; };  // Prevent assignment
-    ~TranslationHelper() = default;                                            // Prevent unwanted destruction
 };

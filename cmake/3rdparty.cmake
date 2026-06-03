@@ -6,6 +6,6 @@ include(FetchContent)
 
 include(cmake/glad.cmake)
 include(cmake/glfw.cmake)
+include(cmake/sqlite3.cmake)
 include(cmake/ezlibs.cmake)
 include(cmake/imguipack.cmake)
-include(cmake/shadertree.cmake)

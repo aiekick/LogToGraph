@@ -22,8 +22,20 @@ limitations under the License.
 #include <string>
 #include <unordered_map>
 #include <headers/DatasDef.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
 
 class GraphView {
+    DISABLE_DESTRUCTORS(GraphView)
+    IMPLEMENT_SHARED_SINGLETON(GraphView)
+
+public:
+    GraphView();                                       // custom ctor: clears the view at construction
+    GraphView(const GraphView&) = delete;
+    GraphView& operator=(const GraphView&) = delete;
+    GraphView(GraphView&&) = delete;
+    GraphView& operator=(GraphView&&) = delete;
+
 private:
     GraphGroups m_GraphGroups;
     SignalValueRange m_Range_Value = SignalValueRange(0.5, -0.5) * DBL_MAX;
@@ -60,18 +72,6 @@ private:
     void prEraseGroupAt(const size_t& vIdx);
     void prDrawSignalGraph_ImPlot(const SignalSerieWeak& vSignalSerie, const ImVec2& vSize, const bool vFirstGraph);
 
-    bool prBeginPlot(const std::string& vLabel, ez::dvec2 vRangeValue, const ImVec2& vSize, const bool vFirstGraph) const;
+    bool prBeginPlot(const std::string& vLabel, ez::math::dvec2 vRangeValue, const ImVec2& vSize, const bool vFirstGraph) const;
     static void prEndPlot(const bool vFirstGraph);
-
-public:  // singleton
-    static std::shared_ptr<GraphView> Instance() {
-        static auto _instance = std::make_shared<GraphView>();
-        return _instance;
-    }
-
-public:
-    GraphView();                                               // Prevent construction
-    GraphView(const GraphView&) = delete;                      // Prevent construction by copying
-    GraphView& operator=(const GraphView&) { return *this; };  // Prevent assignment
-    virtual ~GraphView() = default;                            // Prevent unwanted destruction};
 };
