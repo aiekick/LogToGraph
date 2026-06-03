@@ -34,18 +34,18 @@ limitations under the License.
 //// OVERRIDES ////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-bool AnnotationPane::Init() {
+bool AnnotationPane::init() {
     return true;
 }
 
-void AnnotationPane::Unit() {}
+void AnnotationPane::unit() {}
 
-bool AnnotationPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool AnnotationPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
+    if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -53,7 +53,7 @@ bool AnnotationPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened,
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-            if (ProjectFile::Instance()->IsProjectLoaded()) {
+            if (ProjectFile::ref()->IsProjectLoaded()) {
                 if (ImGui::BeginMenuBar()) {
                     ImGui::EndMenuBar();
                 }
@@ -102,14 +102,14 @@ void AnnotationPane::DrawContent() {
         uint32_t count_color_push = 0U;
         ImU32 color = 0U;
         bool selected = false;
-        const auto _count_annotations = GraphAnnotationModel::Instance()->size();
+        const auto _count_annotations = GraphAnnotationModel::ref()->size();
         m_AnnotationsListClipper.Begin((int)_count_annotations, ImGui::GetTextLineHeightWithSpacing());
         while (m_AnnotationsListClipper.Step()) {
             for (int i = m_AnnotationsListClipper.DisplayStart; i < m_AnnotationsListClipper.DisplayEnd; ++i) {
                 if (i < 0)
                     continue;
 
-                auto& anno_ptr = GraphAnnotationModel::Instance()->at((size_t)i);
+                auto& anno_ptr = GraphAnnotationModel::ref()->at((size_t)i);
                 if (anno_ptr) {
                     ImGui::TableNextRow();
 
@@ -164,7 +164,7 @@ void AnnotationPane::DrawContent() {
     }
 
     if (annotation_to_remove_ptr) {
-        GraphAnnotationModel::Instance()->erase(annotation_to_remove_ptr);
+        GraphAnnotationModel::ref()->erase(annotation_to_remove_ptr);
         annotation_to_remove_ptr = nullptr;
     }
 }
@@ -173,10 +173,10 @@ void AnnotationPane::CheckItem(SignalSeriePtr vSignalSeriePtr) {
     if (ImGui::IsItemHovered() && vSignalSeriePtr) {
         if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
             // tofix : to centralize in a mvc controller
-            LogEngine::Instance()->ShowHideSignal(vSignalSeriePtr->category, vSignalSeriePtr->name);
-            ProjectFile::Instance()->SetProjectChange();
-            ToolPane::Instance()->UpdateTree();
-            GraphListPane::Instance()->UpdateDB();
+            LogEngine::ref()->ShowHideSignal(vSignalSeriePtr->category, vSignalSeriePtr->name);
+            ProjectFile::ref()->SetProjectChange();
+            ToolPane::ref()->UpdateTree();
+            GraphListPane::ref()->UpdateDB();
         }
     }
 }

@@ -28,14 +28,17 @@ PLUGIN_PREFIX void deleter(LuaScripting* ptr) {
 
 LuaScripting::LuaScripting() = default;
 
-bool LuaScripting::init(ez::Log* vLoggerInstancePtr) {
+bool LuaScripting::init(ez::Log* /*vLoggerInstancePtr*/) {
     m_SettingsPtr = std::make_shared<Settings>();
-    ez::Log::instance(vLoggerInstancePtr); // get the instance from the host app
+    // new singleton model: each DLL owns its own ez::Log instance
+    // (the legacy "share host pointer" path no longer exists)
+    ez::Log::initSingleton();
     return true;
 }
 
 void LuaScripting::unit() {
     m_SettingsPtr.reset();
+    ez::Log::unitSingleton();
 }
 
 uint32_t LuaScripting::getMinimalAppVersionSupported() const {

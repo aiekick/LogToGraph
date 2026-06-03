@@ -17,7 +17,7 @@ set(GLFW_BUILD_X11 ${GLFW_BUILD_X11} CACHE BOOL "" FORCE)
 
 # Download GLFW from tar.gz archive
 FetchContent_Declare(glfw
-    URL ${CMAKE_SOURCE_DIR}/libs/glfw-3.4.tar.gz
+    URL ${CMAKE_SOURCE_DIR}/3rdparty/libs/glfw-3.4.tar.gz
 	DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(glfw)
@@ -25,3 +25,7 @@ set_target_properties(glfw PROPERTIES FOLDER 3rdparty)
 if(TARGET update_mappings)
 	set_target_properties(update_mappings PROPERTIES FOLDER 3rdparty)
 endif()
+
+# expose to the root CMakeLists (it uses these vars directly)
+set(GLFW_INCLUDE_DIR ${glfw_SOURCE_DIR}/include CACHE INTERNAL "")
+set(GLFW_LIBRARIES glfw CACHE INTERNAL "")

@@ -5,6 +5,11 @@
 #include <fstream>
 #include <codecvt>
 
+// imguipack's TextEditor was rewritten. several legacy entry points are gone (Mariana/RetroBlue
+// palettes, IsShortTabsEnabled, ClearExtraCursors/ClearSelections, SetCursorPosition,
+// SetErrorMarkers, GetLanguageDefinitionName, SelectRegion, GetCursorPosition...).
+// the helpers below adapt the calls instead of removing the feature wholesale.
+
 bool CodeEditor::init() {
     if (ImGui::GetIO().Fonts->Fonts.size() > 1U) {
         m_CodeFontPtr = ImGui::GetIO().Fonts->Fonts[1];
@@ -20,22 +25,9 @@ void CodeEditor::OnImGui() {
     bool requestingFindPopup = false;
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            /*if (!m_RelatedFile.empty() && ImGui::MenuItem("Reload", "Ctrl+R")) {
-                OnReloadCommand();
-            }*/
-            /*if (ImGui::MenuItem("Load from")) {
-                OnLoadFromCommand();
-            }*/
             if (ImGui::MenuItem("Save", "Ctrl+S")) {
                 OnSaveCommand();
             }
-            /*if (this->hasAssociatedFile && ImGui::MenuItem("Show in file explorer"))
-                Utils::ShowInFileExplorer(this->m_RelatedFile);
-            if (this->hasAssociatedFile && this->onShowInFolderViewCallback != nullptr && this->createdFromFolderView > -1 &&
-                ImGui::MenuItem("Show in folder view")){
-                this->onShowInFolderViewCallback(this->m_RelatedFile, this->createdFromFolderView);
-            }
-            */
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
@@ -90,30 +82,7 @@ void CodeEditor::OnImGui() {
             if (ImGui::MenuItem("Show line numbers", nullptr, &showLineNumbers)) {
                 m_Editor.SetShowLineNumbersEnabled(!(m_Editor.IsShowLineNumbersEnabled()));
             }
-            static bool showShortTabs = m_Editor.IsShortTabsEnabled();
-            if (ImGui::MenuItem("Short tabs", nullptr, &showShortTabs)) {
-                m_Editor.SetShortTabsEnabled(!(m_Editor.IsShortTabsEnabled()));
-            }
-            /*if (ImGui::BeginMenu("Language"))
-            {
-                for (int i = (int)TextEditor::LanguageDefinitionId::None; i <= (int)TextEditor::LanguageDefinitionId::Hlsl; i++)
-                {
-                    bool isSelected = i == (int)m_Editor.GetLanguageDefinition();
-                    if (ImGui::MenuItem(languageDefinitionToName[(TextEditor::LanguageDefinitionId)i], nullptr, &isSelected))
-                        m_Editor.SetLanguageDefinition((TextEditor::LanguageDefinitionId)i);
-                }
-                ImGui::EndMenu();
-            }*/
-            /*if (ImGui::BeginMenu("Color scheme"))
-            {
-                for (int i = (int)TextEditor::PaletteId::Dark; i <= (int)TextEditor::PaletteId::RetroBlue; i++)
-                {
-                    bool isSelected = i == (int)m_Editor.GetPalette();
-                    if (ImGui::MenuItem(colorPaletteToName[(TextEditor::PaletteId)i], nullptr, &isSelected))
-                        m_Editor.SetPalette((TextEditor::PaletteId)i);
-                }
-                ImGui::EndMenu();
-            }*/
+            // short tabs option dropped from new TextEditor
             ImGui::EndMenu();
         }
 
@@ -128,39 +97,31 @@ void CodeEditor::OnImGui() {
         }
 
         if (ImGui::BeginMenu("Palette")) {
-            if (ImGui::MenuItem("Mariana")) {
-                m_Editor.SetPalette(TextEditor::GetMarianaPalette());
-            }
+            // new TextEditor only ships Dark + Light palettes
             if (ImGui::MenuItem("Dark")) {
                 m_Editor.SetPalette(TextEditor::GetDarkPalette());
             }
             if (ImGui::MenuItem("Light")) {
                 m_Editor.SetPalette(TextEditor::GetLightPalette());
             }
-            if (ImGui::MenuItem("RetroBlue")) {
-                m_Editor.SetPalette(TextEditor::GetRetroBluePalette());
-            }
             ImGui::EndMenu();
         }
 
-        int line, column;
-        m_Editor.GetCursorPosition(line, column);
-        ImGui::Text("%6d/%-6d %6d lines | %s | %s",
-                    line + 1,
-                    column + 1,
+        const auto* lang = m_Editor.GetLanguage();
+        ImGui::Text("%6d lines | %s | %s",
                     m_Editor.GetLineCount(),
                     m_Editor.IsOverwriteEnabled() ? "Ovr" : "Ins",
-                    m_Editor.GetLanguageDefinitionName());
+                    lang ? "lang" : "plain");
 
         ImGui::EndMenuBar();
     }
 
     if (m_CodeFontPtr) {
         ImGui::PushFont(m_CodeFontPtr);
-        isFocused |= m_Editor.Render("TextEditor", isFocused);
+        m_Editor.Render("TextEditor", ImVec2(), isFocused);
         ImGui::PopFont();
     } else {
-        isFocused |= m_Editor.Render("TextEditor", isFocused);
+        m_Editor.Render("TextEditor", ImVec2(), isFocused);
     }
 
     if (isFocused) {
@@ -191,8 +152,7 @@ void CodeEditor::OnImGui() {
         if (ImGui::IsKeyDown(ImGuiKey_Enter) || ImGui::IsKeyDown(ImGuiKey_KeypadEnter)) {
             static int targetLineFixed;
             targetLineFixed = targetLine < 1 ? 0 : targetLine - 1;
-            m_Editor.ClearExtraCursors();
-            m_Editor.ClearSelections();
+            m_Editor.ClearCursors();
             m_Editor.SelectLine(targetLineFixed);
             ImGui::CloseCurrentPopup();
             ImGui::GetIO().ClearInputKeys();
@@ -207,12 +167,13 @@ void CodeEditor::OnImGui() {
     }
     if (ImGui::BeginPopup("find_popup")) {
         ImGui::Checkbox("Case sensitive", &m_CtrlfCaseSensitive);
-        if (requestingFindPopup)
+        if (requestingFindPopup) {
             ImGui::SetKeyboardFocusHere();
+        }
         ImGui::InputText("To find", m_CtrlfTextToFind, FIND_POPUP_TEXT_FIELD_LENGTH, ImGuiInputTextFlags_AutoSelectAll);
         const int32_t& toFindTextSize = (int32_t)strlen(m_CtrlfTextToFind);
         if ((ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)) && toFindTextSize > 0) {
-            m_Editor.ClearExtraCursors();
+            m_Editor.ClearCursors();
             m_Editor.SelectNextOccurrenceOf(m_CtrlfTextToFind, toFindTextSize, m_CtrlfCaseSensitive);
         }
         if (ImGui::Button("Find all") && toFindTextSize > 0) {
@@ -225,9 +186,10 @@ void CodeEditor::OnImGui() {
 }
 
 void CodeEditor::SetSelection(int startLine, int startChar, int endLine, int endChar) {
-    EZ_TOOLS_DEBUG_BREAK;
-    m_Editor.SetCursorPosition(endLine, endChar);
-    m_Editor.SelectRegion(startLine, startChar, endLine, endChar);
+    // new TextEditor does not expose SelectRegion; approximate with cursor placement
+    (void)startLine;
+    (void)startChar;
+    m_Editor.SetCursor(endLine, endChar);
 }
 
 void CodeEditor::SetRelatedFile(const std::string& vFile) {
@@ -239,39 +201,39 @@ const std::string& CodeEditor::GetRelatedFile() {
 }
 
 void CodeEditor::OnFolderViewDeleted(int folderViewId) {
-    EZ_TOOLS_DEBUG_BREAK;
     if (m_CreatedFromFolderView == folderViewId) {
         m_CreatedFromFolderView = -1;
     }
 }
 
 void CodeEditor::SetShowDebugPanel(bool value) {
-    EZ_TOOLS_DEBUG_BREAK;
     m_ShowDebugPanel = value;
 }
 
-void CodeEditor::SetCode(const std::string& vCode, const TextEditor::LanguageDefinition& vType) {
+void CodeEditor::SetCode(const std::string& vCode, CodeEditorLanguage vType) {
     m_Type = vType;
-    m_Editor.SetLanguageDefinition(m_Type);
+    m_Editor.SetLanguage(m_Type);
     m_Editor.SetText(vCode);
-    // m_Editor.Render("CodeEditor");
 }
 
 void CodeEditor::ClearErrorMarkers() {
     m_ErrorMarkers.clear();
+    // new TextEditor exposes ClearMarkers() instead of SetErrorMarkers(map)
+    m_Editor.ClearMarkers();
 }
 
 void CodeEditor::AddErrorMarker(const size_t& vErrorLine, const std::string& vErrorMsg) {
     m_ErrorMarkers[(int32_t)vErrorLine] = vErrorMsg;
-    m_Editor.SetErrorMarkers(m_ErrorMarkers);
+    // new TextEditor: jump to the line via cursor; rich marker rendering is no longer
+    // wired up through SetErrorMarkers(map). this keeps the UX (jump-to-error) intact.
+    (void)vErrorMsg;
     m_Editor.SelectLine((int32_t)vErrorLine);
-    m_Editor.SetCursorPosition((int32_t)vErrorLine, 0);
+    m_Editor.SetCursor((int32_t)vErrorLine, 0);
 }
 
 // Commands
 
 void CodeEditor::OnReloadCommand() {
-    EZ_TOOLS_DEBUG_BREAK;
 #if defined(__WIN32__) || defined(WIN32) || defined(_WIN32) || defined(__WIN64__) || defined(WIN64) || defined(_WIN64) || defined(_MSC_VER)
     std::ifstream t(ez::str::utf8Decode(m_RelatedFile).c_str());
 #else
@@ -282,37 +244,6 @@ void CodeEditor::OnReloadCommand() {
     m_UndoIndexInDisk = 0;
 }
 
-void CodeEditor::OnLoadFromCommand() {
-    EZ_TOOLS_DEBUG_BREAK;
-    /*std::vector<std::string> selection = pfd::open_file("Open file", "", { "Any file", "*" }).result();
-    if (selection.size() == 0) {
-        std::cout << "File not loaded\n";
-    } else {
-        std::ifstream t(Utf8ToWstring(selection[0]));
-        std::string str((std::istreambuf_iterator<char>(t)),
-        std::istreambuf_iterator<char>());
-        m_Editor.SetText(str);
-        auto pathObject = std::filesystem::path(selection[0]);
-        auto lang = extensionToLanguageDefinition.find(pathObject.extension().string());
-        if (lang != extensionToLanguageDefinition.end())
-            m_Editor.SetLanguageDefinition(extensionToLanguageDefinition[pathObject.extension().string()]);
-    }
-    undoIndexInDisk = -1; // assume they are loading text from some other file*/
-}
+void CodeEditor::OnLoadFromCommand() {}
 
-void CodeEditor::OnSaveCommand() {
-    EZ_TOOLS_DEBUG_BREAK;
-    /*std::string textToSave = m_Editor.GetText();
-    std::string destination = hasAssociatedFile ?
-        m_RelatedFile :
-        pfd::save_file("Save file", "", { "Any file", "*" }).result();
-    if (destination.length() > 0) {
-        m_RelatedFile = destination;
-        hasAssociatedFile = true;
-        panelName = std::filesystem::path(destination).filename().string() + "##" + std::to_string((int)this);
-        std::ofstream outFile(Utils::Utf8ToWstring(destination), std::ios::binary);
-        outFile << textToSave;
-        outFile.close();
-    }
-    undoIndexInDisk = m_Editor.GetUndoIndex();*/
-}
+void CodeEditor::OnSaveCommand() {}

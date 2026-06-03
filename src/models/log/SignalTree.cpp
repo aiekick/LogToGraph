@@ -13,7 +13,7 @@ void SignalTree::prepare(const std::string& vSearchString) {
     searchPattern = vSearchString;
     m_RootItem.clear();
 
-    for (const auto& signal_cnt : LogEngine::Instance()->GetSignalSeries()) {
+    for (const auto& signal_cnt : LogEngine::ref()->GetSignalSeries()) {
         prepareRecurs(vSearchString, signal_cnt.first, signal_cnt.second, m_RootItem);
     }
 }
@@ -92,11 +92,11 @@ void SignalTree::displayItemRecurs(SignalItem& vSignalItemRef, bool vCollapseAll
             if (ptr) {
                 if (ImGui::Selectable(ptr->label.c_str(), ptr->show)) {
                     ptr->show = !ptr->show;
-                    LogEngine::Instance()->ShowHideSignal(ptr->category, ptr->name, ptr->show);
-                    if (ProjectFile::Instance()->m_CollapseLogSelection) {
-                        LogPane::Instance()->PrepareLog();
+                    LogEngine::ref()->ShowHideSignal(ptr->category, ptr->name, ptr->show);
+                    if (ProjectFile::ref()->m_CollapseLogSelection) {
+                        LogPane::ref()->PrepareLog();
                     }
-                    ProjectFile::Instance()->SetProjectChange();
+                    ProjectFile::ref()->SetProjectChange();
                 }
             }
         }

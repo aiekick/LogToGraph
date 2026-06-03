@@ -16,7 +16,9 @@ limitations under the License.
 
 #pragma once
 
-#include <ImGuiPack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
+#include <imguipack.h>
 #include <models/log/LogEngine.h>
 #include <headers/DatasDef.h>
 #include <stdint.h>
@@ -26,6 +28,10 @@ limitations under the License.
 
 class ProjectFile;
 class LogPaneSecondView : public AbstractPane {
+    DISABLE_CONSTRUCTORS(LogPaneSecondView)
+    DISABLE_DESTRUCTORS(LogPaneSecondView)
+    IMPLEMENT_SHARED_SINGLETON(LogPaneSecondView)
+
 private:
     ImGuiListClipper m_LogListClipper;
     SignalTicksWeakContainer m_LogDatas;
@@ -35,29 +41,17 @@ private:
     bool m_backSelectionNeeded = false;
 
 public:
-    bool Init() override;
-    void Unit() override;
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
+    bool init() override;
+    void unit() override;
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
 
     void Clear();
     void CheckItem(const SignalTickPtr& vSignalTick);
-    void PrepareLog();               // Prevent unwanted destruction};
+    void PrepareLog();
 
 private:
     void goOnNextSelection();
     void goOnBackSelection();
     void DrawMenuBar();
     void DrawTable();
-
-public:  // singleton
-    static std::shared_ptr<LogPaneSecondView> Instance() {
-        static auto _instance = std::make_shared<LogPaneSecondView>();
-        return _instance;
-    }                  
-
-public:
-    LogPaneSecondView() = default;                                             // Prevent construction
-    LogPaneSecondView(const LogPaneSecondView&) = delete;                      // Prevent construction by copying
-    LogPaneSecondView& operator=(const LogPaneSecondView&) { return *this; };  // Prevent assignment
-    virtual ~LogPaneSecondView() = default;
 };

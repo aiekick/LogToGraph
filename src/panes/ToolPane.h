@@ -21,11 +21,18 @@ limitations under the License.
 #include <string>
 #include <cstdint>
 #include <headers/DatasDef.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
+#include <imguipack.h>
 #include <models/log/LogEngine.h>
 #include <models/log/SignalTree.h>
 
 class ProjectFile;
 class ToolPane : public AbstractPane {
+    DISABLE_CONSTRUCTORS(ToolPane)
+    DISABLE_DESTRUCTORS(ToolPane)
+    IMPLEMENT_SHARED_SINGLETON(ToolPane)
+
 private:
     ImGuiListClipper m_FileListClipper;
     char m_search_buffer[1024 + 1] = "";
@@ -34,24 +41,12 @@ private:
 
 public:
     void Clear();
-    bool Init() override;
-    void Unit() override;
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
-    bool DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vRect*/, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) override;
+    bool init() override;
+    void unit() override;
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
+    bool drawDialogsAndPopups(const ImRect& aRect, LayoutPaneUserDatas apUserDatas) override;
 
     void UpdateTree();
-
-public:  // singleton
-    static std::shared_ptr<ToolPane> Instance() {
-        static auto _instance = std::make_shared<ToolPane>();
-        return _instance;
-    }
-
-public:
-    ToolPane() = default;                                    // Prevent construction
-    ToolPane(const ToolPane&) = delete;                      // Prevent construction by copying
-    ToolPane& operator=(const ToolPane&) { return *this; };  // Prevent assignment
-    virtual ~ToolPane() = default;                           // Prevent unwanted destruction};
 
 private:
     void DrawTable();

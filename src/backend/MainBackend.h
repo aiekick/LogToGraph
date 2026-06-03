@@ -1,8 +1,10 @@
 #pragma once
 
 #include <glad/glad.h>
-#include <ImGuiPack.h>
+#include <imguipack.h>
 #include <ezlibs/ezTools.hpp>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
 
 #include <string>
@@ -14,16 +16,20 @@
 
 struct GLFWwindow;
 class MainBackend : public ez::xml::Config {
+    DISABLE_CONSTRUCTORS(MainBackend)
+    DISABLE_DESTRUCTORS(MainBackend)
+    IMPLEMENT_SINGLETON(MainBackend)
+
 private:
     GLFWwindow* m_MainWindowPtr = nullptr;
     const char* m_glslVersion = "";
     ImRect m_displayRect;
 
     // mouse
-    ez::fvec4 m_MouseFrameSize;
-    ez::fvec2 m_MousePos;
-    ez::fvec2 m_LastNormalizedMousePos;
-    ez::fvec2 m_NormalizedMousePos;
+    ez::math::fvec4 m_MouseFrameSize;
+    ez::math::fvec2 m_MousePos;
+    ez::math::fvec2 m_LastNormalizedMousePos;
+    ez::math::fvec2 m_NormalizedMousePos;
 
     bool m_ConsoleVisiblity = false;
     uint32_t m_CurrentFrame = 0U;
@@ -45,8 +51,6 @@ public:  // getters
     ImRect GetDisplayRect() { return m_displayRect; }
 
 public:
-    virtual ~MainBackend();
-
     void run(const std::string& vAppPath);
 
     bool init(const std::string& vAppPath);
@@ -71,7 +75,7 @@ public:
 
     GLuint getBigAppIconID() { return m_BigAppIconID; }
 
-    ez::dvec2 GetMousePos();
+    ez::math::dvec2 GetMousePos();
     int GetMouseButton(int vButton);
 
 public:  // configuration
@@ -108,10 +112,4 @@ private:
     void m_SetEmbeddedIconApp(const char* vEmbeddedIconID);
     GLuint m_ExtractEmbeddedIcon(const char* vEmbeddedIconID);
     GLuint m_ExtractEmbeddedImage(const char* vEmbeddedImageID);
-
-public:  // singleton
-    static MainBackend* Instance() {
-        static MainBackend _instance;
-        return &_instance;
-    }
 };

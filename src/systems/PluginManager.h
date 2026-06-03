@@ -6,13 +6,10 @@
 #include <memory>
 #include <filesystem>
 
-#ifdef WIN32
-#include <IDLLoader/Windows/DLLoader.h>
-#else
-#include <IDLLoader/Unix/DLLoader.h>
-#endif
-
 #include <apis/LtgPluginApi.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezPlugin.hpp>
+#include <ezlibs/ezSingleton.hpp>
 
 #if defined(__WIN32__) || defined(WIN32) || defined(_WIN32) || defined(__WIN64__) || defined(WIN64) || defined(_WIN64) || defined(_MSC_VER)
 #if defined(Core_EXPORTS)
@@ -38,7 +35,7 @@ typedef std::weak_ptr<Ltg::PluginInterface> PluginInterfaceWeak;
 
 class LOG_TO_GRAPH_CORE_API PluginInstance {
 private:
-    dlloader::DLLoader<Ltg::PluginInterface> m_Loader;
+    ez::plugin::Loader<Ltg::PluginInterface> m_Loader;
     PluginInterfacePtr m_PluginInstance = nullptr;
     std::string m_Name;
 
@@ -53,6 +50,10 @@ public:
 };
 
 class LOG_TO_GRAPH_CORE_API PluginManager : public Ltg::PluginBridge {
+    DISABLE_CONSTRUCTORS(PluginManager)
+    DISABLE_DESTRUCTORS(PluginManager)
+    IMPLEMENT_SINGLETON(PluginManager)
+
 private:
     std::map<std::string, PluginInstancePtr> m_Plugins;
 
@@ -67,16 +68,4 @@ public:
 private:
     void m_loadPlugin(const std::filesystem::directory_entry& vEntry, const std::set<Ltg::PluginModuleType> vTypesToLoad);
     void m_displayLoadedPlugins();
-
-public:
-    PluginManager() = default;                                         // Prevent construction
-    PluginManager(const PluginManager&) = default;                     // Prevent construction by copying
-    PluginManager& operator=(const PluginManager&) { return *this; };  // Prevent assignment
-    virtual ~PluginManager() = default;                                // Prevent unwanted destruction
-
-public:
-    static PluginManager* Instance() {
-        static auto _instance = std::make_unique<PluginManager>();
-        return _instance.get();
-    }
 };

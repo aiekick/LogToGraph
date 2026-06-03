@@ -26,10 +26,10 @@
 #include <systems/PluginManager.h>
 #include <project/ProjectFile.h>
 
-#include <LayoutManager.h>
 
-#include <ImGuiPack.h>
-#include <iagp/iagp.h>
+
+#include <imguipack.h>
+#include <iagp.h>
 
 #include <frontend/MainFrontend.h>
 
@@ -57,14 +57,12 @@ static void glfw_error_callback(int error, const char* description) {
 
 static void glfw_window_close_callback(GLFWwindow* window) {
     glfwSetWindowShouldClose(window, GLFW_FALSE);  // block app closing
-    MainFrontend::Instance()->Action_Window_CloseApp();
+    MainFrontend::ref().Action_Window_CloseApp();
 }
 
 //////////////////////////////////////////////////////////////////////////////////
 //// PUBLIC //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
-
-MainBackend::~MainBackend() = default;
 
 void MainBackend::run(const std::string& vAppPath) {
     if (init(vAppPath)) {
@@ -122,28 +120,28 @@ void MainBackend::NeedToCloseProject() {
 }
 
 bool MainBackend::SaveProject() {
-    return ProjectFile::Instance()->Save();
+    return ProjectFile::ref()->Save();
 }
 
 void MainBackend::SaveAsProject(const std::string& vFilePathName) {
-    ProjectFile::Instance()->SaveAs(vFilePathName);
+    ProjectFile::ref()->SaveAs(vFilePathName);
 }
 
 // actions to do after rendering
 void MainBackend::PostRenderingActions() {
     if (m_NeedToNewProject) {
-        ProjectFile::Instance()->Clear();
-        ProjectFile::Instance()->ClearDatas();
-        ProjectFile::Instance()->New(m_ProjectFileToLoad);
+        ProjectFile::ref()->Clear();
+        ProjectFile::ref()->ClearDatas();
+        ProjectFile::ref()->New(m_ProjectFileToLoad);
         m_ProjectFileToLoad.clear();
         m_NeedToNewProject = false;
     }
 
     if (m_NeedToLoadProject) {
         if (!m_ProjectFileToLoad.empty()) {
-            if (ProjectFile::Instance()->LoadAs(m_ProjectFileToLoad)) {
+            if (ProjectFile::ref()->LoadAs(m_ProjectFileToLoad)) {
                 setAppTitle(m_ProjectFileToLoad);
-                ProjectFile::Instance()->SetProjectChange(false);
+                ProjectFile::ref()->SetProjectChange(false);
             } else {
                 LogVarError("Failed to load project %s", m_ProjectFileToLoad.c_str());
             }
@@ -154,8 +152,8 @@ void MainBackend::PostRenderingActions() {
     }
 
     if (m_NeedToCloseProject) {
-        ProjectFile::Instance()->Clear();
-        ProjectFile::Instance()->ClearDatas();
+        ProjectFile::ref()->Clear();
+        ProjectFile::ref()->ClearDatas();
         m_NeedToCloseProject = false;
     }
 }
@@ -186,8 +184,8 @@ void MainBackend::setAppTitle(const std::string& vFilePathName) {
     }
 }
 
-ez::dvec2 MainBackend::GetMousePos() {
-    ez::dvec2 mp;
+ez::math::dvec2 MainBackend::GetMousePos() {
+    ez::math::dvec2 mp;
     glfwGetCursorPos(m_MainWindowPtr, &mp.x, &mp.y);
     return mp;
 }
@@ -241,13 +239,13 @@ void MainBackend::m_MainLoop() {
     while (!glfwWindowShouldClose(m_MainWindowPtr)) {
         {
 #ifndef _DEBUG
-            if (!ScriptingEngine::Instance()->IsJoinable()) {  // for not blocking threading progress bar animation
+            if (!ScriptingEngine::ref()->IsJoinable()) {  // for not blocking threading progress bar animation
                 glfwWaitEventsTimeout(1.0);
             }
 #endif
             IAGPNewFrame("GPU Frame", "GPU Frame");  // a main Zone is always needed
 
-            ProjectFile::Instance()->NewFrame();
+            ProjectFile::ref()->NewFrame();
 
             // maintain active, prevent user change via imgui dialog
             ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;    // Enable Docking
@@ -269,9 +267,9 @@ void MainBackend::m_MainLoop() {
                 size = viewport->WorkSize;
             }
 
-            MainFrontend::Instance()->Display(m_CurrentFrame, pos, size);
+            MainFrontend::ref().Display(m_CurrentFrame, pos, size);
 
-            ScriptingEngine::Instance()->FinishIfRequired();
+            ScriptingEngine::ref()->FinishIfRequired();
 
             ImGui::Render();
 
@@ -292,7 +290,7 @@ void MainBackend::m_MainLoop() {
             glfwMakeContextCurrent(backup_current_context);
 
 #ifdef USE_THUMBNAILS
-            ImGuiFileDialog::Instance()->ManageGPUThumbnails();
+            ImGuiFileDialog::ref().ManageGPUThumbnails();
 #endif
 
             glfwSwapBuffers(m_MainWindowPtr);
@@ -321,9 +319,9 @@ void MainBackend::m_IncFrame() {
 
 ez::xml::Nodes MainBackend::getXmlNodes(const std::string& vUserDatas) {
     ez::xml::Node node("root");
-    node.addChilds(MainFrontend::Instance()->getXmlNodes(vUserDatas));
-    node.addChilds(SettingsDialog::Instance()->getXmlNodes(vUserDatas));
-    node.addChild("project").setContent(ProjectFile::Instance()->GetProjectFilepathName());
+    node.addChilds(MainFrontend::ref().getXmlNodes(vUserDatas));
+    node.addChilds(SettingsDialog::ref().getXmlNodes(vUserDatas));
+    node.addChild("project").setContent(ProjectFile::ref()->GetProjectFilepathName());
     return node.getChildren();
 }
 
@@ -333,8 +331,8 @@ bool MainBackend::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
     const auto& strValue = vNode.getContent();
     // const auto& strParentName = vParent.getName();
 
-    MainFrontend::Instance()->setFromXmlNodes(vNode, vParent, vUserDatas);
-    SettingsDialog::Instance()->setFromXmlNodes(vNode, vParent, vUserDatas);
+    MainFrontend::ref().setFromXmlNodes(vNode, vParent, vUserDatas);
+    SettingsDialog::ref().setFromXmlNodes(vNode, vParent, vUserDatas);
 
     if (strName == "project") {
         NeedToLoadProject(strValue);
@@ -425,8 +423,8 @@ bool MainBackend::m_InitImGui() {
     if (ImGui_ImplGlfw_InitForOpenGL(m_MainWindowPtr, true) &&  //
         ImGui_ImplOpenGL3_Init(m_glslVersion)) {
         // ui init
-        if (MainFrontend::Instance()->init()) {
-            iagp::InAppGpuProfiler::Instance()->Clear();
+        if (MainFrontend::ref().init()) {
+            iagp::InAppGpuProfiler::ref().Clear();
             return true;
         }
     }
@@ -434,38 +432,39 @@ bool MainBackend::m_InitImGui() {
 }
 
 void MainBackend::m_InitPlugins(const std::string& vAppPath) {
-    PluginManager::Instance()->loadPlugins(vAppPath);
-    auto pluginPanes = PluginManager::Instance()->getPluginPanes();
+    PluginManager::ref().loadPlugins(vAppPath);
+    auto pluginPanes = PluginManager::ref().getPluginPanes();
     for (auto& pluginPane : pluginPanes) {
         if (!pluginPane.pane.expired()) {
-            LayoutManager::Instance()->AddPane(  //
+            ImLayout::ref().addPane(ImLayout::PaneInfos(  //
                 pluginPane.pane,
                 pluginPane.name,
                 pluginPane.category,
+                pluginPane.name,
                 pluginPane.disposal,
                 pluginPane.disposalRatio,
                 pluginPane.openedDefault,
-                pluginPane.focusedDefault);
+                pluginPane.focusedDefault));
             auto plugin_ptr = std::dynamic_pointer_cast<Ltg::PluginPane>(pluginPane.pane.lock());
             if (plugin_ptr != nullptr) {
-                plugin_ptr->SetProjectInstance(ProjectFile::Instance());
+                plugin_ptr->SetProjectInstance(ProjectFile::ref());
             }
         }
     }
 }
 
 void MainBackend::m_InitModels() {
-    ScriptingEngine::Instance()->Init();
+    ScriptingEngine::ref()->Init();
 }
 
 void MainBackend::m_UnitModels() {
-    ProjectFile::Instance()->Clear();
-    ProjectFile::Instance()->ClearDatas();
-    ScriptingEngine::Instance()->Unit();
+    ProjectFile::ref()->Clear();
+    ProjectFile::ref()->ClearDatas();
+    ScriptingEngine::ref()->Unit();
 }
 
 void MainBackend::m_UnitPlugins() {
-    PluginManager::Instance()->unloadPlugins();
+    PluginManager::ref().unloadPlugins();
 }
 
 void MainBackend::m_InitSystems() {
@@ -486,25 +485,25 @@ void MainBackend::m_UnitSystems() {
 }
 
 void MainBackend::m_InitPanes() {
-    if (LayoutManager::Instance()->InitPanes()) {
-        // a faire apres InitPanes() sinon ConsolePane::Instance()->paneFlag vaudra 0 et changeras apres InitPanes()
-        Messaging::Instance()->sMessagePaneId = ConsolePane::Instance()->GetFlag();
+    if (ImLayout::ref().initPanes()) {
+        // a faire apres InitPanes() sinon ConsolePane::ref()->paneFlag vaudra 0 et changeras apres InitPanes()
+        Messaging::ref().sMessagePaneId = ConsolePane::ref()->getFlag();
     }
 }
 
 void MainBackend::m_UnitPanes() {}
 
 void MainBackend::m_InitSettings() {
-    SettingsDialog::Instance()->init();
+    SettingsDialog::ref().init();
 }
 
 void MainBackend::m_UnitSettings() {
-    SettingsDialog::Instance()->unit();
+    SettingsDialog::ref().unit();
 }
 
 void MainBackend::m_UnitImGui() {
-    MainFrontend::Instance()->unit();
-    iagp::InAppGpuProfiler::Instance()->Clear();
+    MainFrontend::ref().unit();
+    iagp::InAppGpuProfiler::ref().Clear();
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

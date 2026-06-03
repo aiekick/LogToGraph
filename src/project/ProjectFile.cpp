@@ -34,7 +34,7 @@
 #include <models/script/ScriptingEngine.h>
 
 #include <panes/GraphPane.h>
-#include <LayoutManager.h>
+
 #include <systems/SettingsDialog.h>
 
 #include <ezlibs/ezFile.hpp>
@@ -61,22 +61,23 @@ void ProjectFile::Clear() {
     m_SourceFilePathNames.clear();
     m_IsLoaded = false;
     m_IsThereAnyChanges = false;
-    Messaging::Instance()->Clear();
+    Messaging::ref().Clear();
 }
 
 void ProjectFile::ClearDatas() {
-    ScriptingEngine::Instance()->Clear();
-    LogEngine::Instance()->Clear();
-    GraphView::Instance()->Clear();
-    GraphGroup::Instance()->Clear();
-    ToolPane::Instance()->Clear();
-    LogPane::Instance()->Clear();
-    LogPaneSecondView::Instance()->Clear();
-    GraphListPane::Instance()->Clear();
-    GraphGroupPane::Instance()->Clear();
-    SignalsHoveredDiff::Instance()->Clear();
-    SignalsHoveredList::Instance()->Clear();
-    SignalsHoveredMap::Instance()->Clear();
+    ScriptingEngine::ref()->Clear();
+    LogEngine::ref()->Clear();
+    GraphView::ref()->Clear();
+    // GraphGroup is no longer a singleton — instances live inside GraphView::m_GraphGroups
+    // and are cleared by GraphView::Clear() above
+    ToolPane::ref()->Clear();
+    LogPane::ref()->Clear();
+    LogPaneSecondView::ref()->Clear();
+    GraphListPane::ref()->Clear();
+    GraphGroupPane::ref()->Clear();
+    SignalsHoveredDiff::ref()->Clear();
+    SignalsHoveredList::ref()->Clear();
+    SignalsHoveredMap::ref()->Clear();
 }
 
 void ProjectFile::New() {
@@ -91,7 +92,7 @@ void ProjectFile::New(const std::string& vFilePathName) {
     Clear();
     ClearDatas();
     m_ProjectFilePathName = ez::file::simplifyFilePath(vFilePathName);
-    DataBase::Instance()->CreateDBFile(m_ProjectFilePathName);
+    DataBase::ref()->CreateDBFile(m_ProjectFilePathName);
     auto ps = ez::file::parsePathFileName(m_ProjectFilePathName);
     if (ps.isOk) {
         m_ProjectFileName = ps.name;
@@ -111,17 +112,17 @@ bool ProjectFile::LoadAs(const std::string& vFilePathName) {
     if (!vFilePathName.empty()) {
         Clear();
         std::string filePathName = ez::file::simplifyFilePath(vFilePathName);
-        if (DataBase::Instance()->IsFileASqlite3DB(filePathName)) {
-            if (DataBase::Instance()->OpenDBFile(filePathName)) {
+        if (DataBase::ref()->IsFileASqlite3DB(filePathName)) {
+            if (DataBase::ref()->OpenDBFile(filePathName)) {
                 ClearDatas();
-                auto xml_settings = DataBase::Instance()->GetSettingsXMLDatas();
+                auto xml_settings = DataBase::ref()->GetSettingsXMLDatas();
                 if (LoadConfigString(ez::xml::Node::unEscapeXml(xml_settings), "") || xml_settings.empty()) {
                     m_ProjectFilePathName = ez::file::simplifyFilePath(vFilePathName);
                     auto ps = ez::file::parsePathFileName(m_ProjectFilePathName);
                     if (ps.isOk) {
                         m_ProjectFileName = ps.name;
                         m_ProjectFilePath = ps.path;
-                        CodePane::Instance()->OpenFile(m_CodeFilePathName);
+                        CodePane::ref()->OpenFile(m_CodeFilePathName);
                     }
                     m_IsLoaded = true;
                     SetProjectChange(false);
@@ -130,12 +131,12 @@ bool ProjectFile::LoadAs(const std::string& vFilePathName) {
                     LogVarError("The project file %s cant be loaded", filePathName.c_str());
                 }
 
-                LogEngine::Instance()->Finalize();
-                GraphListPane::Instance()->UpdateDB();
-                ToolPane::Instance()->UpdateTree();
-                LogEngine::Instance()->PrepareAfterLoad();
+                LogEngine::ref()->Finalize();
+                GraphListPane::ref()->UpdateDB();
+                ToolPane::ref()->UpdateTree();
+                LogEngine::ref()->PrepareAfterLoad();
 
-                DataBase::Instance()->CloseDBFile();
+                DataBase::ref()->CloseDBFile();
             }
         }
     }
@@ -147,15 +148,15 @@ bool ProjectFile::Save() {
         return false;
     }
 
-    LogEngine::Instance()->PrepareForSave();
-    if (DataBase::Instance()->OpenDBFile(m_ProjectFilePathName)) {
+    LogEngine::ref()->PrepareForSave();
+    if (DataBase::ref()->OpenDBFile(m_ProjectFilePathName)) {
         auto xml_settings = ez::xml::Node::escapeXml(SaveConfigString("", "config"));
-        if (DataBase::Instance()->SetSettingsXMLDatas(xml_settings)) {
+        if (DataBase::ref()->SetSettingsXMLDatas(xml_settings)) {
             SetProjectChange(false);
-            DataBase::Instance()->CloseDBFile();
+            DataBase::ref()->CloseDBFile();
             return true;
         }
-        DataBase::Instance()->CloseDBFile();
+        DataBase::ref()->CloseDBFile();
     }
 
     return false;
@@ -249,9 +250,9 @@ const std::vector<std::pair<SourceFileName, SourceFilePathName>>& ProjectFile::G
 ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     ez::xml::Node node;
     node.setName("project");
-    node.addChilds(LayoutManager::Instance()->getXmlNodes("project"));
-    node.addChilds(ScriptingEngine::Instance()->getXmlNodes("project"));
-    node.addChilds(LogEngine::Instance()->getXmlNodes("project"));
+    node.addChilds(ImLayout::ref().getXmlNodes("project"));
+    node.addChilds(ScriptingEngine::ref()->getXmlNodes("project"));
+    node.addChilds(LogEngine::ref()->getXmlNodes("project"));
     node.addChild("graph_bar_colors").setContent(m_GraphColors.graphBarColor);
     node.addChild("graph_bar_colors").setContent(m_GraphColors.graphBarColor);
     node.addChild("graph_current_time_colors").setContent(m_GraphColors.graphHoveredTimeColor);
@@ -341,7 +342,9 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
         } else if (strName == "graph_synchronize") {
             m_SyncGraphs = ez::ivariant(strValue).GetB();
         } else if (strName == "graph_sync_limits") {
-            m_SyncGraphsLimits = ez::dvariant(strValue).GetV4();
+            // dvariant::GetV4() now returns ez::math::dvec4 — ImPlotRect needs explicit unpacking
+            const auto v = ez::dvariant(strValue).GetV4();
+            m_SyncGraphsLimits = ImPlotRect(v.x, v.y, v.z, v.w);
         } else if (strName == "code_file_path_name") {
             m_CodeFilePathName = strValue;
         } else if (strName == "curve_radius_detection") {
@@ -381,9 +384,9 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
         }
     }
 
-    LayoutManager::Instance()->setFromXmlNodes(vNode, vParent, "project");
-    ScriptingEngine::Instance()->setFromXmlNodes(vNode, vParent, "project");
-    LogEngine::Instance()->setFromXmlNodes(vNode, vParent, "project");
+    ImLayout::ref().setFromXmlNodes(vNode, vParent, "project");
+    ScriptingEngine::ref()->setFromXmlNodes(vNode, vParent, "project");
+    LogEngine::ref()->setFromXmlNodes(vNode, vParent, "project");
 
     return true;
 }

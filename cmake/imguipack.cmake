@@ -9,10 +9,11 @@ set(USE_IM_LAYOUT ON CACHE BOOL "" FORCE)
 set(USE_IM_COOL_BAR ON CACHE BOOL "" FORCE)
 set(USE_IMGUI_FILE_DIALOG ON CACHE BOOL "" FORCE)
 set(USE_IMGUI_COLOR_TEXT_EDIT ON CACHE BOOL "" FORCE)
+set(USE_EMBEDDED_FRAME_PROFILER ON CACHE BOOL "" FORCE) ## ProfilerPane / IAGP* macros need iagp
 set(IMGUIPACK_USE_STD_FILESYSTEM ON CACHE BOOL "" FORCE)
 
 # OFF
-set(USE_IMPLOT OFF CACHE BOOL "" FORCE)
+set(USE_IMPLOT ON CACHE BOOL "" FORCE) ## graph panes need ImPlot
 set(USE_IM_GUIZMO OFF CACHE BOOL "" FORCE)
 set(USE_IMGUI_MARKDOW OFF CACHE BOOL "" FORCE)
 set(USE_IM_GRADIENT_HDR OFF CACHE BOOL "" FORCE)
@@ -31,8 +32,15 @@ set_target_properties(imguipack PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${F
 set_target_properties(imguipack PROPERTIES RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${FINAL_BIN_DIR}")
 set_target_properties(imguipack PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${FINAL_BIN_DIR}")
 
-target_include_directories(imguipack PUBLIC 
+target_include_directories(imguipack PUBLIC
 	${CMAKE_SOURCE_DIR}/3rdparty/ezlibs/include
+)
+
+## CustomInAppGpuProfiler.h (consumed via add_definitions) pulls glad+glfw — wire them
+## into imguipack itself so the embedded frame profiler TU compiles
+target_include_directories(imguipack PRIVATE
+	${GLAD_INCLUDE_DIR}
+	${GLFW_INCLUDE_DIR}
 )
 
 set_target_properties(freetype PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${FINAL_BIN_DIR}")

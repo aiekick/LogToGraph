@@ -14,10 +14,10 @@
 #define LOG_TO_GRAPH_BRIDGE_CAMERA_ICON_LABEL_LOCK ICON_SDFM_LOCK
 
 // colors for RenderDoc
-#define QUAD_SHADER_PASS_DEBUG_COLOR ez::fvec4(0.6f, 0.8f, 0.9f, 0.5f)
-#define MESH_SHADER_PASS_DEBUG_COLOR ez::fvec4(0.7f, 0.9f, 0.6f, 0.5f)
-#define VERTEX_SHADER_PASS_DEBUG_COLOR ez::fvec4(0.7f, 0.4f, 0.6f, 0.5f)
-#define COMPUTE_SHADER_PASS_DEBUG_COLOR ez::fvec4(0.7f, 0.6f, 0.9f, 0.5f)
-#define GENERIC_RENDERER_DEBUG_COLOR ez::fvec4(0.8f, 0.8f, 0.5f, 0.5f)
-#define IMGUI_RENDERER_DEBUG_COLOR ez::fvec4(0.9f, 0.6f, 0.6f, 0.5f)
-#define SHADERBLOCK_SHADER_PASS_DEBUG_COLOR ez::fvec4(0.3f, 0.6f, 0.6f, 0.5f)
+#define QUAD_SHADER_PASS_DEBUG_COLOR ez::math::fvec4(0.6f, 0.8f, 0.9f, 0.5f)
+#define MESH_SHADER_PASS_DEBUG_COLOR ez::math::fvec4(0.7f, 0.9f, 0.6f, 0.5f)
+#define VERTEX_SHADER_PASS_DEBUG_COLOR ez::math::fvec4(0.7f, 0.4f, 0.6f, 0.5f)
+#define COMPUTE_SHADER_PASS_DEBUG_COLOR ez::math::fvec4(0.7f, 0.6f, 0.9f, 0.5f)
+#define GENERIC_RENDERER_DEBUG_COLOR ez::math::fvec4(0.8f, 0.8f, 0.5f, 0.5f)
+#define IMGUI_RENDERER_DEBUG_COLOR ez::math::fvec4(0.9f, 0.6f, 0.6f, 0.5f)
+#define SHADERBLOCK_SHADER_PASS_DEBUG_COLOR ez::math::fvec4(0.3f, 0.6f, 0.6f, 0.5f)

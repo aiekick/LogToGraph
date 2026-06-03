@@ -1,8 +1,15 @@
 #pragma once
 
-#include <ImGuiPack.h>
+#include <imguipack.h>
+
+#include <cstdint>
+#include <map>
+#include <string>
 
 #define FIND_POPUP_TEXT_FIELD_LENGTH 128
+
+// new imguipack's TextEditor exposes `const TextEditor::Language*` instead of `LanguageDefinition`
+using CodeEditorLanguage = const TextEditor::Language*;
 
 class CodeEditor {
 public:
@@ -12,7 +19,7 @@ public:
 private:
     OnFocusedCallback onFocusedCallback = nullptr;
     OnShowInFolderViewCallback onShowInFolderViewCallback = nullptr;
-    TextEditor::LanguageDefinition m_Type;
+    CodeEditorLanguage m_Type = nullptr;
     std::map<int32_t, std::string> m_ErrorMarkers;
     ImFont* m_CodeFontPtr = nullptr;
     int m_Id = -1;
@@ -40,7 +47,7 @@ public:
     void OnFolderViewDeleted(int folderViewId);
     void SetShowDebugPanel(bool value);
 
-    void SetCode(const std::string& vCode, const TextEditor::LanguageDefinition& vType);
+    void SetCode(const std::string& vCode, CodeEditorLanguage vType);
 
     void ClearErrorMarkers();
     void AddErrorMarker(const size_t& vErrorLine, const std::string& vErrorMsg);

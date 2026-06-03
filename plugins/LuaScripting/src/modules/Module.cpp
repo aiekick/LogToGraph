@@ -2,7 +2,7 @@
 #include <ezlibs/ezFile.hpp>
 #include <ezlibs/ezTime.hpp>
 #include <ezlibs/ezLog.hpp>
-#include <ImGuiPack.h>
+#include <imguipack.h>
 #include <exception>
 #include <chrono>
 #include <ctime>

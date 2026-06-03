@@ -1,6 +1,6 @@
 #include <settings/Settings.h>
 
-#include <ImGuiPack.h>
+#include <imguipack.h>
 
 std::string Settings::getApiKey() const {
     return m_ApiKey;

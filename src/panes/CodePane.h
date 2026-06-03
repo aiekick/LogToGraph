@@ -1,6 +1,8 @@
 #pragma once
 
-#include <ImGuiPack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
+#include <imguipack.h>
 #include <frontend/Components/CodeEditor.h>
 #include <cstdint>
 #include <memory>
@@ -9,6 +11,10 @@
 
 class ProjectFile;
 class CodePane : public AbstractPane {
+    DISABLE_CONSTRUCTORS(CodePane)
+    DISABLE_DESTRUCTORS(CodePane)
+    IMPLEMENT_SHARED_SINGLETON(CodePane)
+
 private:
     struct CodeSheet {
         CodeEditor codeEditor;
@@ -20,21 +26,9 @@ private:
     std::vector<CodeSheet> m_CodeSheets;
 
 public:
-    bool Init() final;
-    void Unit() final;
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) final;
+    bool init() final;
+    void unit() final;
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) final;
 
     void OpenFile(const std::string& vFilePathName, size_t vErrorLine = 0, std::string vErrorMsg = {});
-
-public:  // singleton
-    static std::shared_ptr<CodePane> Instance() {
-        static std::shared_ptr<CodePane> _instance = std::make_shared<CodePane>();
-        return _instance;
-    }
-
-public:
-    CodePane();                                              // Prevent construction
-    CodePane(const CodePane&) = default;                     // Prevent construction by copying
-    CodePane& operator=(const CodePane&) { return *this; };  // Prevent assignment
-    virtual ~CodePane();                                     // Prevent unwanted destruction};
 };

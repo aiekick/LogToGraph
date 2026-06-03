@@ -16,7 +16,9 @@ limitations under the License.
 
 #pragma once
 
-#include <ImGuiPack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
+#include <imguipack.h>
 #include <models/log/LogEngine.h>
 #include <headers/DatasDef.h>
 #include <stdint.h>
@@ -26,14 +28,18 @@ limitations under the License.
 
 class ProjectFile;
 class SignalsHoveredList : public AbstractPane {
+    DISABLE_CONSTRUCTORS(SignalsHoveredList)
+    DISABLE_DESTRUCTORS(SignalsHoveredList)
+    IMPLEMENT_SHARED_SINGLETON(SignalsHoveredList)
+
 private:
     ImGuiListClipper m_VirtualClipper;
 
 public:
     void Clear();
-    bool Init() override;
-    void Unit() override;
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
+    bool init() override;
+    void unit() override;
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
 
     void SetHoveredTime(const SignalEpochTime& vHoveredTime);
 
@@ -42,16 +48,4 @@ private:
     void DrawTable();
     static int CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize, ImVec2& vOutButtonSize);
     int DrawSignalButton(int& vWidgetPushId, SignalTickPtr vPtr, ImVec2 vGlyphSize);
-
-public:  // singleton
-    static std::shared_ptr<SignalsHoveredList> Instance() {
-        static auto _instance = std::make_shared<SignalsHoveredList>();
-        return _instance;
-    }
-
-public:
-    SignalsHoveredList() = default;                                              // Prevent construction
-    SignalsHoveredList(const SignalsHoveredList&) = delete;                      // Prevent construction by copying
-    SignalsHoveredList& operator=(const SignalsHoveredList&) { return *this; };  // Prevent assignment
-    virtual ~SignalsHoveredList() = default;                                     // Prevent unwanted destruction};
 };

@@ -40,18 +40,18 @@ void ToolPane::Clear() {
     m_SignalTree.clear();
 }
 
-bool ToolPane::Init() {
+bool ToolPane::init()  {
     return true;
 }
 
-void ToolPane::Unit() {}
+void ToolPane::unit() {}
 
-bool ToolPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool ToolPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
+    if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -59,7 +59,7 @@ bool ToolPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGui
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus;
 #endif
-            if (ProjectFile::Instance()->IsProjectLoaded()) {
+            if (ProjectFile::ref()->IsProjectLoaded()) {
                 DrawTable();
 
                 DrawTree();
@@ -71,57 +71,58 @@ bool ToolPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGui
     return change;
 }
 
-bool ToolPane::DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImRect& vRect, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) {
-    if (ProjectFile::Instance()->IsProjectLoaded()) {
-        ImVec2 maxSize = vRect.GetSize();
+bool ToolPane::drawDialogsAndPopups(const ImRect& aRect, LayoutPaneUserDatas apUserDatas) {
+    (void)apUserDatas;
+    if (ProjectFile::ref()->IsProjectLoaded()) {
+        ImVec2 maxSize = aRect.GetSize();
         ImVec2 minSize = maxSize * 0.5f;
 
-        if (ImGuiFileDialog::Instance()->Display("OPEN_LUA_SCRIPT_FILE", ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, minSize, maxSize)) {
-            if (ImGuiFileDialog::Instance()->IsOk()) {
-                ProjectFile::Instance()->SetScriptFilePathName(ImGuiFileDialog::Instance()->GetFilePathName());
-                CodePane::Instance()->OpenFile(ImGuiFileDialog::Instance()->GetFilePathName());
-                ProjectFile::Instance()->SetProjectChange();
+        if (ImGuiFileDialog::ref().Display("OPEN_LUA_SCRIPT_FILE", ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, minSize, maxSize)) {
+            if (ImGuiFileDialog::ref().IsOk()) {
+                ProjectFile::ref()->SetScriptFilePathName(ImGuiFileDialog::ref().GetFilePathName());
+                CodePane::ref()->OpenFile(ImGuiFileDialog::ref().GetFilePathName());
+                ProjectFile::ref()->SetProjectChange();
             }
 
-            ImGuiFileDialog::Instance()->Close();
+            ImGuiFileDialog::ref().Close();
         }
 
-        if (ImGuiFileDialog::Instance()->Display("OPEN_LOG_FILE", ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, minSize, maxSize)) {
-            if (ImGuiFileDialog::Instance()->IsOk()) {
-                ProjectFile::Instance()->m_LastLogFilePath = ImGuiFileDialog::Instance()->GetFilePathName();
-                auto files = ImGuiFileDialog::Instance()->GetSelection();
+        if (ImGuiFileDialog::ref().Display("OPEN_LOG_FILE", ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, minSize, maxSize)) {
+            if (ImGuiFileDialog::ref().IsOk()) {
+                ProjectFile::ref()->m_LastLogFilePath = ImGuiFileDialog::ref().GetFilePathName();
+                auto files = ImGuiFileDialog::ref().GetSelection();
                 for (const auto& item : files) {
-                    ProjectFile::Instance()->AddSourceFilePathName(item.second);
+                    ProjectFile::ref()->AddSourceFilePathName(item.second);
                 }
 
-                ProjectFile::Instance()->SetProjectChange();
+                ProjectFile::ref()->SetProjectChange();
             }
 
-            ImGuiFileDialog::Instance()->Close();
+            ImGuiFileDialog::ref().Close();
         }
 
-        if (ImGuiFileDialog::Instance()->Display("EDIT_LOG_FILE", ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, minSize, maxSize)) {
-            if (ImGuiFileDialog::Instance()->IsOk()) {
-                const auto& container = ProjectFile::Instance()->GetSourceFilePathNames();
+        if (ImGuiFileDialog::ref().Display("EDIT_LOG_FILE", ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, minSize, maxSize)) {
+            if (ImGuiFileDialog::ref().IsOk()) {
+                const auto& container = ProjectFile::ref()->GetSourceFilePathNames();
                 if (m_CurrentSourceEdited > -1 && m_CurrentSourceEdited < (int32_t)container.size()) {
-                    auto fpn = ImGuiFileDialog::Instance()->GetFilePathName();
+                    auto fpn = ImGuiFileDialog::ref().GetFilePathName();
                     auto ps = ez::file::parsePathFileName(fpn);
                     if (ps.isOk) {
-                        ProjectFile::Instance()->RemoveFilePathName(container[m_CurrentSourceEdited].second);
-                        ProjectFile::Instance()->AddSourceFilePathName(fpn);
-                        ProjectFile::Instance()->SetProjectChange();
+                        ProjectFile::ref()->RemoveFilePathName(container[m_CurrentSourceEdited].second);
+                        ProjectFile::ref()->AddSourceFilePathName(fpn);
+                        ProjectFile::ref()->SetProjectChange();
                     }
                 }
             }
 
-            ImGuiFileDialog::Instance()->Close();
+            ImGuiFileDialog::ref().Close();
         }
     }
     return false;
 }
 
 void ToolPane::UpdateTree() {
-    m_SignalTree.prepare(ProjectFile::Instance()->m_SearchString);
+    m_SignalTree.prepare(ProjectFile::ref()->m_SearchString);
 }
 
 void ToolPane::DrawTable() {
@@ -129,17 +130,17 @@ void ToolPane::DrawTable() {
         if (ImGui::ContrastedButton("Select the Script Script File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
             IGFD::FileDialogConfig config;
             config.countSelectionMax = 1;
-            config.filePathName = ProjectFile::Instance()->GetScriptFilePathName();
+            config.filePathName = ProjectFile::ref()->GetScriptFilePathName();
             config.flags = ImGuiFileDialogFlags_Modal;
-            ImGuiFileDialog::Instance()->OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Script Script File", ".lua,.*", config);
+            ImGuiFileDialog::ref().OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Script Script File", ".lua,.*", config);
         }
         if (ImGui::ContrastedButton(ICON_FONT_PENCIL "##ScriptScriptEdit")) {
-            ez::file::openFile(ProjectFile::Instance()->GetScriptFilePathName());
+            ez::file::openFile(ProjectFile::ref()->GetScriptFilePathName());
         }
         ImGui::SameLine();
-        ImGui::TextWrapped("%s", ProjectFile::Instance()->GetScriptFileName().c_str());
+        ImGui::TextWrapped("%s", ProjectFile::ref()->GetScriptFileName().c_str());
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("%s", ProjectFile::Instance()->GetScriptFilePathName().c_str());
+            ImGui::SetTooltip("%s", ProjectFile::ref()->GetScriptFilePathName().c_str());
         }
     }
 
@@ -147,12 +148,12 @@ void ToolPane::DrawTable() {
         if (ImGui::ContrastedButton("Add a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
             IGFD::FileDialogConfig config;
             config.countSelectionMax = 1;
-            config.filePathName = ProjectFile::Instance()->m_LastLogFilePath;
+            config.filePathName = ProjectFile::ref()->m_LastLogFilePath;
             config.flags = ImGuiFileDialogFlags_Modal;
-            ImGuiFileDialog::Instance()->OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*", config);
+            ImGuiFileDialog::ref().OpenDialog("OPEN_LOG_FILE", "Open a Log File", ".*", config);
         }
 
-        const auto& sources = ProjectFile::Instance()->GetSourceFilePathNames();
+        const auto& sources = ProjectFile::ref()->GetSourceFilePathNames();
         if (!sources.empty()) {
             static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders;
             if (ImGui::BeginTable("##sourcefilestable", 3, flags, ImVec2(-1.0f, sources.size() * ImGui::GetTextLineHeightWithSpacing()))) {
@@ -204,12 +205,12 @@ void ToolPane::DrawTable() {
                     config.countSelectionMax = 1;
                     config.filePathName = it_to_edit->second;
                     config.flags = ImGuiFileDialogFlags_Modal;
-                    ImGuiFileDialog::Instance()->OpenDialog("EDIT_LOG_FILE", "Edit a Log File", ".*", config);
+                    ImGuiFileDialog::ref().OpenDialog("EDIT_LOG_FILE", "Edit a Log File", ".*", config);
                 }
 
                 // erase
                 if (it_to_erase != sources.end()) {
-                    ProjectFile::Instance()->RemoveFilePathName(it_to_erase->second);
+                    ProjectFile::ref()->RemoveFilePathName(it_to_erase->second);
                 }
 
                 ImGui::EndTable();
@@ -218,28 +219,28 @@ void ToolPane::DrawTable() {
     }
 
     if (ImGui::CollapsingHeader("Predefined Zero value")) {
-        ImGui::CheckBoxBoolDefault("Use Predefined Zero Value ?", &ProjectFile::Instance()->m_UsePredefinedZeroValue, false);
-        if (ProjectFile::Instance()->m_UsePredefinedZeroValue) {
-            ImGui::InputDouble("##Predefinedzerovalue", &ProjectFile::Instance()->m_PredefinedZeroValue);
+        ImGui::CheckBoxBoolDefault("Use Predefined Zero Value ?", &ProjectFile::ref()->m_UsePredefinedZeroValue, false);
+        if (ProjectFile::ref()->m_UsePredefinedZeroValue) {
+            ImGui::InputDouble("##Predefinedzerovalue", &ProjectFile::ref()->m_PredefinedZeroValue);
         }
     }
 
     if (ImGui::CollapsingHeader("Analyse")) {
-        ScriptingEngine::Instance()->drawMenu();
-        if (ScriptingEngine::Instance()->isValidScriptingSelected()) {
-            if (!ScriptingEngine::Instance()->IsJoinable()) {
+        ScriptingEngine::ref()->drawMenu();
+        if (ScriptingEngine::ref()->isValidScriptingSelected()) {
+            if (!ScriptingEngine::ref()->IsJoinable()) {
                 if (ImGui::ContrastedButton("Start Analyse of file(s)", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
-                    ScriptingEngine::Instance()->Clear();
-                    ScriptingEngine::Instance()->SetScriptFilePathName(ProjectFile::Instance()->GetScriptFilePathName());
-                    const auto& sources = ProjectFile::Instance()->GetSourceFilePathNames();
+                    ScriptingEngine::ref()->Clear();
+                    ScriptingEngine::ref()->SetScriptFilePathName(ProjectFile::ref()->GetScriptFilePathName());
+                    const auto& sources = ProjectFile::ref()->GetSourceFilePathNames();
                     for (const auto& source : sources) {
-                        ScriptingEngine::Instance()->AddSourceFilePathName(source.second);
+                        ScriptingEngine::ref()->AddSourceFilePathName(source.second);
                     }
-                    ScriptingEngine::Instance()->StartWorkerThread(false);
+                    ScriptingEngine::ref()->StartWorkerThread(false);
                 }
             } else {
                 if (ImGui::ContrastedButton("Stop Analyse", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
-                    ScriptingEngine::Instance()->StopWorkerThread();
+                    ScriptingEngine::ref()->StopWorkerThread();
                 }
 
                 auto progress = (float)ScriptingEngine::s_progress;
@@ -250,7 +251,7 @@ void ToolPane::DrawTable() {
 }
 
 void ToolPane::DrawTree() {
-    auto& search_string = ProjectFile::Instance()->m_SearchString;
+    auto& search_string = ProjectFile::ref()->m_SearchString;
 
     ImGui::Header("Signals");
 
@@ -298,20 +299,20 @@ void ToolPane::DrawTree() {
 void ToolPane::HideAllGraphs() {
     bool _one_at_least = false;
 
-    for (auto& item_cat : LogEngine::Instance()->GetSignalSeries()) {
+    for (auto& item_cat : LogEngine::ref()->GetSignalSeries()) {
         for (auto& item_name : item_cat.second) {
             if (item_name.second) {
                 if (item_name.second->show) {
                     _one_at_least = true;
                 }
 
-                LogEngine::Instance()->ShowHideSignal(item_name.second->category, item_name.second->name, false);
+                LogEngine::ref()->ShowHideSignal(item_name.second->category, item_name.second->name, false);
             }
         }
     }
 
     if (_one_at_least) {
-        GraphView::Instance()->Clear();
-        ProjectFile::Instance()->SetProjectChange();
+        GraphView::ref()->Clear();
+        ProjectFile::ref()->SetProjectChange();
     }
 }

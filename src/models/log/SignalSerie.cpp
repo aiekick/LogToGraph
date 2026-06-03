@@ -34,8 +34,8 @@ void SignalSerie::insertTick(const SignalTickWeak& vTick, const size_t& vIdx, co
         if (ptr) {
             ptr->parent = m_This;
 
-            range_value.x = ez::mini(range_value.x, ptr->value);
-            range_value.y = ez::maxi(range_value.y, ptr->value);
+            range_value.x = ez::math::mini(range_value.x, ptr->value);
+            range_value.y = ez::math::maxi(range_value.y, ptr->value);
             datas_values.insert(datas_values.begin() + vIdx, vTick);
 
             if (vIncBaseRecordsCount) {
@@ -50,8 +50,8 @@ void SignalSerie::addTick(const SignalTickWeak& vTick, const bool vIncBaseRecord
     if (ptr) {
         ptr->parent = m_This;
 
-        range_value.x = ez::mini(range_value.x, ptr->value);
-        range_value.y = ez::maxi(range_value.y, ptr->value);
+        range_value.x = ez::math::mini(range_value.x, ptr->value);
+        range_value.y = ez::math::maxi(range_value.y, ptr->value);
         datas_values.push_back(vTick);
 
         if (vIncBaseRecordsCount) {
@@ -78,5 +78,5 @@ void SignalSerie::finalize() {
 }
 
 bool SignalSerie::isConstant() {
-    return ez::isEqual(range_value.x, range_value.y);
+    return ez::math::isEqual(range_value.x, range_value.y);
 }
