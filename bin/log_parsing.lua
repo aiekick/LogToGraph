@@ -17,14 +17,18 @@
 -- addSignalEndZone(string signal_category, string signal_name, Epoch signal_epoch_time, string signal_string)
 
 function startFile()
-	--RecursPrint(ltg)
 	ltg:logInfo(" --- Start of file parsing ---");
 end
 
 function parse(buffer)
 	_section, _time, _name, _value = string.match(buffer, "<profiler section=\"(.*)\" epoch_time=\"(.*)\" name=\"(.*)\" render_time_ms=\"(.*)\">")
 	if _section ~= nil and _time ~= nil and _name ~= nil and _value ~= nil then
-		ltg:addSignalValue(_section, _name, ltg:stringToEpoch(_time, 0), tonumber(_value))
+		print("_section : ", type(_section))
+		epoch = ltg:stringToEpoch(_time, 0)
+		print("_time : ", type(epoch))
+		print("_name : ", type(_name))
+		print("_value : ", type(_value))
+		-- ltg:addSignalValue(_section, _name, ltg:stringToEpoch(_time, 0), _value)
 	end
 end
 
