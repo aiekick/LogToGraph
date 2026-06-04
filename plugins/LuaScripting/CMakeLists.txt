@@ -83,6 +83,16 @@ if (USE_SHARED_LIBS)
 	target_compile_definitions(${PROJECT} PRIVATE BUILD_IMGUI_PACK_SHARED_LIBS)
 endif()
 
+## sol2 config — MUST be visible to every TU before the first <sol/sol.hpp>:
+## - SOL_ALL_SAFETIES_ON=1     : full runtime safety checks (arg counts, types, …)
+## - SOL_EXCEPTIONS_SAFE_PROPAGATION=0 : force sol2 to wrap C-function trampolines
+##   with try/catch instead of letting C++ exceptions reach LuaJIT EXT (which
+##   would convert them to the literal string "C++ exception" — see
+##   luajit/src/lj_errmsg.h ERRDEF(ERRCPP,...)). Required for set_exception_handler
+##   to surface real std::exception::what() messages to Lua scripts.
+target_compile_definitions(${PROJECT} PRIVATE SOL_ALL_SAFETIES_ON=1)
+target_compile_definitions(${PROJECT} PRIVATE SOL_EXCEPTIONS_SAFE_PROPAGATION=0)
+
 if(USE_DEBUG_SANITIZER)
 	target_compile_options(${PROJECT} PRIVATE $<$<CONFIG:Debug>:-fsanitize=address -static-libasan>)
 	target_link_options(${PROJECT} PRIVATE $<$<CONFIG:Debug>:-fsanitize=address -static-libasan>)

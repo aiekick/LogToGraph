@@ -1,3 +1,6 @@
+// sol2 config (SOL_ALL_SAFETIES_ON, SOL_EXCEPTIONS_SAFE_PROPAGATION) is now
+// injected by the plugin's CMakeLists so it reaches every TU before any
+// <sol/sol.hpp> include.
 #include "Module.h"
 #include <ezlibs/ezFile.hpp>
 #include <ezlibs/ezTime.hpp>
@@ -8,8 +11,6 @@
 #include <ctime>
 
 #include <lua.hpp>
-
-#define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
 
 Ltg::ScriptingModulePtr Module::create(const SettingsWeak& vSettings) {

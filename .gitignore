@@ -46,3 +46,4 @@
 /bin/packages
 /bin/plugins/Plugin_LuaScripting_Windows_x64_Release.dll
 /bin/plugins/luajit.dll
+/.claude
