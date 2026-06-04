@@ -33,6 +33,20 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
         m_datasModel = vDatasModel;
 
         m_luaPtr = std::make_unique<sol::state>();
+
+        // By default, sol2 converts C++ exceptions thrown from bound functions into a
+        // generic "C++ exception" lua_error — the actual std::exception::what() is lost.
+        // This handler forwards the real what() string back to Lua, so script error messages
+        // surface the original throw text ("Invalid date format", etc.) instead.
+        m_luaPtr->set_exception_handler(
+            [](lua_State* L, sol::optional<const std::exception&> maybe_exception, sol::string_view description) {
+                if (maybe_exception) {
+                    const std::exception& ex = *maybe_exception;
+                    return sol::stack::push(L, ex.what());
+                }
+                return sol::stack::push(L, description);
+            });
+
         m_luaPtr->open_libraries(sol::lib::base);
         m_luaPtr->open_libraries(sol::lib::package);
         m_luaPtr->open_libraries(sol::lib::coroutine);
