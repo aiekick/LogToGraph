@@ -36,6 +36,7 @@ limitations under the License.
 #include <ezlibs/ezFile.hpp>
 
 #include <systems/PluginManager.h>
+#include <models/debug/ScriptDebugger.h>
 
 using namespace std::chrono;
 
@@ -92,6 +93,15 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                 if (!scriptingPtr->compileScript(scriptFilePathName, errorContainer)) {
                     LogVarLightError("Fail to compile script \"%s\"", scriptFilePathName.c_str());
                 } else {
+                    // arm the shared debugger only when a session is wanted (breakpoints set or debug
+                    // toggle on); otherwise no hook is installed and LuaJIT keeps its full speed
+                    auto* debugHostPtr = ScriptDebugger::ref().get();
+                    const bool debugArmed = ScriptDebugger::ref()->shouldArmDebug();
+                    if (debugArmed) {
+                        ScriptDebugger::ref()->bindPlugin(scriptingPtr.get());
+                        scriptingPtr->enableDebug(debugHostPtr);
+                        scriptingPtr->setBreakpoints(ScriptDebugger::ref()->getBreakpoints());
+                    }
                     LogEngine::ref()->Clear();
                     GraphView::ref()->Clear();
                     DataBase::ref()->OpenDBFile(ProjectFile::ref()->m_ProjectFilePathName);
@@ -134,6 +144,10 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                     }
                     LogEngine::ref()->Finalize();  // retrieve datas from database
                     DataBase::ref()->CloseDBFile();
+                    if (debugArmed) {
+                        scriptingPtr->disableDebug();
+                        ScriptDebugger::ref()->unbindPlugin();
+                    }
                 }
                 scriptingPtr->unload();
             }

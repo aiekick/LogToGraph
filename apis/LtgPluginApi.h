@@ -25,6 +25,7 @@ limitations under the License.
 #include <map>
 
 #include "ILayoutPane.h"
+#include "IScriptDebugger.h"
 #include <ezlibs/ezXml.hpp>
 
 namespace ez {
@@ -163,7 +164,7 @@ struct ScriptingDatas {
     std::string buffer;
 };
 typedef std::string ScriptingModuleName;
-struct ScriptingModule : public PluginModule {
+struct ScriptingModule : public PluginModule, public IScriptDebugger {
     virtual ~ScriptingModule() = default;
     // will load the related scripting engine
     virtual bool load(IDatasModelWeak vDatasModel) = 0;

@@ -14,6 +14,23 @@ bool CodeEditor::init() {
     if (ImGui::GetIO().Fonts->Fonts.size() > 1U) {
         m_CodeFontPtr = ImGui::GetIO().Fonts->Fonts[1];
     }
+    // right-click on the gutter toggles a breakpoint on that line (widget 0-based)
+    m_Editor.SetLineNumberContextMenuCallback([this](int aLine) {
+        const bool hasBreakpoint = (m_BreakpointLines.find(aLine) != m_BreakpointLines.end());
+        if (!hasBreakpoint) {
+            if (ImGui::MenuItem("Set Breakpoint")) {
+                if (m_OnBreakpointToggled) {
+                    m_OnBreakpointToggled(aLine, true);
+                }
+            }
+        } else {
+            if (ImGui::MenuItem("Remove Breakpoint")) {
+                if (m_OnBreakpointToggled) {
+                    m_OnBreakpointToggled(aLine, false);
+                }
+            }
+        }
+    });
     return true;
 }
 
@@ -218,16 +235,14 @@ void CodeEditor::SetCode(const std::string& vCode, CodeEditorLanguage vType) {
 
 void CodeEditor::ClearErrorMarkers() {
     m_ErrorMarkers.clear();
-    // new TextEditor exposes ClearMarkers() instead of SetErrorMarkers(map)
-    m_Editor.ClearMarkers();
+    m_RebuildMarkers();
 }
 
 void CodeEditor::AddErrorMarker(const size_t& vErrorLine, const std::string& vErrorMsg) {
     m_ErrorMarkers[(int32_t)vErrorLine] = vErrorMsg;
-    // new TextEditor: jump to the line via cursor; rich marker rendering is no longer
-    // wired up through SetErrorMarkers(map). this keeps the UX (jump-to-error) intact.
-    (void)vErrorMsg;
-    m_Editor.SelectLine((int32_t)vErrorLine);
+    // AddMarker's textTooltip carries the message again, so the per-line error tooltip
+    // is back (regression #2/#4 fixed); the cursor still jumps to the error line.
+    m_RebuildMarkers();
     m_Editor.SetCursor((int32_t)vErrorLine, 0);
 }
 
@@ -247,3 +262,40 @@ void CodeEditor::OnReloadCommand() {
 void CodeEditor::OnLoadFromCommand() {}
 
 void CodeEditor::OnSaveCommand() {}
+
+void CodeEditor::SetBreakpointToggledCallback(std::function<void(int32_t, bool)> aCallback) {
+    m_OnBreakpointToggled = aCallback;
+}
+
+void CodeEditor::SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines) {
+    if (m_BreakpointLines != aZeroBasedLines) {
+        m_BreakpointLines = aZeroBasedLines;
+        m_RebuildMarkers();
+    }
+}
+
+void CodeEditor::SetCurrentExecLine(int32_t aZeroBasedLine) {
+    if (m_CurrentExecLine != aZeroBasedLine) {
+        m_CurrentExecLine = aZeroBasedLine;
+        m_RebuildMarkers();
+        if (m_CurrentExecLine >= 0) {
+            m_Editor.SetCursor(m_CurrentExecLine, 0);  // scroll to the paused line
+        }
+    }
+}
+
+void CodeEditor::m_RebuildMarkers() {
+    m_Editor.ClearMarkers();
+    // breakpoints: red line-number marker in the gutter
+    for (const auto& breakpointLine : m_BreakpointLines) {
+        m_Editor.AddMarker(breakpointLine, IM_COL32(220, 40, 40, 255), 0, "breakpoint", "");
+    }
+    // errors: translucent red text marker carrying the message as a tooltip
+    for (const auto& errorMarker : m_ErrorMarkers) {
+        m_Editor.AddMarker(errorMarker.first, 0, IM_COL32(200, 0, 40, 80), "", errorMarker.second);
+    }
+    // current paused line: amber line number + translucent amber text
+    if (m_CurrentExecLine >= 0) {
+        m_Editor.AddMarker(m_CurrentExecLine, IM_COL32(255, 200, 0, 255), IM_COL32(255, 200, 0, 60), "current line", "");
+    }
+}

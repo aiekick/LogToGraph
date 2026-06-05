@@ -42,6 +42,9 @@ limitations under the License.
 #include <panes/LogPaneSecondView.h>
 #include <panes/GraphListPane.h>
 #include <panes/AnnotationPane.h>
+#include <panes/WatcherPane.h>
+#include <panes/CalltracePane.h>
+#include <panes/BreakpointsPane.h>
 
 #include <res/fontIcons.h>
 
@@ -98,6 +101,10 @@ bool MainFrontend::init() {
     ImLayout::ref().addPane(ImLayout::PaneInfos(SignalsHoveredList::ref(), ICON_FONT_CACTUS " Signals Hovered List", "", ICON_FONT_CACTUS " Signals Hovered List", "RIGHT", 0.25f, false, false));
     ImLayout::ref().addPane(ImLayout::PaneInfos(SignalsHoveredDiff::ref(), ICON_FONT_VECTOR_DIFFERENCE " Signals Hovered Diff", "", ICON_FONT_VECTOR_DIFFERENCE " Signals Hovered Diff", "RIGHT", 0.25f, false, false));
     ImLayout::ref().addPane(ImLayout::PaneInfos(ToolPane::ref(), ICON_FONT_CUBE_SCAN " Tool", "", ICON_FONT_CUBE_SCAN " Tool", "LEFT", 0.25f, true, true));
+
+    ImLayout::ref().addPane(ImLayout::PaneInfos(BreakpointsPane::ref(), ICON_FONT_BUG " Breakpoints", "Debug", ICON_FONT_BUG " Breakpoints", "BOTTOM", 0.3f, false, false));
+    ImLayout::ref().addPane(ImLayout::PaneInfos(CalltracePane::ref(), ICON_FONT_FORMAT_LIST_BULLETED " Call Trace", "Debug", ICON_FONT_FORMAT_LIST_BULLETED " Call Trace", "BOTTOM", 0.3f, false, false));
+    ImLayout::ref().addPane(ImLayout::PaneInfos(WatcherPane::ref(), ICON_FONT_EYE_OUTLINE " Watcher", "Debug", ICON_FONT_EYE_OUTLINE " Watcher", "BOTTOM", 0.3f, false, false));
 
     // InitPanes is done in m_InitPanes, because a specific order is needed
 
