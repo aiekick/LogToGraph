@@ -3,9 +3,14 @@
 
 #include <panes/CodePane.h>
 #include <cinttypes>  // printf zu
+#include <unordered_set>
 
 #include <ezlibs/ezLog.hpp>
 #include <ezlibs/ezFile.hpp>
+
+#include <res/fontIcons.h>
+#include <models/debug/ScriptDebugger.h>
+#include <models/script/ScriptingEngine.h>
 
 bool CodePane::init() {
     // for avoid a reallocation of the vector for each push/emplace
@@ -51,10 +56,28 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
+            m_DrawDebugToolbar();
+
+            const auto debugScriptFile = ScriptDebugger::ref()->getScriptFilePathName();
+            const auto breakpoints1Based = ScriptDebugger::ref()->getBreakpoints();
+            const bool isPaused = (ScriptDebugger::ref()->getMode() == ScriptDebugger::Mode::Paused);
+            int32_t currentExecLine0Based = -1;
+            if (isPaused) {
+                currentExecLine0Based = ScriptDebugger::ref()->getState().line - 1;
+            }
+            std::unordered_set<int32_t> breakpoints0Based;
+            for (const auto& breakpointLine : breakpoints1Based) {
+                breakpoints0Based.insert(breakpointLine - 1);
+            }
+
             if (ImGui::BeginTabBar("CodePane")) {
                 for (auto& sheet : m_CodeSheets) {
                     ImGui::PushID(sheet.filepathName.c_str());
                     if (ImGui::BeginTabItem(sheet.title.c_str(), &sheet.opened)) {
+                        if (sheet.filepathName == debugScriptFile) {
+                            sheet.codeEditor.SetBreakpoints(breakpoints0Based);
+                            sheet.codeEditor.SetCurrentExecLine(currentExecLine0Based);
+                        }
                         sheet.codeEditor.OnImGui();
                         ImGui::EndTabItem();
                     }
@@ -67,6 +90,62 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
         ImGui::End();
     }
     return change;
+}
+
+void CodePane::m_DrawDebugToolbar() {
+    const auto debugMode = ScriptDebugger::ref()->getMode();
+    const bool isPaused = (debugMode == ScriptDebugger::Mode::Paused);
+    const bool isRunning = (debugMode != ScriptDebugger::Mode::Idle);
+
+    bool armed = ScriptDebugger::ref()->isDebugArmed();
+    if (ImGui::Checkbox(ICON_FONT_BUG " Debug", &armed)) {
+        ScriptDebugger::ref()->setDebugArmed(armed);
+    }
+
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!isPaused);
+    if (ImGui::Button(ICON_FONT_PLAY "##dbg_continue")) {
+        ScriptDebugger::ref()->doContinue();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FONT_DEBUG_STEP_INTO "##dbg_stepinto")) {
+        ScriptDebugger::ref()->stepInto();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FONT_DEBUG_STEP_OVER "##dbg_stepover")) {
+        ScriptDebugger::ref()->stepOver();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FONT_DEBUG_STEP_OUT "##dbg_stepout")) {
+        ScriptDebugger::ref()->stepOut();
+    }
+    ImGui::EndDisabled();
+
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!isRunning || isPaused);
+    if (ImGui::Button(ICON_FONT_PAUSE "##dbg_pause")) {
+        ScriptDebugger::ref()->pause();
+    }
+    ImGui::EndDisabled();
+
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!isRunning);
+    if (ImGui::Button(ICON_FONT_STOP "##dbg_stop")) {
+        ScriptingEngine::s_working = false;  // break the parse loop on the worker thread
+        ScriptDebugger::ref()->stop();
+    }
+    ImGui::EndDisabled();
+
+    ImGui::SameLine();
+    if (isPaused) {
+        const auto state = ScriptDebugger::ref()->getState();
+        ImGui::Text("Paused | log row %d | line %d", state.logRowIndex, state.line);
+    } else if (isRunning) {
+        ImGui::TextUnformatted("Running");
+    } else {
+        ImGui::TextUnformatted("Idle");
+    }
+    ImGui::Separator();
 }
 
 void CodePane::OpenFile(const std::string& vFilePathName, size_t vErrorLine, std::string vErrorMsg) {
@@ -104,6 +183,11 @@ void CodePane::OpenFile(const std::string& vFilePathName, size_t vErrorLine, std
             sheet.opened = true;
             sheet.wasModified = false;
             sheet.title = ps.name + "." + ps.ext;
+            // report gutter breakpoint toggles to the shared debugger (widget 0-based -> 1-based)
+            const std::string filePathForCallback = vFilePathName;
+            sheet.codeEditor.SetBreakpointToggledCallback([filePathForCallback](int32_t aLine, bool aAdd) {
+                ScriptDebugger::ref()->setBreakpoint(filePathForCallback, aLine + 1, aAdd);
+            });
             sheet.codeEditor.SetCode(code, type);
             sheet.codeEditor.AddErrorMarker(vErrorLine, vErrorMsg);
         }

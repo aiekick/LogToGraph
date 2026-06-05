@@ -31,4 +31,7 @@ public:
     bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) final;
 
     void OpenFile(const std::string& vFilePathName, size_t vErrorLine = 0, std::string vErrorMsg = {});
+
+private:
+    void m_DrawDebugToolbar();
 };

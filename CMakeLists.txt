@@ -282,7 +282,6 @@ if (EXISTS ${CMAKE_BINARY_DIR}/current_build_type)
 	add_custom_command(
 		TARGET ${PROJECT} PRE_BUILD
 		COMMAND echo "${PROJECT}_${CMAKE_SYSTEM_NAME}_${PROJECT_BUILD_CONFIG_NAME}_${ARCH}_v${MajorNumber}.${MinorNumber}.${BuildNumber}" > ${CMAKE_SOURCE_DIR}/VERSION
-		DEPENDS ${PROJECT}
 	)
 
 	#############################################################
