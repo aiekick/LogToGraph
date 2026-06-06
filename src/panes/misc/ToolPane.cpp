@@ -61,7 +61,6 @@ bool ToolPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
 #endif
             if (ProjectFile::ref()->IsProjectLoaded()) {
                 DrawTable();
-
                 DrawTree();
             }
         }
@@ -84,10 +83,8 @@ bool ToolPane::drawDialogsAndPopups(const ImRect& aRect, LayoutPaneUserDatas apU
                 for (const auto& item : files) {
                     ProjectFile::ref()->AddSourceFilePathName(item.second);
                 }
-
                 ProjectFile::ref()->SetProjectChange();
             }
-
             ImGuiFileDialog::ref().Close();
         }
 
@@ -104,7 +101,6 @@ bool ToolPane::drawDialogsAndPopups(const ImRect& aRect, LayoutPaneUserDatas apU
                     }
                 }
             }
-
             ImGuiFileDialog::ref().Close();
         }
     }

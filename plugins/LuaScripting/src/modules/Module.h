@@ -27,6 +27,10 @@ private:
     std::unique_ptr<sol::state> m_luaPtr = nullptr;
     Ltg::IDatasModelWeak m_datasModel;
     LuaDatasModelPtr m_luaDatasModelPtr = nullptr;
+    // dedicated, permanent sol::state that only holds the bindings + stdlib for autocompletion
+    // introspection. lives independently of the analysis state (which is created/destroyed per run).
+    std::unique_ptr<sol::state> m_completionLuaPtr = nullptr;
+    LuaDatasModelPtr m_completionDatasModelPtr = nullptr;
 
 private:  // debug session state
     Ltg::IScriptDebugHost* m_debugHostPtr = nullptr;  // borrowed, non-owning
@@ -54,6 +58,8 @@ public:
     void setRowIndex(int32_t vRowIndex) final;
     void setRowCount(int32_t vRowCount) final;
 
+    void getCompletionEntries(const std::string& aTarget, std::vector<Ltg::CompletionEntry>& aoEntries) final;
+
     // IScriptDebugger — driven by the host
     void enableDebug(Ltg::IScriptDebugHost* apHost) final;
     void disableDebug() final;
@@ -71,4 +77,7 @@ private:
     std::vector<Ltg::DebugVar> m_expandRef(lua_State* apLua, int32_t aRef);
     Ltg::EvalResult m_evalExpression(lua_State* apLua, lua_Debug* apDebug, const std::string& aExpression);
     void m_releaseDebugRefs(lua_State* apLua);
+
+    void m_ensureCompletionState();  // lazy init of m_completionLuaPtr on first getCompletionEntries call
+    static void m_iterateLuaTable(lua_State* apLua, int aTableIndex, std::vector<Ltg::CompletionEntry>& aoEntries);
 };

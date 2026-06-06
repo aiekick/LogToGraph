@@ -31,11 +31,14 @@ class AppSettings : public Ltg::ISettings {
 private:
     bool m_WaitEventsEnabled = true;
     double m_WaitEventsTimeoutSec = 1.0;
+    double m_HoverDelaySec = 0.5;  // VS-style hover delay before the code editor shows a watch tooltip
 
 public:
     // runtime accessors used by MainBackend::m_MainLoop
     bool isWaitEventsEnabled() const;
     double getWaitEventsTimeoutSec() const;
+    // runtime accessor used by CodePane to gate the hover-eval tooltip
+    double getHoverDelaySec() const;
 
     // Ltg::ISettings
     Ltg::SettingsCategoryPath getCategory() const final;

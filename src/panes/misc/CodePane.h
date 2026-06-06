@@ -36,6 +36,13 @@ private:
     // last-run scripting errors — refreshed when ScriptingEngine::GetErrorsRevision() advances
     int64_t m_LastErrorsRevisionSeen = -1;
     std::vector<Ltg::ScriptingError> m_ErrorsCache;
+    // hover-eval state — set per-frame by the editor's hover callback, consumed after the tab bar
+    // to draw a tooltip with the value evaluated in the paused frame. eval IDs start far above
+    // WatcherPane's range so they never collide.
+    std::string m_HoveredToken;
+    std::string m_LastHoverEvalToken;
+    int32_t m_HoverEvalId = (1 << 30);
+    double m_MouseStillSince = 0.0;  // ImGui::GetTime() when the mouse last stopped moving — gates the hover tooltip
 
 public:
     bool init() final;

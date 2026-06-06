@@ -11,7 +11,14 @@
 #include <models/debug/ScriptDebugger.h>
 #include <models/script/ScriptingEngine.h>
 #include <project/ProjectFile.h>
+#include <panes/debug/BreakpointsPane.h>
+#include <panes/debug/CalltracePane.h>
+#include <panes/debug/StackTreePane.h>
+#include <panes/debug/ScopePane.h>
 #include <panes/debug/WatcherPane.h>
+#include <systems/AppSettings.h>
+
+#include <cmath>
 
 bool CodePane::init() {
     // for avoid a reallocation of the vector for each push/emplace
@@ -42,7 +49,6 @@ void CodePane::Clear() {
 ///////////////////////////////////////////////////////////////////////////////////
 
 bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
-    
     bool change = false;
     if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
@@ -55,74 +61,109 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
             if (ProjectFile::ref()->IsProjectLoaded()) {
-            m_DrawDebugToolbar();
+                m_DrawDebugToolbar();
 
-            // refresh the breakpoint render cache ONLY when the debugger's revision has advanced.
-            // hot path = atomic load + int compare; cold path (rare) = mutex + set copy + 0-based transform.
-            const int64_t breakpointsRevision = ScriptDebugger::ref()->getBreakpointsRevision();
-            if (breakpointsRevision != m_BreakpointsRevisionSeen) {
-                m_DebugScriptFileCache = ScriptDebugger::ref()->getScriptFilePathName();
-                const auto& breakpoints1Based = ScriptDebugger::ref()->getBreakpoints();
-                m_Breakpoints0BasedCache.clear();
-                for (const auto& breakpointLine : breakpoints1Based) {
-                    m_Breakpoints0BasedCache.insert(breakpointLine - 1);
+                // refresh the breakpoint render cache ONLY when the debugger's revision has advanced.
+                // hot path = atomic load + int compare; cold path (rare) = mutex + set copy + 0-based transform.
+                const int64_t breakpointsRevision = ScriptDebugger::ref()->getBreakpointsRevision();
+                if (breakpointsRevision != m_BreakpointsRevisionSeen) {
+                    m_DebugScriptFileCache = ScriptDebugger::ref()->getScriptFilePathName();
+                    const auto& breakpoints1Based = ScriptDebugger::ref()->getBreakpoints();
+                    m_Breakpoints0BasedCache.clear();
+                    for (const auto& breakpointLine : breakpoints1Based) {
+                        m_Breakpoints0BasedCache.insert(breakpointLine - 1);
+                    }
+                    m_BreakpointsRevisionSeen = breakpointsRevision;
                 }
-                m_BreakpointsRevisionSeen = breakpointsRevision;
-            }
 
-            // same pattern for the paused snapshot — getStateRevision() bumps once per pause event
-            const int64_t stateRevision = ScriptDebugger::ref()->getStateRevision();
-            if (stateRevision != m_LastStateRevision) {
-                m_StateCache = ScriptDebugger::ref()->getState();
-                m_LastStateRevision = stateRevision;
-            }
-
-            // scripting errors — refreshed when ScriptingEngine bumps GetErrorsRevision(). on a bump,
-            // wipe all sheets' error markers then push the new ones to each matching sheet (route by err.file).
-            const int64_t errorsRevision = ScriptingEngine::ref()->GetErrorsRevision();
-            if (errorsRevision != m_LastErrorsRevisionSeen) {
-                m_ErrorsCache = ScriptingEngine::ref()->GetLastRunErrors();
-                m_LastErrorsRevisionSeen = errorsRevision;
-                for (auto& sheet : m_CodeSheets) {
-                    sheet.codeEditor.ClearErrorMarkers();
+                // same pattern for the paused snapshot — getStateRevision() bumps once per pause event
+                const int64_t stateRevision = ScriptDebugger::ref()->getStateRevision();
+                if (stateRevision != m_LastStateRevision) {
+                    m_StateCache = ScriptDebugger::ref()->getState();
+                    m_LastStateRevision = stateRevision;
                 }
-                for (const auto& errorEntry : m_ErrorsCache) {
+
+                // scripting errors — refreshed when ScriptingEngine bumps GetErrorsRevision(). on a bump,
+                // wipe all sheets' error markers then push the new ones to each matching sheet (route by err.file).
+                const int64_t errorsRevision = ScriptingEngine::ref()->GetErrorsRevision();
+                if (errorsRevision != m_LastErrorsRevisionSeen) {
+                    m_ErrorsCache = ScriptingEngine::ref()->GetLastRunErrors();
+                    m_LastErrorsRevisionSeen = errorsRevision;
                     for (auto& sheet : m_CodeSheets) {
-                        if (sheet.filepathName == errorEntry.file) {
-                            sheet.codeEditor.AddErrorMarker(errorEntry.line, errorEntry.message);
+                        sheet.codeEditor.ClearErrorMarkers();
+                    }
+                    for (const auto& errorEntry : m_ErrorsCache) {
+                        for (auto& sheet : m_CodeSheets) {
+                            if (sheet.filepathName == errorEntry.file) {
+                                sheet.codeEditor.AddErrorMarker(errorEntry.line, errorEntry.message);
+                            }
                         }
                     }
                 }
-            }
 
-            const bool isPaused = (ScriptDebugger::ref()->getMode() == ScriptDebugger::Mode::Paused);
-            const bool isDebugArmed = ScriptDebugger::ref()->isDebugArmed();
-            int32_t currentExecLine0Based = -1;
-            if (isPaused) {
-                currentExecLine0Based = m_StateCache.line - 1;
-            }
-
-            if (ImGui::BeginTabBar("CodePane")) {
-                for (auto& sheet : m_CodeSheets) {
-                    // editing the project script marks the project dirty (so the Save button shows)
-                    if (sheet.filepathName == sc_PROJECT_SCRIPT_ID && sheet.codeEditor.IsModified() &&
-                        !ProjectFile::ref()->IsThereAnyProjectChanges()) {
-                        ProjectFile::ref()->SetProjectChange(true);
-                    }
-                    ImGui::PushID(sheet.filepathName.c_str());
-                    if (ImGui::BeginTabItem(sheet.title.c_str(), &sheet.opened)) {
-                        if (sheet.filepathName == m_DebugScriptFileCache) {
-                            sheet.codeEditor.SetBreakpoints(m_Breakpoints0BasedCache, breakpointsRevision);
-                            sheet.codeEditor.SetCurrentExecLine(currentExecLine0Based);
-                        }
-                        sheet.codeEditor.SetBreakpointInteractionEnabled(isDebugArmed);
-                        sheet.codeEditor.OnImGui();
-                        ImGui::EndTabItem();
-                    }
-                    ImGui::PopID();
+                const bool isPaused = (ScriptDebugger::ref()->getMode() == ScriptDebugger::Mode::Paused);
+                const bool isDebugArmed = ScriptDebugger::ref()->isDebugArmed();
+                int32_t currentExecLine0Based = -1;
+                if (isPaused) {
+                    currentExecLine0Based = m_StateCache.line - 1;
                 }
-                ImGui::EndTabBar();
-            }
+
+                // reset hover state before rendering — the editor's hover callback (set in OpenScript)
+                // writes here when the mouse is over text. anything we read after EndTabBar is the
+                // current frame's value (empty if mouse is off-editor or on whitespace/punctuation).
+                m_HoveredToken.clear();
+
+                // mouse stillness timer for VS-style hover delay: any non-zero MouseDelta this frame
+                // resets the clock. the tooltip block reads `now - m_MouseStillSince` and compares to
+                // AppSettings::getHoverDelaySec().
+                const ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
+                if (std::fabs(mouseDelta.x) > 0.0f || std::fabs(mouseDelta.y) > 0.0f) {
+                    m_MouseStillSince = ImGui::GetTime();
+                }
+
+                if (ImGui::BeginTabBar("CodePane")) {
+                    for (auto& sheet : m_CodeSheets) {
+                        // editing the project script marks the project dirty (so the Save button shows)
+                        if (sheet.filepathName == sc_PROJECT_SCRIPT_ID && sheet.codeEditor.IsModified() && !ProjectFile::ref()->IsThereAnyProjectChanges()) {
+                            ProjectFile::ref()->SetProjectChange(true);
+                        }
+                        ImGui::PushID(sheet.filepathName.c_str());
+                        if (ImGui::BeginTabItem(sheet.title.c_str(), &sheet.opened)) {
+                            if (sheet.filepathName == m_DebugScriptFileCache) {
+                                sheet.codeEditor.SetBreakpoints(m_Breakpoints0BasedCache, breakpointsRevision);
+                                sheet.codeEditor.SetCurrentExecLine(currentExecLine0Based);
+                            }
+                            sheet.codeEditor.SetBreakpointInteractionEnabled(isDebugArmed);
+                            sheet.codeEditor.OnImGui();
+                            ImGui::EndTabItem();
+                        }
+                        ImGui::PopID();
+                    }
+                    ImGui::EndTabBar();
+                }
+
+                // hover-eval tooltip — gated by the VS-style hover delay; only meaningful when paused
+                // (otherwise no scope to evaluate in). delay value is live-tunable in Settings > General.
+                if (isPaused && !m_HoveredToken.empty()) {
+                    const double stillTime = ImGui::GetTime() - m_MouseStillSince;
+                    if (stillTime >= AppSettings::ref()->getHoverDelaySec()) {
+                        if (m_HoveredToken != m_LastHoverEvalToken) {
+                            ++m_HoverEvalId;  // monotonic — never re-used so a stale result never aliases
+                            m_LastHoverEvalToken = m_HoveredToken;
+                        }
+                        Ltg::EvalResult result;
+                        if (ScriptDebugger::ref()->getEvalResult(m_HoverEvalId, result)) {
+                            if (result.error.empty()) {
+                                ImGui::SetTooltip("%s : %s", result.value.c_str(), result.typeName.c_str());
+                            } else {
+                                ImGui::SetTooltip("eval error: %s", result.error.c_str());
+                            }
+                        } else {
+                            ScriptDebugger::ref()->requestEval(m_HoverEvalId, m_HoveredToken);
+                            ImGui::SetTooltip("evaluating...");
+                        }
+                    }
+                }
             }  // IsProjectLoaded
         }
 
@@ -135,13 +176,22 @@ void CodePane::m_DrawDebugToolbar() {
     const bool isPaused = (ScriptDebugger::ref()->getMode() == ScriptDebugger::Mode::Paused);
     const bool workerBusy = ScriptingEngine::ref()->IsJoinable();
 
+    // toolbar laid out with ImGui::BeginLayoutHorizontal (standalone copy of ImNodal's primitives
+    // in ImWidgets, decoupled from the ImNodal context). LayoutSpring() between the actions block
+    // and the quick-show block pushes the latter to the right edge. inside Begin/EndLayoutHorizontal
+    // the per-widget SameLine() calls are dropped — items are auto-placed on the same line.
+    ImGui::BeginLayoutHorizontal("##codepane_toolbar");
+
+    ImGui::LayoutSpring();
+
     bool armed = ScriptDebugger::ref()->isDebugArmed();
     if (ImGui::ToggleContrastedButton(ICON_FONT_BUG " Debug (on)", ICON_FONT_BUG " Debug (off)", &armed, "Arm the script debugger")) {
         ScriptDebugger::ref()->setDebugArmed(armed);
     }
 
+    ImGui::LayoutSpring();
+
     // Run / Continue
-    ImGui::SameLine();
     ImGui::BeginDisabled(!armed || (workerBusy && !isPaused));
     if (ImGui::ContrastedButton(ICON_FONT_PLAY "##dbg_run", isPaused ? "Continue" : "Run (analyse the log files)")) {
         if (isPaused) {
@@ -152,29 +202,40 @@ void CodePane::m_DrawDebugToolbar() {
     }
     ImGui::EndDisabled();
 
-    ImGui::SameLine();
+    ImGui::LayoutSpring();
+
     ImGui::BeginDisabled(!armed || !isPaused);
     if (ImGui::ContrastedButton(ICON_FONT_DEBUG_STEP_INTO "##dbg_stepinto", "Step into")) {
         ScriptDebugger::ref()->stepInto();
     }
-    ImGui::SameLine();
+    ImGui::EndDisabled();
+
+    ImGui::LayoutSpring();
+
+    ImGui::BeginDisabled(!armed || !isPaused);
     if (ImGui::ContrastedButton(ICON_FONT_DEBUG_STEP_OVER "##dbg_stepover", "Step over")) {
         ScriptDebugger::ref()->stepOver();
     }
-    ImGui::SameLine();
+    ImGui::EndDisabled();
+
+    ImGui::LayoutSpring();
+
+    ImGui::BeginDisabled(!armed || !isPaused);
     if (ImGui::ContrastedButton(ICON_FONT_DEBUG_STEP_OUT "##dbg_stepout", "Step out")) {
         ScriptDebugger::ref()->stepOut();
     }
     ImGui::EndDisabled();
 
-    ImGui::SameLine();
+    ImGui::LayoutSpring();
+
     ImGui::BeginDisabled(!armed || !workerBusy || isPaused);
     if (ImGui::ContrastedButton(ICON_FONT_PAUSE "##dbg_pause", "Pause")) {
         ScriptDebugger::ref()->pause();
     }
     ImGui::EndDisabled();
 
-    ImGui::SameLine();
+    ImGui::LayoutSpring();
+
     ImGui::BeginDisabled(!armed || !workerBusy);
     if (ImGui::ContrastedButton(ICON_FONT_STOP "##dbg_stop", "Stop")) {
         ScriptingEngine::s_working = false;  // break the parse loop on the worker thread
@@ -182,7 +243,8 @@ void CodePane::m_DrawDebugToolbar() {
     }
     ImGui::EndDisabled();
 
-    ImGui::SameLine();
+    ImGui::LayoutSpring();
+
     if (isPaused) {
         // m_StateCache filled at the top of drawPanes (same frame), no need to re-query getState()
         ImGui::Text("Paused | log row %d | line %d", m_StateCache.logRowIndex, m_StateCache.line);
@@ -191,6 +253,44 @@ void CodePane::m_DrawDebugToolbar() {
     } else {
         ImGui::TextUnformatted("Idle");
     }
+
+    ImGui::LayoutSpring(1.0f);
+
+    ImGui::Text("%s", "Panes");
+
+    ImGui::LayoutSpring();
+
+    // quick-show buttons for the debug-related panes (no toggle: pane's own X closes it).
+    // each call shows AND focuses so the pane lands on top even if it was already in the layout.
+    if (ImGui::ContrastedButton(ICON_FONT_BUG "##sh_bp", "Show Breakpoints pane")) {
+        ImLayout::ref().showAndFocusSpecificPane(BreakpointsPane::ref()->getFlag());
+    }
+
+    ImGui::LayoutSpring();
+
+    if (ImGui::ContrastedButton(ICON_FONT_FORMAT_LIST_BULLETED "##sh_ct", "Show Call Trace pane")) {
+        ImLayout::ref().showAndFocusSpecificPane(CalltracePane::ref()->getFlag());
+    }
+
+    ImGui::LayoutSpring();
+
+    if (ImGui::ContrastedButton(ICON_FONT_FILE_TREE "##sh_st", "Show Stack Tree pane")) {
+        ImLayout::ref().showAndFocusSpecificPane(StackTreePane::ref()->getFlag());
+    }
+
+    ImGui::LayoutSpring();
+
+    if (ImGui::ContrastedButton(ICON_FONT_CROSSHAIRS "##sh_sc", "Show Scope pane")) {
+        ImLayout::ref().showAndFocusSpecificPane(ScopePane::ref()->getFlag());
+    }
+
+    ImGui::LayoutSpring();
+
+    if (ImGui::ContrastedButton(ICON_FONT_EYE "##sh_wt", "Show Watcher pane")) {
+        ImLayout::ref().showAndFocusSpecificPane(WatcherPane::ref()->getFlag());
+    }
+
+    ImGui::EndLayoutHorizontal();
 
     ImGui::Separator();
 }
@@ -243,12 +343,9 @@ void CodePane::OpenFile(const std::string& vFilePathName, size_t vErrorLine, std
             sheet.title = ps.name + "." + ps.ext;
             // report gutter breakpoint toggles to the shared debugger (widget 0-based -> 1-based)
             const std::string filePathForCallback = vFilePathName;
-            sheet.codeEditor.SetBreakpointToggledCallback([filePathForCallback](int32_t aLine, bool aAdd) {
-                ScriptDebugger::ref()->setBreakpoint(filePathForCallback, aLine + 1, aAdd);
-            });
-            sheet.codeEditor.SetTokenContextCallback([](const std::string& aToken) {
-                WatcherPane::ref()->AddExpression(aToken);
-            });
+            sheet.codeEditor.SetBreakpointToggledCallback(
+                [filePathForCallback](int32_t aLine, bool aAdd) { ScriptDebugger::ref()->setBreakpoint(filePathForCallback, aLine + 1, aAdd); });
+            sheet.codeEditor.SetTokenContextCallback([](const std::string& aToken) { WatcherPane::ref()->AddExpression(aToken); });
             sheet.codeEditor.SetCode(code, type);
             sheet.codeEditor.AddErrorMarker(vErrorLine, vErrorMsg);
         }
@@ -272,12 +369,11 @@ void CodePane::OpenScript(const std::string& aCode) {
         sheet.wasModified = false;
         // report gutter breakpoint toggles to the shared debugger (widget 0-based -> 1-based)
         const std::string scriptId = sc_PROJECT_SCRIPT_ID;
-        sheet.codeEditor.SetBreakpointToggledCallback([scriptId](int32_t aLine, bool aAdd) {
-            ScriptDebugger::ref()->setBreakpoint(scriptId, aLine + 1, aAdd);
-        });
-        sheet.codeEditor.SetTokenContextCallback([](const std::string& aToken) {
-            WatcherPane::ref()->AddExpression(aToken);
-        });
+        sheet.codeEditor.SetBreakpointToggledCallback([scriptId](int32_t aLine, bool aAdd) { ScriptDebugger::ref()->setBreakpoint(scriptId, aLine + 1, aAdd); });
+        sheet.codeEditor.SetTokenContextCallback([](const std::string& aToken) { WatcherPane::ref()->AddExpression(aToken); });
+        // hover-eval — the editor reports the token under the mouse every frame; we stash it in
+        // the CodePane and the post-tabbar code (drawPanes) drives the eval + tooltip.
+        sheet.codeEditor.SetHoverTokenCallback([](const std::string& aToken) { CodePane::ref()->m_HoveredToken = aToken; });
         // editor Ctrl+S (or its File > Save) persists the project script into the .ltg db
         sheet.codeEditor.SetSaveCallback([]() { ProjectFile::ref()->Save(); });
         scriptSheetPtr = &sheet;

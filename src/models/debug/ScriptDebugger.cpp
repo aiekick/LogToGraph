@@ -74,9 +74,11 @@ void ScriptDebugger::unbindPlugin() {
 }
 
 bool ScriptDebugger::shouldArmDebug() const {
-    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
-    // armed is atomic; the lock here is for m_Breakpoints. relaxed is enough — the lock provides ordering.
-    return m_DebugArmed.load(std::memory_order_relaxed) || !m_Breakpoints.empty();
+    // the Debug toggle in the CodePane toolbar is the master switch: when it is off, no hook is
+    // installed and the existing breakpoints are kept in memory but stay inert (they are honoured
+    // again as soon as the user re-arms Debug). this keeps `Debug off` synonymous with `full JIT speed`,
+    // regardless of leftover breakpoints from a previous debug session.
+    return m_DebugArmed.load(std::memory_order_acquire);
 }
 
 const Ltg::BreakpointLines& ScriptDebugger::getBreakpoints() const {

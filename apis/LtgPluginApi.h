@@ -92,6 +92,14 @@ struct ScriptingError {
 };
 typedef std::vector<ScriptingError> ErrorContainer;
 
+// One member of an object/namespace surfaced by the plugin's introspection for autocompletion.
+// `type` is the Lua type name reported by lua_typename ("function", "table", "number", "string", ...);
+// the host uses it to drive the popup's icon/color and ordering.
+struct CompletionEntry {
+    std::string name;
+    std::string type;
+};
+
 // chunk name passed to the scripting runtime when compiling the in-memory project script.
 // the host's CodePane uses the SAME string as the sheet id, so a ScriptingError's `file` field
 // can be routed back to the matching sheet. keep both sides in sync.
@@ -144,6 +152,10 @@ struct ScriptingModule : public PluginModule, public IScriptDebugger {
     virtual void setRowIndex(int32_t vRowIndex) = 0;
     // will set the row count
     virtual void setRowCount(int32_t vRowCount) = 0;
+    // introspects the plugin's live scripting state and returns the members of `aTarget` (a global
+    // table or sol2 usertype). default no-op so non-Lua plugins compile unchanged. consumed by the
+    // host's autocompletion popup; called from the UI thread, fast (one Lua table walk).
+    virtual void getCompletionEntries(const std::string& /*aTarget*/, std::vector<CompletionEntry>& /*aoEntries*/) {}
 };
 
 typedef std::shared_ptr<ScriptingModule> ScriptingModulePtr;

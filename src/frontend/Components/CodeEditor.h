@@ -1,12 +1,14 @@
 #pragma once
 
 #include <imguipack.h>
+#include <apis/LtgPluginApi.h>  // brings Ltg::CompletionEntry
 
 #include <cstdint>
 #include <map>
 #include <string>
 #include <functional>
 #include <unordered_set>
+#include <vector>
 
 #define FIND_POPUP_TEXT_FIELD_LENGTH 128
 
@@ -29,6 +31,7 @@ private:
     bool m_BreakpointInteractionEnabled = true;     // when false, gutter cannot set/remove breakpoints
     std::function<void(int32_t aLine, bool aAdd)> m_OnBreakpointToggled;
     std::function<void(const std::string& aToken)> m_OnTokenContext;  // right-click → Watch (and future eval/expand actions)
+    std::function<void(const std::string& aToken)> m_OnHoverToken;   // mouse hover over text → token under cursor (empty if punctuation)
     std::function<void()> m_OnSave;
     ImFont* m_CodeFontPtr = nullptr;
     int m_Id = -1;
@@ -42,6 +45,16 @@ private:
     int m_UndoIndexInDisk = 0;
     char m_CtrlfTextToFind[FIND_POPUP_TEXT_FIELD_LENGTH] = "";
     bool m_CtrlfCaseSensitive = false;
+
+    // autocompletion state — the popup itself (rendering, Up/Down/Enter/Escape keys, click-outside)
+    // lives inside TextEditor now. the host only owns the catalog snapshot + the filter accumulator
+    // + the anchor of the trigger char (so the on-accept callback knows what to replace).
+    std::string m_CompletionTarget;                       // "ltg", "math", ... — catalog key
+    std::vector<Ltg::CompletionEntry> m_CompletionAllEntries;  // catalog snapshot for the target
+    std::vector<Ltg::CompletionEntry> m_CompletionFilteredEntries;  // last filtered subset — indexes match the items pushed to TextEditor
+    std::string m_CompletionFilter;
+    int32_t m_CompletionAnchorLine = 0;
+    int32_t m_CompletionAnchorColumn = 0;
 
 public:
     CodeEditor() = default;
@@ -69,6 +82,9 @@ public:
     void SetSaveCallback(std::function<void()> aCallback);
     // right-click on the text → menu with "Watch <token>"; the callback receives the extracted identifier
     void SetTokenContextCallback(std::function<void(const std::string& aToken)> aCallback);
+    // mouse hover over text → token under the mouse (empty when on whitespace/punctuation). fires every
+    // frame the mouse is over the text area; consumer is expected to do its own per-frame tracking.
+    void SetHoverTokenCallback(std::function<void(const std::string& aToken)> aCallback);
     void SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines, int64_t aRevision);
     void SetCurrentExecLine(int32_t aZeroBasedLine);
     void SetBreakpointInteractionEnabled(bool aEnabled);
@@ -79,4 +95,11 @@ private:
     void OnSaveCommand();
     void m_RebuildMarkers();
     std::string m_ExtractTokenAt(int aLine, int aColumn);  // identifier-only; returns "" if click is on punctuation/whitespace
+
+    // autocompletion plumbing
+    void m_OnCharacterTyped(ImWchar aCharacter, int aLine, int aColumn);
+    void m_RecomputeCompletionFiltered();                  // refilter m_CompletionAllEntries by m_CompletionFilter and push to TextEditor
+    void m_OnCompletionAccepted(size_t aSelectedIndex);    // TextEditor → host: user picked an entry
+    void m_OnCompletionCancelled();                        // TextEditor → host: Escape or click outside
+    static bool m_IsIdentChar(ImWchar aChar);
 };

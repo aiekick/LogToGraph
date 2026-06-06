@@ -180,6 +180,23 @@ std::vector<Ltg::ScriptingError> ScriptingEngine::GetLastRunErrors() const {
     return m_LastRunErrors;
 }
 
+void ScriptingEngine::GetCompletionEntries(const std::string& aTarget, std::vector<Ltg::CompletionEntry>& aoEntries) {
+    // delegate to the currently selected scripting module — the plugin owns the live sol::state
+    // and is the only one that can introspect its bindings.
+    Ltg::ScriptingModulePtr scriptingPtr;
+    {
+        std::lock_guard<std::mutex> lock(s_workerThread_Mutex);
+        const auto selectedScripting = m_scriptingModuleCombo.getText();
+        const auto it = m_scriptingModules.find(selectedScripting);
+        if (it != m_scriptingModules.end()) {
+            scriptingPtr = it->second;
+        }
+    }
+    if (scriptingPtr != nullptr) {
+        scriptingPtr->getCompletionEntries(aTarget, aoEntries);
+    }
+}
+
 ///////////////////////////////////////////////////
 /// INIT/UNIT /////////////////////////////////////
 ///////////////////////////////////////////////////

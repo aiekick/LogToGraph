@@ -29,6 +29,10 @@ double AppSettings::getWaitEventsTimeoutSec() const {
     return m_WaitEventsTimeoutSec;
 }
 
+double AppSettings::getHoverDelaySec() const {
+    return m_HoverDelaySec;
+}
+
 Ltg::SettingsCategoryPath AppSettings::getCategory() const {
     return "app/general";
 }
@@ -52,6 +56,12 @@ bool AppSettings::drawSettings() {
         change = true;
     }
     ImGui::EndDisabled();
+
+    ImGui::Separator();
+    ImGui::TextUnformatted("Code editor watch-on-hover");
+    if (ImGui::SliderDoubleDefault(200.0f, "Hover delay (s)", &m_HoverDelaySec, 0.0, 2.0, 0.5, 0.0, "%.2f")) {
+        change = true;
+    }
     return change;
 }
 
@@ -62,6 +72,7 @@ ez::xml::Nodes AppSettings::getXmlSettings(const Ltg::ISettingsType& vType) cons
     ez::xml::Node parent("app_settings");
     parent.addChild("wait_events_enabled").setContent(m_WaitEventsEnabled ? "true" : "false");
     parent.addChild("wait_events_timeout_sec").setContent(std::to_string(m_WaitEventsTimeoutSec));
+    parent.addChild("hover_delay_sec").setContent(std::to_string(m_HoverDelaySec));
     return {parent};
 }
 
@@ -77,5 +88,7 @@ void AppSettings::setXmlSettings(const ez::xml::Node& vName, const ez::xml::Node
         m_WaitEventsEnabled = ez::ivariant(vValue).GetB();
     } else if (nodeName == "wait_events_timeout_sec") {
         m_WaitEventsTimeoutSec = ez::ivariant(vValue).GetD();
+    } else if (nodeName == "hover_delay_sec") {
+        m_HoverDelaySec = ez::ivariant(vValue).GetD();
     }
 }

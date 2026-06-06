@@ -115,6 +115,10 @@ public:
     int64_t GetErrorsRevision() const;  // atomic acquire load; no mutex
     std::vector<Ltg::ScriptingError> GetLastRunErrors() const;  // mutex-locked copy by value (worker mutates)
 
+    // autocompletion gateway — forwards to the selected scripting module's getCompletionEntries.
+    // returns whatever the plugin introspected from its live state for `aTarget` (e.g. "ltg", "math").
+    void GetCompletionEntries(const std::string& aTarget, std::vector<Ltg::CompletionEntry>& aoEntries);
+
     bool drawMenu();
     bool isValidScriptingSelected() const;
 

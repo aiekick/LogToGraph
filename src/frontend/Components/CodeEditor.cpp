@@ -1,5 +1,6 @@
 #include "CodeEditor.h"
 #include <ezlibs/ezTools.hpp>
+#include <models/script/ScriptingEngine.h>
 
 #include <filesystem>
 #include <fstream>
@@ -47,6 +48,23 @@ bool CodeEditor::init() {
             m_OnTokenContext(token);
         }
     });
+    // per-frame mouse hover over text → propagate the token under the mouse to the consumer.
+    // we ALWAYS fire (even with an empty token on whitespace/punctuation) so the consumer can
+    // detect when the user has moved off a previously-hovered identifier.
+    m_Editor.SetTextHoverCallback([this](int aLine, int aColumn) {
+        if (m_OnHoverToken) {
+            m_OnHoverToken(m_ExtractTokenAt(aLine, aColumn));
+        }
+    });
+    // characters typed in the editor drive the autocompletion state machine (popup open/filter/close).
+    m_Editor.SetCharacterTypedCallback([this](ImWchar aChar, int aLine, int aColumn) {
+        m_OnCharacterTyped(aChar, aLine, aColumn);
+    });
+    // TextEditor owns the popup rendering + the Up/Down/Enter/Escape interception. it routes back
+    // to the host via these two sinks when the user picks an entry or dismisses the popup.
+    m_Editor.SetCompletionCallbacks(
+        [this](size_t aSelectedIndex) { m_OnCompletionAccepted(aSelectedIndex); },
+        [this]() { m_OnCompletionCancelled(); });
     // a narrow gutter decorator: a red dot marks a breakpoint, double-click toggles it
     m_Editor.SetLineDecorator(16.0f, [this](TextEditor::Decorator& aDecorator) {
         const int32_t line0 = aDecorator.line;  // zero-based
@@ -290,56 +308,62 @@ void CodeEditor::SetTokenContextCallback(std::function<void(const std::string&)>
     m_OnTokenContext = aCallback;
 }
 
+void CodeEditor::SetHoverTokenCallback(std::function<void(const std::string&)> aCallback) {
+    m_OnHoverToken = aCallback;
+}
+
 std::string CodeEditor::m_ExtractTokenAt(int aLine, int aColumn) {
-    // Extract the identifier under (aLine, aColumn) from GetText(). The widget does not expose a
-    // "word at position" helper, so we re-scan the source text. Cheap: only fires on right-click.
+    // Extract the identifier at (aLine, aColumn). The TextEditor reports coordinates in VISUAL
+    // columns (a tab counts as `tabSize - col % tabSize` cells), so we walk the raw line bytes
+    // tracking visual-col to convert aColumn to a byte index before doing the identifier scan.
     if (aLine < 0 || aColumn < 0) {
         return std::string();
     }
-    const std::string fullText = m_Editor.GetText();
-    // find the byte offset where line `aLine` starts (0-based)
-    size_t lineStart = 0;
-    int currentLine = 0;
-    while (currentLine < aLine && lineStart < fullText.size()) {
-        if (fullText[lineStart] == '\n') {
-            ++currentLine;
-        }
-        ++lineStart;
-    }
-    if (currentLine < aLine || lineStart >= fullText.size()) {
+    const std::string lineText = m_Editor.GetLineText(aLine);
+    if (lineText.empty()) {
         return std::string();
     }
-    size_t lineEnd = lineStart;
-    while (lineEnd < fullText.size() && fullText[lineEnd] != '\n') {
-        ++lineEnd;
+    const int32_t tabSize = m_Editor.GetTabSize();
+    size_t byteIndex = 0;
+    int32_t visualCol = 0;
+    while (byteIndex < lineText.size() && visualCol < aColumn) {
+        if (lineText[byteIndex] == '\t') {
+            visualCol += tabSize - (visualCol % tabSize);
+        } else {
+            ++visualCol;
+        }
+        ++byteIndex;
     }
-    const size_t clickPos = lineStart + static_cast<size_t>(aColumn);
-    if (clickPos >= lineEnd) {
+    // if aColumn landed inside a tab's expansion span, visualCol overshot — back up to the tab byte
+    if (byteIndex > 0 && visualCol > aColumn) {
+        --byteIndex;
+    }
+    if (byteIndex >= lineText.size()) {
         return std::string();
     }
     auto isIdentChar = [](char aChar) {
         return (aChar >= 'A' && aChar <= 'Z') || (aChar >= 'a' && aChar <= 'z') || (aChar >= '0' && aChar <= '9') || aChar == '_';
     };
-    if (!isIdentChar(fullText[clickPos])) {
+    if (!isIdentChar(lineText[byteIndex])) {
         return std::string();
     }
-    size_t leftBound = clickPos;
-    while (leftBound > lineStart && isIdentChar(fullText[leftBound - 1])) {
+    size_t leftBound = byteIndex;
+    while (leftBound > 0 && isIdentChar(lineText[leftBound - 1])) {
         --leftBound;
     }
-    size_t rightBound = clickPos;
-    while (rightBound < lineEnd && isIdentChar(fullText[rightBound])) {
+    size_t rightBound = byteIndex;
+    while (rightBound < lineText.size() && isIdentChar(lineText[rightBound])) {
         ++rightBound;
     }
     if (rightBound <= leftBound) {
         return std::string();
     }
     // reject pure number literals (identifier rule: must not start with a digit)
-    const char firstChar = fullText[leftBound];
+    const char firstChar = lineText[leftBound];
     if (firstChar >= '0' && firstChar <= '9') {
         return std::string();
     }
-    return fullText.substr(leftBound, rightBound - leftBound);
+    return lineText.substr(leftBound, rightBound - leftBound);
 }
 
 void CodeEditor::SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines, int64_t aRevision) {
@@ -375,4 +399,94 @@ void CodeEditor::m_RebuildMarkers() {
     if (m_CurrentExecLine >= 0) {
         m_Editor.AddMarker(m_CurrentExecLine, IM_COL32(255, 200, 0, 255), IM_COL32(255, 200, 0, 60), "current line", "");
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+//// AUTOCOMPLETION (driven by TextEditor::SetCharacterTypedCallback) /////////////
+///////////////////////////////////////////////////////////////////////////////////
+
+bool CodeEditor::m_IsIdentChar(ImWchar aChar) {
+    return (aChar >= 'A' && aChar <= 'Z') || (aChar >= 'a' && aChar <= 'z') ||
+           (aChar >= '0' && aChar <= '9') || aChar == '_';
+}
+
+void CodeEditor::m_OnCharacterTyped(ImWchar aCharacter, int aLine, int aColumn) {
+    // popup already open: any identifier char extends the filter; anything else dismisses.
+    if (m_Editor.IsCompletionPopupOpen()) {
+        if (m_IsIdentChar(aCharacter)) {
+            m_CompletionFilter += static_cast<char>(aCharacter);
+            m_RecomputeCompletionFiltered();  // pushes refreshed items to TextEditor (closes if empty)
+        } else {
+            m_Editor.CloseCompletionPopup();
+            m_OnCompletionCancelled();
+        }
+        return;
+    }
+
+    // popup closed: open on `.` or `:` if the preceding word is a known catalog key.
+    if (aCharacter != '.' && aCharacter != ':') {
+        return;
+    }
+    // `aColumn` is the cursor RIGHT AFTER the trigger char. The identifier we want is to the LEFT of
+    // the trigger, so we look one column further back (the trigger itself is at column - 1).
+    const std::string target = m_ExtractTokenAt(aLine, aColumn - 2);
+    if (target.empty()) {
+        return;
+    }
+    std::vector<Ltg::CompletionEntry> entries;
+    ScriptingEngine::ref()->GetCompletionEntries(target, entries);
+    if (entries.empty()) {
+        return;
+    }
+
+    m_CompletionTarget = target;
+    m_CompletionAllEntries = std::move(entries);
+    m_CompletionFilter.clear();
+    m_CompletionAnchorLine = aLine;
+    m_CompletionAnchorColumn = aColumn;  // right after the trigger — where filter chars will start to land
+    m_RecomputeCompletionFiltered();      // builds the TextEditor::CompletionItem list and opens the popup
+}
+
+void CodeEditor::m_RecomputeCompletionFiltered() {
+    m_CompletionFilteredEntries.clear();
+    std::vector<TextEditor::CompletionItem> popupItems;
+    for (const auto& entry : m_CompletionAllEntries) {
+        // case-sensitive prefix match — fits Lua identifier conventions
+        if (entry.name.size() >= m_CompletionFilter.size() &&
+            entry.name.compare(0, m_CompletionFilter.size(), m_CompletionFilter) == 0) {
+            m_CompletionFilteredEntries.push_back(entry);
+            popupItems.push_back({entry.name, entry.type});
+        }
+    }
+    // empty list closes the popup silently inside TextEditor — selection index drops to 0 there too
+    m_Editor.OpenCompletionPopup(popupItems);
+}
+
+void CodeEditor::m_OnCompletionAccepted(size_t aSelectedIndex) {
+    if (aSelectedIndex >= m_CompletionFilteredEntries.size()) {
+        m_OnCompletionCancelled();
+        return;
+    }
+    const auto& entry = m_CompletionFilteredEntries[aSelectedIndex];
+
+    int currentLine = 0;
+    int currentColumn = 0;
+    m_Editor.GetCurrentCursor(currentLine, currentColumn);
+
+    // select the filter region (from the anchor — right after the trigger — to the current cursor)
+    // and replace it with the full entry name. SelectRegion + ReplaceTextInCurrentCursor does the
+    // delete-then-insert as one transaction (cf. TextEditor::replaceTextInCurrentCursor).
+    m_Editor.SelectRegion(m_CompletionAnchorLine, m_CompletionAnchorColumn, currentLine, currentColumn);
+    m_Editor.ReplaceTextInCurrentCursor(entry.name);
+
+    m_OnCompletionCancelled();  // share the state-reset path
+}
+
+void CodeEditor::m_OnCompletionCancelled() {
+    m_CompletionTarget.clear();
+    m_CompletionAllEntries.clear();
+    m_CompletionFilteredEntries.clear();
+    m_CompletionFilter.clear();
+    m_CompletionAnchorLine = 0;
+    m_CompletionAnchorColumn = 0;
 }

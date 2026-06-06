@@ -62,13 +62,13 @@ limitations under the License.
 #define DEBUG_PANE_ICON ICON_FONT_BUG
 #define SCENE_PANE_ICON ICON_FONT_FORMAT_LIST_BULLETED_TYPE
 #define TUNING_PANE_ICON ICON_FONT_TUNE
-#define CONSOLE_PANE_ICON ICON_FONTT_COMMENT_TEXT_MULTIPLE
+#define CONSOLE_PANE_ICON ICON_FONT_COMMENT_TEXT_MULTIPLE
 
 // features
-#define GRID_ICON ICON_FONTT_GRID
-#define MOUSE_ICON ICON_FONTT_MOUSE
-#define CAMERA_ICON ICON_FONTT_CAMCORDER
-#define GIZMO_ICON ICON_FONTT_AXIS_ARROW
+#define GRID_ICON ICON_FONT_GRID
+#define MOUSE_ICON ICON_FONT_MOUSE
+#define CAMERA_ICON ICON_FONT_CAMCORDER
+#define GIZMO_ICON ICON_FONT_AXIS_ARROW
 
 using namespace std::placeholders;
 
@@ -82,8 +82,8 @@ bool MainFrontend::sCentralWindowHovered = false;
 //// PUBLIC //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
+// clang-format off
 bool MainFrontend::init() {
-    // ImGui::CustomStyle::Init() was removed in the new imguipack
     m_build_themes();
 
     ImLayout::ref().init(ICON_FONT_TABLET_DASHBOARD " Layouts", "Default Layout");
@@ -92,30 +92,90 @@ bool MainFrontend::init() {
     ImLayout::ref().setPaneDisposalRatio("RIGHT", 0.25f);
     ImLayout::ref().setPaneDisposalRatio("BOTTOM", 0.25f);
 
-    ImLayout::ref().addPane(ImLayout::PaneInfos(CodePane::ref(), ICON_FONT_CODE_BRACES " Code", "Misc", ICON_FONT_CODE_BRACES " Code", "RIGHT", 0.25f, false, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(ConsolePane::ref(), ICON_FONT_COMMENT_TEXT_MULTIPLE " Console", "Misc", ICON_FONT_COMMENT_TEXT_MULTIPLE " Console", "BOTTOM", 0.3f, false, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(ProfilerPane::ref(), ICON_FONT_CHART_DONUT_VARIANT " Profiler", "Misc", ICON_FONT_CHART_DONUT_VARIANT " Profiler", "BOTTOM", 0.3f, false, false));
+    // misc
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(CodePane::ref(), ICON_FONT_CODE_BRACES " Code")
+            .setMenu(ICON_FONT_CODE_BRACES " Code", "Misc")
+            .setDisposalCentral());
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(ConsolePane::ref(), ICON_FONT_COMMENT_TEXT_MULTIPLE " Console")
+            .setMenu(ICON_FONT_COMMENT_TEXT_MULTIPLE " Console", "Misc")
+            .setDisposalSide("BOTTOM", 0.3f));
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(ProfilerPane::ref(), ICON_FONT_CHART_DONUT_VARIANT " Profiler")
+            .setMenu(ICON_FONT_CHART_DONUT_VARIANT " Profiler", "Misc")
+            .setDisposalSide("BOTTOM", 0.3f));
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(ToolPane::ref(), ICON_FONT_CUBE_SCAN " Tool")
+            .setMenu(ICON_FONT_CUBE_SCAN " Tool", "Misc")
+            .setDisposalSide("LEFT", 0.25f)
+            .setDefaultOpened(true)
+            .setDefaultFocused(true));
 
-    ImLayout::ref().addPane(ImLayout::PaneInfos(AnnotationPane::ref(), ICON_FONT_CARDS " Annotations", "", ICON_FONT_CARDS " Annotations", "RIGHT", 0.25f, false, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(LogPane::ref(), ICON_FONT_FILE_DOCUMENT_BOX " Logs", "", ICON_FONT_FILE_DOCUMENT_BOX " Logs", "RIGHT", 0.25f, true, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(LogPaneSecondView::ref(), ICON_FONT_FILE_DOCUMENT_BOX " Logs 2nd", "", ICON_FONT_FILE_DOCUMENT_BOX " Logs 2nd", "RIGHT", 0.25f, false, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(GraphPane::ref(), ICON_FONT_CHART_LINE " Graphs", "", ICON_FONT_CHART_LINE " Graphs", "CENTRAL", 0.25f, true, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(GraphListPane::ref(), ICON_FONT_CHART_LINE " All Graph Signals", "", ICON_FONT_CHART_LINE " All Graph Signals", "CENTRAL", 0.25f, false, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(GraphGroupPane::ref(), ICON_FONT_BUFFER " Graph Groups", "", ICON_FONT_BUFFER " Graph Groups", "RIGHT", 0.25f, true, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(SignalsHoveredList::ref(), ICON_FONT_CACTUS " Signals Hovered List", "", ICON_FONT_CACTUS " Signals Hovered List", "RIGHT", 0.25f, false, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(SignalsHoveredDiff::ref(), ICON_FONT_VECTOR_DIFFERENCE " Signals Hovered Diff", "", ICON_FONT_VECTOR_DIFFERENCE " Signals Hovered Diff", "RIGHT", 0.25f, false, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(ToolPane::ref(), ICON_FONT_CUBE_SCAN " Tool", "", ICON_FONT_CUBE_SCAN " Tool", "LEFT", 0.25f, true, true));
+    // logs
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(LogPane::ref(), ICON_FONT_FILE_DOCUMENT_BOX " Logs")
+            .setMenu(ICON_FONT_FILE_DOCUMENT_BOX " Logs")
+            .setDisposalSide("RIGHT", 0.25f)
+            .setDefaultOpened(true));
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(LogPaneSecondView::ref(), ICON_FONT_FILE_DOCUMENT_BOX " Logs 2nd")
+            .setMenu(ICON_FONT_FILE_DOCUMENT_BOX " Logs 2nd")
+            .setDisposalSide("RIGHT", 0.25f));
 
-    ImLayout::ref().addPane(ImLayout::PaneInfos(BreakpointsPane::ref(), ICON_FONT_BUG " Breakpoints", "Debug", ICON_FONT_BUG " Breakpoints", "BOTTOM", 0.3f, false, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(CalltracePane::ref(), ICON_FONT_FORMAT_LIST_BULLETED " Call Trace", "Debug", ICON_FONT_FORMAT_LIST_BULLETED " Call Trace", "BOTTOM", 0.3f, false, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(StackTreePane::ref(), ICON_FONT_FILE_TREE " Stack Tree", "Debug", ICON_FONT_FILE_TREE " Stack Tree", "BOTTOM", 0.3f, false, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(ScopePane::ref(), ICON_FONT_CROSSHAIRS " Scope", "Debug", ICON_FONT_CROSSHAIRS " Scope", "BOTTOM", 0.3f, false, false));
-    ImLayout::ref().addPane(ImLayout::PaneInfos(WatcherPane::ref(), ICON_FONT_EYE " Watcher", "Debug", ICON_FONT_EYE " Watcher", "BOTTOM", 0.3f, false, false));
+    // graph
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(AnnotationPane::ref(), ICON_FONT_CARDS " Annotations").setMenu(ICON_FONT_CARDS " Annotations").setDisposalSide("RIGHT", 0.25f));
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(GraphPane::ref(), ICON_FONT_CHART_LINE " Graphs")
+            .setMenu(ICON_FONT_CHART_LINE " Graphs")
+            .setDisposalCentral()
+            .setDefaultOpened(true));
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(GraphListPane::ref(), ICON_FONT_CHART_LINE " All Graph Signals")
+            .setMenu(ICON_FONT_CHART_LINE " All Graph Signals")
+            .setDisposalCentral());
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(GraphGroupPane::ref(), ICON_FONT_BUFFER " Graph Groups")
+            .setMenu(ICON_FONT_BUFFER " Graph Groups")
+            .setDisposalSide("RIGHT", 0.25f)
+            .setDefaultOpened(true));
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(SignalsHoveredList::ref(), ICON_FONT_CACTUS " Signals Hovered List")
+            .setMenu(ICON_FONT_CACTUS " Signals Hovered List")
+            .setDisposalSide("RIGHT", 0.25f));
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(SignalsHoveredDiff::ref(), ICON_FONT_VECTOR_DIFFERENCE " Signals Hovered Diff")
+            .setMenu(ICON_FONT_VECTOR_DIFFERENCE " Signals Hovered Diff")
+            .setDisposalSide("RIGHT", 0.25f));
+
+    // debug
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(BreakpointsPane::ref(), ICON_FONT_BUG " Breakpoints")
+            .setMenu(ICON_FONT_BUG " Breakpoints", "Debug")
+            .setDisposalSide("BOTTOM", 0.3f));
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(CalltracePane::ref(), ICON_FONT_FORMAT_LIST_BULLETED " Call Trace")
+            .setMenu(ICON_FONT_FORMAT_LIST_BULLETED " Call Trace", "Debug")
+            .setDisposalSide("BOTTOM", 0.3f));
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(StackTreePane::ref(), ICON_FONT_FILE_TREE " Stack Tree")
+            .setMenu(ICON_FONT_FILE_TREE " Stack Tree", "Debug")
+            .setDisposalSide("BOTTOM", 0.3f));
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(ScopePane::ref(), ICON_FONT_CROSSHAIRS " Scope")
+            .setMenu(ICON_FONT_CROSSHAIRS " Scope", "Debug")
+            .setDisposalSide("BOTTOM", 0.3f));
+    ImLayout::ref().addPane(
+        LayoutPaneInfos(WatcherPane::ref(), ICON_FONT_EYE " Watcher")
+            .setMenu(ICON_FONT_EYE " Watcher", "Debug")
+            .setDisposalSide("BOTTOM", 0.3f));
 
     // InitPanes is done in m_InitPanes, because a specific order is needed
 
     return m_build();
 }
+// clang-format on
 
 void MainFrontend::unit() {
     ImLayout::ref().unitPanes();
@@ -130,6 +190,7 @@ bool MainFrontend::isThereAnError() const {
 }
 
 void MainFrontend::Display(const uint32_t& vCurrentFrame, const ImVec2& vPos, const ImVec2& vSize) {
+    ImGui::CustomStyle::ResetCustomId();
     const auto context_ptr = ImGui::GetCurrentContext();
     if (context_ptr != nullptr) {
         const auto& io = ImGui::GetIO();
@@ -138,7 +199,6 @@ void MainFrontend::Display(const uint32_t& vCurrentFrame, const ImVec2& vPos, co
         m_DisplaySize = vSize;
 
         MainFrontend::sCentralWindowHovered = (ImGui::GetCurrentContext()->HoveredWindow == nullptr);
-        ImGui::CustomStyle::ResetCustomId();
 
         // global Ctrl+S — save the project (works regardless of focus; the editor's own Ctrl+S
         // also fires when focused, both converge on a Save which is idempotent).

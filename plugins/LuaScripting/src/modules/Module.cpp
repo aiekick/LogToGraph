@@ -208,14 +208,24 @@ void Module::unload() {
 bool Module::compileScript(const Ltg::ScriptFilePathName& vFilePathName, Ltg::ErrorContainer& vOutErrors) {
     try {
         m_luaPtr->script_file(vFilePathName);
+        // validate the required entry points exist — DO NOT call them here (see compileScriptCode
+        // for the rationale: ScriptingEngine's loop calls them at the right time per source file).
         bool res = true;
         sol::function parse = (*m_luaPtr)["parse"];
         if (!parse.valid()) {
             LogVarLightError("Lua: %s", "the lua function parse(buffer) is missing");
             res = false;
         }
-        res &= callScriptStart(vOutErrors);
-        res &= callScriptEnd(vOutErrors);
+        sol::function startFile = (*m_luaPtr)["startFile"];
+        if (!startFile.valid()) {
+            LogVarLightError("Lua: %s", "the lua function startFile() is missing");
+            res = false;
+        }
+        sol::function endFile = (*m_luaPtr)["endFile"];
+        if (!endFile.valid()) {
+            LogVarLightError("Lua: %s", "the lua function endFile() is missing");
+            res = false;
+        }
         return res;
     } catch (const sol::error& ex) {
         LogVarError("Lua: Error in the Lua script : %s", ex.what());
@@ -232,14 +242,25 @@ bool Module::compileScriptCode(const std::string& aCode, Ltg::ErrorContainer& vO
         // pass an explicit chunk name so sol2's error messages identify our project script
         // (otherwise sol2 uses the first line of code as the chunk name, which breaks routing).
         m_luaPtr->script(aCode, Ltg::sc_PROJECT_SCRIPT_CHUNK);  // compile + run the chunk (defines parse/startFile/endFile)
+        // validate the required entry points exist — DO NOT call them here. ScriptingEngine's main
+        // loop is responsible for calling startFile/parse/endFile at the proper times; calling them
+        // here would double-execute user code (duplicate logs / state init).
         bool res = true;
         sol::function parse = (*m_luaPtr)["parse"];
         if (!parse.valid()) {
             LogVarLightError("Lua: %s", "the lua function parse(buffer) is missing");
             res = false;
         }
-        res &= callScriptStart(vOutErrors);
-        res &= callScriptEnd(vOutErrors);
+        sol::function startFile = (*m_luaPtr)["startFile"];
+        if (!startFile.valid()) {
+            LogVarLightError("Lua: %s", "the lua function startFile() is missing");
+            res = false;
+        }
+        sol::function endFile = (*m_luaPtr)["endFile"];
+        if (!endFile.valid()) {
+            LogVarLightError("Lua: %s", "the lua function endFile() is missing");
+            res = false;
+        }
         return res;
     } catch (const sol::error& ex) {
         Ltg::ScriptingError err;
@@ -259,6 +280,94 @@ bool Module::compileScriptCode(const std::string& aCode, Ltg::ErrorContainer& vO
         LogVarError("Lua: %s", "Unknown error in the Lua script");
     }
     return false;
+}
+
+void Module::m_ensureCompletionState() {
+    if (m_completionLuaPtr != nullptr) {
+        return;
+    }
+    // dedicated state that mirrors the analysis state's bindings but never executes user code.
+    // we instantiate LuaDatasModel directly (skipping the create() factory which would null it out
+    // when no IDatasModel is bound) because we only need the usertype methods to be REGISTERED in the
+    // metatable for introspection — none of them is ever actually called from the completion state.
+    m_completionLuaPtr = std::unique_ptr<sol::state>(new sol::state());
+    m_completionLuaPtr->open_libraries(sol::lib::base);
+    m_completionLuaPtr->open_libraries(sol::lib::package);
+    m_completionLuaPtr->open_libraries(sol::lib::coroutine);
+    m_completionLuaPtr->open_libraries(sol::lib::string);
+    m_completionLuaPtr->open_libraries(sol::lib::os);
+    m_completionLuaPtr->open_libraries(sol::lib::math);
+    m_completionLuaPtr->open_libraries(sol::lib::table);
+    m_completionLuaPtr->open_libraries(sol::lib::debug);
+    m_completionLuaPtr->open_libraries(sol::lib::bit32);
+    m_completionLuaPtr->open_libraries(sol::lib::io);
+    m_completionLuaPtr->open_libraries(sol::lib::ffi);
+    m_completionLuaPtr->open_libraries(sol::lib::jit);
+
+    // clang-format off
+    m_completionLuaPtr->new_usertype<LuaDatasModel>(
+        "LuaDatasModel", sol::constructors<std::shared_ptr<LuaDatasModel>()>(),
+        "stringToEpoch", &LuaDatasModel::luaModuleStringToEpoch,
+        "epochToString", &LuaDatasModel::luaModuleEpochToString,
+        "addSignalTag", &LuaDatasModel::luaModuleAddSignalTag,
+        "addSignalStatus", &LuaDatasModel::luaModuleAddSignalStatus,
+        "addSignalValue", sol::overload(
+            &LuaDatasModel::luaModuleAddSignalValue,
+            &LuaDatasModel::luaModuleAddSignalValueWithDesc),
+        "addSignalStartZone", &LuaDatasModel::luaModuleAddSignalStartZone,
+        "addSignalEndZone", &LuaDatasModel::luaModuleAddSignalEndZone,
+        "logInfo", &LuaDatasModel::luaModuleLogInfo,
+        "logWarning", &LuaDatasModel::luaModuleLogWarning,
+        "logError", &LuaDatasModel::luaModuleLogError,
+        "logDebug", &LuaDatasModel::luaModuleLogDebug,
+        "getRowIndex", &LuaDatasModel::luaModuleGetRowIndex,
+        "getRowCount", &LuaDatasModel::luaModuleGetRowCount);
+    // clang-format on
+
+    // empty stub instance: ctor is public, no IDatasModel is required for introspection.
+    m_completionDatasModelPtr = std::make_shared<LuaDatasModel>();
+    (*m_completionLuaPtr)["ltg"] = m_completionDatasModelPtr;
+}
+
+void Module::m_iterateLuaTable(lua_State* apLua, int aTableIndex, std::vector<Ltg::CompletionEntry>& aoEntries) {
+    // aTableIndex must be an absolute stack index (lua_next manipulates the stack, breaking relative refs).
+    lua_pushnil(apLua);
+    while (lua_next(apLua, aTableIndex) != 0) {
+        // -2 is the key, -1 is the value
+        if (lua_type(apLua, -2) == LUA_TSTRING) {
+            Ltg::CompletionEntry entry;
+            entry.name = lua_tostring(apLua, -2);
+            entry.type = lua_typename(apLua, lua_type(apLua, -1));
+            aoEntries.push_back(entry);
+        }
+        lua_pop(apLua, 1);  // pop value, keep key for next iter
+    }
+}
+
+void Module::getCompletionEntries(const std::string& aTarget, std::vector<Ltg::CompletionEntry>& aoEntries) {
+    if (aTarget.empty()) {
+        return;
+    }
+    m_ensureCompletionState();
+    lua_State* L = m_completionLuaPtr->lua_state();
+    const int topBefore = lua_gettop(L);
+
+    lua_getglobal(L, aTarget.c_str());
+    const int targetType = lua_type(L, -1);
+    if (targetType == LUA_TTABLE) {
+        // plain table (Lua stdlib namespace, user table) — iterate directly
+        m_iterateLuaTable(L, lua_gettop(L), aoEntries);
+    } else if (targetType == LUA_TUSERDATA) {
+        // sol2 usertype — methods are stored in the metatable's __index field, hop through it
+        if (lua_getmetatable(L, -1) != 0) {
+            lua_getfield(L, -1, "__index");
+            if (lua_type(L, -1) == LUA_TTABLE) {
+                m_iterateLuaTable(L, lua_gettop(L), aoEntries);
+            }
+            lua_pop(L, 2);  // __index + metatable
+        }
+    }
+    lua_settop(L, topBefore);
 }
 
 bool Module::callScriptStart(Ltg::ErrorContainer& vOutErrors) {
