@@ -37,7 +37,12 @@ bool StackTreePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
             if (!isPaused) {
                 ImGui::TextDisabled("Not paused");
             } else {
-                const auto state = ScriptDebugger::ref()->getState();
+                const int64_t stateRevision = ScriptDebugger::ref()->getStateRevision();
+                if (stateRevision != m_LastStateRevision) {
+                    m_StateCache = ScriptDebugger::ref()->getState();
+                    m_LastStateRevision = stateRevision;
+                }
+                const auto& state = m_StateCache;
                 static ImGuiTableFlags flags =
                     ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
                 if (ImGui::BeginTable("##stacktree", 5, flags)) {

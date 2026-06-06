@@ -3,6 +3,7 @@
 #include <ezlibs/ezClass.hpp>
 #include <ezlibs/ezSingleton.hpp>
 #include <imguipack.h>
+#include <apis/IScriptDebugger.h>
 
 #include <cstdint>
 #include <memory>
@@ -14,6 +15,11 @@ class StackTreePane : public AbstractPane {
     DISABLE_CONSTRUCTORS(StackTreePane)
     DISABLE_DESTRUCTORS(StackTreePane)
     IMPLEMENT_SHARED_SINGLETON(StackTreePane)
+
+private:
+    // paused state cache — refreshed only when ScriptDebugger::getStateRevision() advances
+    int64_t m_LastStateRevision = -1;
+    Ltg::DebugState m_StateCache;
 
 public:
     bool init() override;

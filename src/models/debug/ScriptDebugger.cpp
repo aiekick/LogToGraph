@@ -24,7 +24,8 @@ Ltg::DebugAction ScriptDebugger::onPause(const Ltg::DebugState& aState) {
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
         m_State = aState;
-        m_Mode = Mode::Paused;
+        m_StateRevision.fetch_add(1, std::memory_order_release);
+        m_Mode.store(Mode::Paused, std::memory_order_release);
     }
     {
         std::lock_guard<std::mutex> treeLock(m_TreeMutex);
@@ -49,7 +50,7 @@ void ScriptDebugger::publishExpansion(int32_t aRef, const std::vector<Ltg::Debug
 void ScriptDebugger::bindPlugin(Ltg::IScriptDebugger* apPluginDebugger) {
     std::lock_guard<std::mutex> lock(m_Mutex);
     m_PluginDebuggerPtr = apPluginDebugger;
-    m_Mode = Mode::Running;
+    m_Mode.store(Mode::Running, std::memory_order_release);
     m_HasCommand = false;
     m_HasExpand = false;
 }
@@ -58,7 +59,7 @@ void ScriptDebugger::unbindPlugin() {
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
         m_PluginDebuggerPtr = nullptr;
-        m_Mode = Mode::Idle;
+        m_Mode.store(Mode::Idle, std::memory_order_release);
     }
     std::lock_guard<std::mutex> treeLock(m_TreeMutex);
     m_Expansions.clear();
@@ -66,12 +67,17 @@ void ScriptDebugger::unbindPlugin() {
 
 bool ScriptDebugger::shouldArmDebug() const {
     std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
-    return m_DebugArmed || !m_Breakpoints.empty();
+    // armed is atomic; the lock here is for m_Breakpoints. relaxed is enough — the lock provides ordering.
+    return m_DebugArmed.load(std::memory_order_relaxed) || !m_Breakpoints.empty();
 }
 
 Ltg::BreakpointLines ScriptDebugger::getBreakpoints() const {
     std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
     return m_Breakpoints;
+}
+
+int64_t ScriptDebugger::getBreakpointsRevision() const {
+    return m_BreakpointsRevision.load(std::memory_order_acquire);
 }
 
 bool ScriptDebugger::isBreakpoint(int32_t aLine) {
@@ -91,6 +97,7 @@ void ScriptDebugger::setBreakpoint(const std::string& aScriptFilePathName, int32
     } else {
         m_Breakpoints.erase(aLine);
     }
+    m_BreakpointsRevision.fetch_add(1, std::memory_order_release);
 }
 
 void ScriptDebugger::toggleBreakpoint(const std::string& aScriptFilePathName, int32_t aLine) {
@@ -101,11 +108,13 @@ void ScriptDebugger::toggleBreakpoint(const std::string& aScriptFilePathName, in
     } else {
         m_Breakpoints.insert(aLine);
     }
+    m_BreakpointsRevision.fetch_add(1, std::memory_order_release);
 }
 
 void ScriptDebugger::clearBreakpoints() {
     std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
     m_Breakpoints.clear();
+    m_BreakpointsRevision.fetch_add(1, std::memory_order_release);
 }
 
 std::string ScriptDebugger::getScriptFilePathName() const {
@@ -114,13 +123,11 @@ std::string ScriptDebugger::getScriptFilePathName() const {
 }
 
 void ScriptDebugger::setDebugArmed(bool aArmed) {
-    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
-    m_DebugArmed = aArmed;
+    m_DebugArmed.store(aArmed, std::memory_order_release);
 }
 
 bool ScriptDebugger::isDebugArmed() const {
-    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
-    return m_DebugArmed;
+    return m_DebugArmed.load(std::memory_order_acquire);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -128,13 +135,16 @@ bool ScriptDebugger::isDebugArmed() const {
 ///////////////////////////////////////////////////////////////////////////////////
 
 ScriptDebugger::Mode ScriptDebugger::getMode() const {
-    std::lock_guard<std::mutex> lock(m_Mutex);
-    return m_Mode;
+    return m_Mode.load(std::memory_order_acquire);
 }
 
 Ltg::DebugState ScriptDebugger::getState() const {
     std::lock_guard<std::mutex> lock(m_Mutex);
     return m_State;
+}
+
+int64_t ScriptDebugger::getStateRevision() const {
+    return m_StateRevision.load(std::memory_order_acquire);
 }
 
 void ScriptDebugger::doContinue() {
@@ -223,7 +233,7 @@ Ltg::DebugAction ScriptDebugger::m_waitNextAction() {
         m_HasExpand = false;
         action.kind = Ltg::DebugAction::Kind::Command;
         action.command = m_Command;
-        m_Mode = Mode::Running;
+        m_Mode.store(Mode::Running, std::memory_order_release);
     } else {
         m_HasExpand = false;
         action.kind = Ltg::DebugAction::Kind::Expand;

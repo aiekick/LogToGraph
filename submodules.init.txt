@@ -1,3 +1,0 @@
-git submodule add --force -b "master" https://github.com/aiekick/EzLibs.git 3rdparty/ezlibs
-git submodule add --force -b "master" https://github.com/aiekick/ImGuiPack.git 3rdparty/ImGuiPack
-git submodule add --force -b "master" https://github.com/aiekick/InAppGpuProfiler.git 3rdparty/iagp

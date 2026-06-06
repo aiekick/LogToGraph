@@ -3,6 +3,7 @@
 #include <ezlibs/ezClass.hpp>
 #include <ezlibs/ezSingleton.hpp>
 #include <imguipack.h>
+#include <apis/IScriptDebugger.h>
 
 #include <cstdint>
 #include <memory>
@@ -15,6 +16,11 @@ class ScopePane : public AbstractPane {
     DISABLE_CONSTRUCTORS(ScopePane)
     DISABLE_DESTRUCTORS(ScopePane)
     IMPLEMENT_SHARED_SINGLETON(ScopePane)
+
+private:
+    // paused state cache — refreshed only when ScriptDebugger::getStateRevision() advances
+    int64_t m_LastStateRevision = -1;
+    Ltg::DebugState m_StateCache;
 
 public:
     bool init() override;

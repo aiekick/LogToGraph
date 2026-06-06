@@ -17,6 +17,7 @@ limitations under the License.
 #pragma once
 
 #include <mutex>
+#include <atomic>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -42,12 +43,16 @@ public:
 private:  // rendezvous between the worker thread (onPause/waitAction) and the UI thread
     mutable std::mutex m_Mutex;
     std::condition_variable m_Cond;
-    Mode m_Mode{Mode::Idle};
+    // atomic so getMode() is lock-free; writers still set it inside m_Mutex (paired with m_HasCommand etc.).
+    std::atomic<Mode> m_Mode{Mode::Idle};
     bool m_HasCommand{false};  // control command (continue/step/stop) — has priority
     Ltg::DebugCommand m_Command{Ltg::DebugCommand::Continue};
     bool m_HasExpand{false};  // pending lazy-expansion request
     int32_t m_ExpandRef{-1};
     Ltg::DebugState m_State;
+    // monotonic counter bumped (release) in onPause after m_State assignment. UI panes cache the
+    // state by revision and skip the mutex+copy of getState() between pauses.
+    std::atomic<int64_t> m_StateRevision{0};
     Ltg::IScriptDebugger* m_PluginDebuggerPtr{nullptr};
 
 private:  // lazy expansion cache (children read by the worker, displayed by the UI)
@@ -58,7 +63,12 @@ private:  // breakpoints, source of truth, lines are 1-based
     mutable std::mutex m_BreakpointsMutex;
     Ltg::BreakpointLines m_Breakpoints;
     std::string m_ScriptFilePathName;
-    bool m_DebugArmed{false};
+    // atomic so isDebugArmed() / setDebugArmed() are lock-free; shouldArmDebug() still locks (reads breakpoints too).
+    std::atomic<bool> m_DebugArmed{false};
+    // monotonic counter bumped (release) at every breakpoints/scriptPath mutation. UI side reads it
+    // with acquire to decide if its cached derivatives (0-based set, etc.) need a refresh — avoids
+    // a per-frame mutex+set copy.
+    std::atomic<int64_t> m_BreakpointsRevision{0};
 
 public:
     // IScriptDebugHost — called by the plugin from the worker thread
@@ -72,6 +82,7 @@ public:
     void unbindPlugin();
     bool shouldArmDebug() const;
     Ltg::BreakpointLines getBreakpoints() const;
+    int64_t getBreakpointsRevision() const;  // atomic acquire load; no mutex
 
     // breakpoints — UI thread, lines are 1-based
     void setBreakpoint(const std::string& aScriptFilePathName, int32_t aLine, bool aAdd);
@@ -86,6 +97,7 @@ public:
     // execution control — UI thread
     Mode getMode() const;
     Ltg::DebugState getState() const;
+    int64_t getStateRevision() const;  // atomic acquire load; no mutex
     void doContinue();
     void stepInto();
     void stepOver();

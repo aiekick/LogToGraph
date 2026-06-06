@@ -312,11 +312,13 @@ void CodeEditor::SetBreakpointToggledCallback(std::function<void(int32_t, bool)>
     m_OnBreakpointToggled = aCallback;
 }
 
-void CodeEditor::SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines) {
-    if (m_BreakpointLines != aZeroBasedLines) {
-        m_BreakpointLines = aZeroBasedLines;
-        m_RebuildMarkers();
+void CodeEditor::SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines, int64_t aRevision) {
+    if (aRevision == m_LastBreakpointsRevision) {
+        return;  // no change since last call — skip the set copy + marker rebuild
     }
+    m_LastBreakpointsRevision = aRevision;
+    m_BreakpointLines = aZeroBasedLines;
+    m_RebuildMarkers();
 }
 
 void CodeEditor::SetCurrentExecLine(int32_t aZeroBasedLine) {

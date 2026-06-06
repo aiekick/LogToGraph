@@ -13,7 +13,7 @@ class SettingsDialog : public ez::xml::Config {
 public:
     std::map<Ltg::SettingsCategoryPath, Ltg::ISettingsWeak> m_SettingsPerCategoryPath;
     bool m_ShowDialog = false;
-    Ltg::SettingsCategoryPath m_SelectedCategoryPath;
+    Ltg::ISettingsWeak m_SelectedSettings;  // cached on left-pane click; content pane just locks + draws
 
 public:
     bool init();

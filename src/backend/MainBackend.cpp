@@ -33,6 +33,7 @@
 #include <panes/ConsolePane.h>
 
 #include <systems/SettingsDialog.h>
+#include <systems/AppSettings.h>
 
 // we include the cpp just for embedded fonts
 #include <res/fontIcons.cpp>
@@ -241,11 +242,11 @@ void MainBackend::m_MainLoop() {
     ImVec2 pos, size;
     while (!glfwWindowShouldClose(m_MainWindowPtr)) {
         {
-#ifndef _DEBUG
-            if (!ScriptingEngine::ref()->IsJoinable()) {  // for not blocking threading progress bar animation
-                glfwWaitEventsTimeout(1.0);
+            // idle wait — runtime toggle + timeout from AppSettings (cf. SettingsDialog "app/general").
+            // gated by IsJoinable so the threading progress bar keeps animating during analyse.
+            if (AppSettings::ref()->isWaitEventsEnabled() && !ScriptingEngine::ref()->IsJoinable()) {
+                glfwWaitEventsTimeout(AppSettings::ref()->getWaitEventsTimeoutSec());
             }
-#endif
             IAGPNewFrame("GPU Frame", "GPU Frame");  // a main Zone is always needed
 
             ProjectFile::ref()->NewFrame();

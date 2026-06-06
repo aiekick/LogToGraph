@@ -3,7 +3,6 @@
 
 #include <panes/CodePane.h>
 #include <cinttypes>  // printf zu
-#include <unordered_set>
 
 #include <ezlibs/ezLog.hpp>
 #include <ezlibs/ezFile.hpp>
@@ -45,17 +44,31 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
 #endif
             m_DrawDebugToolbar();
 
-            const auto debugScriptFile = ScriptDebugger::ref()->getScriptFilePathName();
-            const auto breakpoints1Based = ScriptDebugger::ref()->getBreakpoints();
+            // refresh the breakpoint render cache ONLY when the debugger's revision has advanced.
+            // hot path = atomic load + int compare; cold path (rare) = mutex + set copy + 0-based transform.
+            const int64_t breakpointsRevision = ScriptDebugger::ref()->getBreakpointsRevision();
+            if (breakpointsRevision != m_BreakpointsRevisionSeen) {
+                m_DebugScriptFileCache = ScriptDebugger::ref()->getScriptFilePathName();
+                const auto breakpoints1Based = ScriptDebugger::ref()->getBreakpoints();
+                m_Breakpoints0BasedCache.clear();
+                for (const auto& breakpointLine : breakpoints1Based) {
+                    m_Breakpoints0BasedCache.insert(breakpointLine - 1);
+                }
+                m_BreakpointsRevisionSeen = breakpointsRevision;
+            }
+
+            // same pattern for the paused snapshot — getStateRevision() bumps once per pause event
+            const int64_t stateRevision = ScriptDebugger::ref()->getStateRevision();
+            if (stateRevision != m_LastStateRevision) {
+                m_StateCache = ScriptDebugger::ref()->getState();
+                m_LastStateRevision = stateRevision;
+            }
+
             const bool isPaused = (ScriptDebugger::ref()->getMode() == ScriptDebugger::Mode::Paused);
             const bool isDebugArmed = ScriptDebugger::ref()->isDebugArmed();
             int32_t currentExecLine0Based = -1;
             if (isPaused) {
-                currentExecLine0Based = ScriptDebugger::ref()->getState().line - 1;
-            }
-            std::unordered_set<int32_t> breakpoints0Based;
-            for (const auto& breakpointLine : breakpoints1Based) {
-                breakpoints0Based.insert(breakpointLine - 1);
+                currentExecLine0Based = m_StateCache.line - 1;
             }
 
             if (ImGui::BeginTabBar("CodePane")) {
@@ -67,8 +80,8 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
                     }
                     ImGui::PushID(sheet.filepathName.c_str());
                     if (ImGui::BeginTabItem(sheet.title.c_str(), &sheet.opened)) {
-                        if (sheet.filepathName == debugScriptFile) {
-                            sheet.codeEditor.SetBreakpoints(breakpoints0Based);
+                        if (sheet.filepathName == m_DebugScriptFileCache) {
+                            sheet.codeEditor.SetBreakpoints(m_Breakpoints0BasedCache, breakpointsRevision);
                             sheet.codeEditor.SetCurrentExecLine(currentExecLine0Based);
                         }
                         sheet.codeEditor.SetBreakpointInteractionEnabled(isDebugArmed);
@@ -139,8 +152,8 @@ void CodePane::m_DrawDebugToolbar() {
 
     ImGui::SameLine();
     if (isPaused) {
-        const auto state = ScriptDebugger::ref()->getState();
-        ImGui::Text("Paused | log row %d | line %d", state.logRowIndex, state.line);
+        // m_StateCache filled at the top of drawPanes (same frame), no need to re-query getState()
+        ImGui::Text("Paused | log row %d | line %d", m_StateCache.logRowIndex, m_StateCache.line);
     } else if (workerBusy) {
         ImGui::TextUnformatted("Running");
     } else {

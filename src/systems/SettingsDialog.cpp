@@ -3,11 +3,30 @@
 #include <imguipack.h>
 
 #include <project/ProjectFile.h>
+#include <systems/AppSettings.h>
+
+#include <cctype>
+#include <string>
+
+namespace {
+// "app/general" -> "General" — the last path segment with its first letter uppercased.
+std::string makeSectionLabel(const Ltg::SettingsCategoryPath& aPath) {
+    const auto slash = aPath.find_last_of('/');
+    std::string segment = (slash == std::string::npos) ? aPath : aPath.substr(slash + 1);
+    if (!segment.empty()) {
+        segment[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(segment[0])));
+    }
+    return segment;
+}
+}  // namespace
 
 bool SettingsDialog::init() {
-    // plugins no longer implement ISettings, so there is no plugin-sourced settings to register
-    // here anymore. The dialog keeps all its machinery for host/app settings; m_SettingsPerCategoryPath
-    // stays empty until app-side settings are registered.
+    // app-level settings — first host-side ISettings implementer. More can be registered the same way.
+    m_SettingsPerCategoryPath[AppSettings::ref()->getCategory()] = AppSettings::ref();
+    // pre-select the first entry so the content pane is non-empty on first open
+    if (!m_SettingsPerCategoryPath.empty()) {
+        m_SelectedSettings = m_SettingsPerCategoryPath.begin()->second;
+    }
     return true;
 }
 
@@ -52,6 +71,15 @@ void SettingsDialog::m_DrawCategoryPanes() {
 
     ImGui::BeginChild("Categories", ImVec2(100, size.y));
 
+    const auto selectedPtr = m_SelectedSettings.lock();
+    for (const auto& cat : m_SettingsPerCategoryPath) {
+        const auto label = makeSectionLabel(cat.first);
+        const bool selected = (cat.second.lock() == selectedPtr);
+        if (ImGui::Selectable(label.c_str(), selected)) {
+            m_SelectedSettings = cat.second;
+        }
+    }
+
     ImGui::EndChild();
 }
 
@@ -64,11 +92,9 @@ void SettingsDialog::m_DrawContentPane() {
 
     ImGui::BeginChild("##Content", size);
 
-    for (const auto& cat : m_SettingsPerCategoryPath) {
-        auto ptr = cat.second.lock();
-        if (ptr != nullptr) {
-            ptr->drawSettings();
-        }
+    auto ptr = m_SelectedSettings.lock();
+    if (ptr != nullptr) {
+        ptr->drawSettings();
     }
 
     ImGui::EndChild();

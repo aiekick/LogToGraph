@@ -4,9 +4,11 @@
 #include <ezlibs/ezSingleton.hpp>
 #include <imguipack.h>
 #include <frontend/Components/CodeEditor.h>
+#include <apis/IScriptDebugger.h>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 class ProjectFile;
@@ -24,6 +26,13 @@ private:
         bool opened = false;
     };
     std::vector<CodeSheet> m_CodeSheets;
+    // breakpoint render cache — refreshed only when ScriptDebugger::getBreakpointsRevision() advances
+    int64_t m_BreakpointsRevisionSeen = -1;
+    std::string m_DebugScriptFileCache;
+    std::unordered_set<int32_t> m_Breakpoints0BasedCache;
+    // paused state cache — refreshed only when ScriptDebugger::getStateRevision() advances (i.e. on a new pause)
+    int64_t m_LastStateRevision = -1;
+    Ltg::DebugState m_StateCache;
 
 public:
     bool init() final;

@@ -25,6 +25,7 @@ private:
     std::map<int32_t, std::string> m_ErrorMarkers;
     std::unordered_set<int32_t> m_BreakpointLines;  // widget 0-based lines
     int32_t m_CurrentExecLine = -1;                 // widget 0-based, -1 = none
+    int64_t m_LastBreakpointsRevision = -1;         // skip SetBreakpoints work when revision matches
     bool m_BreakpointInteractionEnabled = true;     // when false, gutter cannot set/remove breakpoints
     std::function<void(int32_t aLine, bool aAdd)> m_OnBreakpointToggled;
     std::function<void()> m_OnSave;
@@ -65,7 +66,7 @@ public:
     // debugger integration — lines are the widget's 0-based numbers
     void SetBreakpointToggledCallback(std::function<void(int32_t aLine, bool aAdd)> aCallback);
     void SetSaveCallback(std::function<void()> aCallback);
-    void SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines);
+    void SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines, int64_t aRevision);
     void SetCurrentExecLine(int32_t aZeroBasedLine);
     void SetBreakpointInteractionEnabled(bool aEnabled);
 
