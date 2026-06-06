@@ -20,7 +20,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_definitions(-DUSE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS) ## for the resize imgui issue when we have child glfw windows
 
 if (uninstall)
 	set_target_properties(uninstall PROPERTIES FOLDER "CmakeTargets")
@@ -75,13 +74,8 @@ else()
 endif()
 
 set_target_properties(${PROJECT} PROPERTIES	OUTPUT_NAME "${PROJECT}")
-## these defines mirror USE_SHARED_LIBS from the root CMake — only emit them when
-## imguipack is actually built as a DLL, otherwise IMGUI_API resolves to dllimport
-## against a static lib and ImGui::Header (and friends) end up unresolved.
-if (USE_SHARED_LIBS)
-	target_compile_definitions(${PROJECT} PRIVATE BUILD_CTOOLS_SHARED_LIBS)
-	target_compile_definitions(${PROJECT} PRIVATE BUILD_IMGUI_PACK_SHARED_LIBS)
-endif()
+## the plugin links no imguipack/glad/glfw anymore (pure Lua module), so the root
+## BUILD_*_SHARED_LIBS / IMGUI_API mirror is no longer needed here.
 
 ## sol2 config — MUST be visible to every TU before the first <sol/sol.hpp>:
 ## - SOL_ALL_SAFETIES_ON=1     : full runtime safety checks (arg counts, types, …)
@@ -125,16 +119,12 @@ target_include_directories(${PROJECT} PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/src
 	${CMAKE_CURRENT_SOURCE_DIR}
 	${LUA_JIT_INCLUDE_DIR}/src
-	${IMGUIPACK_INCLUDE_DIRS}
 	${EZLIBS_INCLUDE_DIR}
-	${GLAD_INCLUDE_DIR}                ## CustomInAppGpuProfiler.h (consumed via add_definitions) pulls glad+glfw
-	${GLFW_INCLUDE_DIR}
 	${CMAKE_SOURCE_DIR}
 	${SOL2_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT}
-	${IMGUIPACK_LIBRARIES}
 	${LUA_JIT_LIBRARIES}
 	${SOL2_LIBRARIES}
 )

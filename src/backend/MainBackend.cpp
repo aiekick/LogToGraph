@@ -439,24 +439,6 @@ bool MainBackend::m_InitImGui() {
 
 void MainBackend::m_InitPlugins(const std::string& vAppPath) {
     PluginManager::ref().loadPlugins(vAppPath);
-    auto pluginPanes = PluginManager::ref().getPluginPanes();
-    for (auto& pluginPane : pluginPanes) {
-        if (!pluginPane.pane.expired()) {
-            ImLayout::ref().addPane(ImLayout::PaneInfos(  //
-                pluginPane.pane,
-                pluginPane.name,
-                pluginPane.category,
-                pluginPane.name,
-                pluginPane.disposal,
-                pluginPane.disposalRatio,
-                pluginPane.openedDefault,
-                pluginPane.focusedDefault));
-            auto plugin_ptr = std::dynamic_pointer_cast<Ltg::PluginPane>(pluginPane.pane.lock());
-            if (plugin_ptr != nullptr) {
-                plugin_ptr->SetProjectInstance(ProjectFile::ref());
-            }
-        }
-    }
 }
 
 void MainBackend::m_InitModels() {

@@ -5,7 +5,6 @@
 #include <ezlibs/ezFile.hpp>
 #include <ezlibs/ezTime.hpp>
 #include <ezlibs/ezLog.hpp>
-#include <imguipack.h>
 #include <exception>
 #include <chrono>
 #include <ctime>
@@ -81,10 +80,8 @@ std::string luaKeyToString(lua_State* apLua, int32_t aIndex) {
 
 }  // namespace
 
-Ltg::ScriptingModulePtr Module::create(const SettingsWeak& vSettings) {
-    assert(!vSettings.expired());
+Ltg::ScriptingModulePtr Module::create() {
     auto res = std::make_shared<Module>();
-    res->m_settings = vSettings;
     if (!res->init()) {
         res.reset();
     }

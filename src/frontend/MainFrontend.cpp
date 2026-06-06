@@ -117,12 +117,6 @@ bool MainFrontend::init() {
 
 void MainFrontend::unit() {
     ImLayout::ref().unitPanes();
-    auto pluginPanes = PluginManager::ref().getPluginPanes();
-    for (auto& pluginPane : pluginPanes) {
-        if (!pluginPane.pane.expired()) {
-            ImLayout::ref().removePane(pluginPane.name);
-        }
-    }
 }
 
 bool MainFrontend::isValid() const {
