@@ -25,6 +25,7 @@ private:
     std::map<int32_t, std::string> m_ErrorMarkers;
     std::unordered_set<int32_t> m_BreakpointLines;  // widget 0-based lines
     int32_t m_CurrentExecLine = -1;                 // widget 0-based, -1 = none
+    bool m_BreakpointInteractionEnabled = true;     // when false, gutter cannot set/remove breakpoints
     std::function<void(int32_t aLine, bool aAdd)> m_OnBreakpointToggled;
     std::function<void()> m_OnSave;
     ImFont* m_CodeFontPtr = nullptr;
@@ -66,6 +67,7 @@ public:
     void SetSaveCallback(std::function<void()> aCallback);
     void SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines);
     void SetCurrentExecLine(int32_t aZeroBasedLine);
+    void SetBreakpointInteractionEnabled(bool aEnabled);
 
 private:
     void OnReloadCommand();
