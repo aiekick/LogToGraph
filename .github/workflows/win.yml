@@ -1,4 +1,4 @@
-name: linux
+name: win
 
 on:
   workflow_dispatch:
@@ -7,22 +7,20 @@ on:
       - master
 
 jobs:
-  build_Linux_Ubuntu:
-    runs-on: ubuntu-latest
+  build_Win_latest:
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
       with:
         ref: master
         token: ${{ secrets.PAT_SUBMODULES }}
         submodules: recursive
-    - name: Install OpenGL lib  / Requirement for Glfw3
-      run : sudo apt-get update && sudo apt-get install libgl1-mesa-dev libx11-dev libxi-dev libxrandr-dev libxinerama-dev libxcursor-dev libwayland-dev
     - name: configure
       run: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release
     - name: build
-      run: cmake --build build
+      run: cmake --build build --config Release
     - name: upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ github.event.repository.name }}
-        path: bin/${{ github.event.repository.name }}*
+        path: bin\${{ github.event.repository.name }}*
