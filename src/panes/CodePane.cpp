@@ -11,6 +11,7 @@
 #include <res/fontIcons.h>
 #include <models/debug/ScriptDebugger.h>
 #include <models/script/ScriptingEngine.h>
+#include <project/ProjectFile.h>
 
 bool CodePane::init() {
     // for avoid a reallocation of the vector for each push/emplace
@@ -72,6 +73,11 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
 
             if (ImGui::BeginTabBar("CodePane")) {
                 for (auto& sheet : m_CodeSheets) {
+                    // editing the project script marks the project dirty (so the Save button shows)
+                    if (sheet.filepathName == sc_PROJECT_SCRIPT_ID && sheet.codeEditor.IsModified() &&
+                        !ProjectFile::ref()->IsThereAnyProjectChanges()) {
+                        ProjectFile::ref()->SetProjectChange(true);
+                    }
                     ImGui::PushID(sheet.filepathName.c_str());
                     if (ImGui::BeginTabItem(sheet.title.c_str(), &sheet.opened)) {
                         if (sheet.filepathName == debugScriptFile) {
@@ -93,59 +99,90 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
 }
 
 void CodePane::m_DrawDebugToolbar() {
-    const auto debugMode = ScriptDebugger::ref()->getMode();
-    const bool isPaused = (debugMode == ScriptDebugger::Mode::Paused);
-    const bool isRunning = (debugMode != ScriptDebugger::Mode::Idle);
+    const bool isPaused = (ScriptDebugger::ref()->getMode() == ScriptDebugger::Mode::Paused);
+    const bool workerBusy = ScriptingEngine::ref()->IsJoinable();
 
     bool armed = ScriptDebugger::ref()->isDebugArmed();
     if (ImGui::Checkbox(ICON_FONT_BUG " Debug", &armed)) {
         ScriptDebugger::ref()->setDebugArmed(armed);
     }
 
-    ImGui::SameLine();
-    ImGui::BeginDisabled(!isPaused);
-    if (ImGui::Button(ICON_FONT_PLAY "##dbg_continue")) {
-        ScriptDebugger::ref()->doContinue();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button(ICON_FONT_DEBUG_STEP_INTO "##dbg_stepinto")) {
-        ScriptDebugger::ref()->stepInto();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button(ICON_FONT_DEBUG_STEP_OVER "##dbg_stepover")) {
-        ScriptDebugger::ref()->stepOver();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button(ICON_FONT_DEBUG_STEP_OUT "##dbg_stepout")) {
-        ScriptDebugger::ref()->stepOut();
-    }
-    ImGui::EndDisabled();
+    if (armed) {
+        // Run (when nothing runs) or Continue (when paused); disabled while running un-paused
+        ImGui::SameLine();
+        
+        ImGui::BeginDisabled(workerBusy && !isPaused);
+        if (ImGui::Button(ICON_FONT_PLAY "##dbg_run")) {
+            if (isPaused) {
+                ScriptDebugger::ref()->doContinue();
+            } else if (!workerBusy) {
+                m_StartAnalyse();
+            }
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", isPaused ? "Continue" : "Run (analyse the log files)");
+        }
+        ImGui::EndDisabled();
 
-    ImGui::SameLine();
-    ImGui::BeginDisabled(!isRunning || isPaused);
-    if (ImGui::Button(ICON_FONT_PAUSE "##dbg_pause")) {
-        ScriptDebugger::ref()->pause();
-    }
-    ImGui::EndDisabled();
+        ImGui::SameLine();
+        
+        ImGui::BeginDisabled(!isPaused);
+        if (ImGui::Button(ICON_FONT_DEBUG_STEP_INTO "##dbg_stepinto")) {
+            ScriptDebugger::ref()->stepInto();
+        }
+        
+        ImGui::SameLine();
+        
+        if (ImGui::Button(ICON_FONT_DEBUG_STEP_OVER "##dbg_stepover")) {
+            ScriptDebugger::ref()->stepOver();
+        }
+        ImGui::SameLine();
+        
+        if (ImGui::Button(ICON_FONT_DEBUG_STEP_OUT "##dbg_stepout")) {
+            ScriptDebugger::ref()->stepOut();
+        }
+        ImGui::EndDisabled();
 
-    ImGui::SameLine();
-    ImGui::BeginDisabled(!isRunning);
-    if (ImGui::Button(ICON_FONT_STOP "##dbg_stop")) {
-        ScriptingEngine::s_working = false;  // break the parse loop on the worker thread
-        ScriptDebugger::ref()->stop();
-    }
-    ImGui::EndDisabled();
+        ImGui::SameLine();
+        
+        ImGui::BeginDisabled(!workerBusy || isPaused);
+        if (ImGui::Button(ICON_FONT_PAUSE "##dbg_pause")) {
+            ScriptDebugger::ref()->pause();
+        }
+        ImGui::EndDisabled();
 
-    ImGui::SameLine();
-    if (isPaused) {
-        const auto state = ScriptDebugger::ref()->getState();
-        ImGui::Text("Paused | log row %d | line %d", state.logRowIndex, state.line);
-    } else if (isRunning) {
-        ImGui::TextUnformatted("Running");
-    } else {
-        ImGui::TextUnformatted("Idle");
+        ImGui::SameLine();
+
+        ImGui::BeginDisabled(!workerBusy);
+        if (ImGui::Button(ICON_FONT_STOP "##dbg_stop")) {
+            ScriptingEngine::s_working = false;  // break the parse loop on the worker thread
+            ScriptDebugger::ref()->stop();
+        }
+        ImGui::EndDisabled();
+
+        ImGui::SameLine();
+        if (isPaused) {
+            const auto state = ScriptDebugger::ref()->getState();
+            ImGui::Text("Paused | log row %d | line %d", state.logRowIndex, state.line);
+        } else if (workerBusy) {
+            ImGui::TextUnformatted("Running");
+        } else {
+            ImGui::TextUnformatted("Idle");
+        }
     }
+
     ImGui::Separator();
+}
+
+void CodePane::m_StartAnalyse() {
+    // same as the ToolPane "Start Analyse": run the in-app script over the log files
+    ScriptingEngine::ref()->Clear();
+    ScriptingEngine::ref()->SetScriptCode(GetScriptCode());
+    const auto& sources = ProjectFile::ref()->GetSourceFilePathNames();
+    for (const auto& source : sources) {
+        ScriptingEngine::ref()->AddSourceFilePathName(source.second);
+    }
+    ScriptingEngine::ref()->StartWorkerThread(false);
 }
 
 void CodePane::OpenFile(const std::string& vFilePathName, size_t vErrorLine, std::string vErrorMsg) {
@@ -190,6 +227,51 @@ void CodePane::OpenFile(const std::string& vFilePathName, size_t vErrorLine, std
             });
             sheet.codeEditor.SetCode(code, type);
             sheet.codeEditor.AddErrorMarker(vErrorLine, vErrorMsg);
+        }
+    }
+}
+
+void CodePane::OpenScript(const std::string& aCode) {
+    CodeSheet* scriptSheetPtr = nullptr;
+    for (auto& sheet : m_CodeSheets) {
+        if (sheet.filepathName == sc_PROJECT_SCRIPT_ID) {
+            scriptSheetPtr = &sheet;
+            break;
+        }
+    }
+    if (scriptSheetPtr == nullptr) {
+        auto& sheet = m_CodeSheets.emplace_back();
+        sheet.codeEditor.init();
+        sheet.filepathName = sc_PROJECT_SCRIPT_ID;
+        sheet.title = ICON_FONT_CODE_BRACES " Script";
+        sheet.opened = true;
+        sheet.wasModified = false;
+        // report gutter breakpoint toggles to the shared debugger (widget 0-based -> 1-based)
+        const std::string scriptId = sc_PROJECT_SCRIPT_ID;
+        sheet.codeEditor.SetBreakpointToggledCallback([scriptId](int32_t aLine, bool aAdd) {
+            ScriptDebugger::ref()->setBreakpoint(scriptId, aLine + 1, aAdd);
+        });
+        // editor Ctrl+S (or its File > Save) persists the project script into the .ltg db
+        sheet.codeEditor.SetSaveCallback([]() { ProjectFile::ref()->Save(); });
+        scriptSheetPtr = &sheet;
+    }
+    scriptSheetPtr->codeEditor.SetCode(aCode, TextEditor::Language::Lua());
+}
+
+std::string CodePane::GetScriptCode() {
+    for (auto& sheet : m_CodeSheets) {
+        if (sheet.filepathName == sc_PROJECT_SCRIPT_ID) {
+            return sheet.codeEditor.GetCode();
+        }
+    }
+    return {};
+}
+
+void CodePane::MarkScriptSaved() {
+    for (auto& sheet : m_CodeSheets) {
+        if (sheet.filepathName == sc_PROJECT_SCRIPT_ID) {
+            sheet.codeEditor.MarkSaved();
+            return;
         }
     }
 }

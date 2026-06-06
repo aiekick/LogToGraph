@@ -31,7 +31,8 @@
 #include <panes/SignalsHoveredMap.h>
 #include <panes/SignalsPreview.h>
 #include <panes/ToolPane.h>
-#include <panes/WatcherPane.h>
+#include <panes/StackTreePane.h>
+#include <panes/ScopePane.h>
 #include <panes/CalltracePane.h>
 #include <panes/BreakpointsPane.h>
 
@@ -118,16 +119,22 @@ void App::m_InitSingletons() {
     SignalsHoveredMap::initSingleton();
     SignalsPreview::initSingleton();
     ToolPane::initSingleton();
-    WatcherPane::initSingleton();
+    StackTreePane::initSingleton();
+    ScopePane::initSingleton();
     CalltracePane::initSingleton();
     BreakpointsPane::initSingleton();
 }
 
 void App::m_UnitSingletons() {
+    // stop a possibly running/paused parsing worker BEFORE destroying the singletons it uses:
+    // a worker blocked in ScriptDebugger::onPause would otherwise outlive ScriptDebugger
+    // (use-after-free), and std::thread's dtor would std::terminate on a still-joinable thread.
+    ScriptingEngine::ref()->AbortAndJoinWorker();
     // panes
     BreakpointsPane::unitSingleton();
     CalltracePane::unitSingleton();
-    WatcherPane::unitSingleton();
+    ScopePane::unitSingleton();
+    StackTreePane::unitSingleton();
     ToolPane::unitSingleton();
     SignalsPreview::unitSingleton();
     SignalsHoveredMap::unitSingleton();

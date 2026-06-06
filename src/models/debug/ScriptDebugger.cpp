@@ -20,15 +20,26 @@ limitations under the License.
 //// RENDEZVOUS (worker thread) /////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-Ltg::DebugCommand ScriptDebugger::onPause(const Ltg::DebugState& aState) {
-    std::unique_lock<std::mutex> lock(m_Mutex);
-    m_State = aState;
-    m_Mode = Mode::Paused;
-    m_HasCommand = false;
-    m_Cond.wait(lock, [this]() { return m_HasCommand; });
-    m_HasCommand = false;
-    m_Mode = Mode::Running;
-    return m_Command;
+Ltg::DebugAction ScriptDebugger::onPause(const Ltg::DebugState& aState) {
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        m_State = aState;
+        m_Mode = Mode::Paused;
+    }
+    {
+        std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+        m_Expansions.clear();  // a fresh pause invalidates every previously read ref
+    }
+    return m_waitNextAction();
+}
+
+Ltg::DebugAction ScriptDebugger::waitAction() {
+    return m_waitNextAction();
+}
+
+void ScriptDebugger::publishExpansion(int32_t aRef, const std::vector<Ltg::DebugVar>& aChildren) {
+    std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+    m_Expansions[aRef] = aChildren;  // cached until the next pause; getChildren stops the re-posting
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -40,12 +51,17 @@ void ScriptDebugger::bindPlugin(Ltg::IScriptDebugger* apPluginDebugger) {
     m_PluginDebuggerPtr = apPluginDebugger;
     m_Mode = Mode::Running;
     m_HasCommand = false;
+    m_HasExpand = false;
 }
 
 void ScriptDebugger::unbindPlugin() {
-    std::lock_guard<std::mutex> lock(m_Mutex);
-    m_PluginDebuggerPtr = nullptr;
-    m_Mode = Mode::Idle;
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        m_PluginDebuggerPtr = nullptr;
+        m_Mode = Mode::Idle;
+    }
+    std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+    m_Expansions.clear();
 }
 
 bool ScriptDebugger::shouldArmDebug() const {
@@ -56,6 +72,11 @@ bool ScriptDebugger::shouldArmDebug() const {
 Ltg::BreakpointLines ScriptDebugger::getBreakpoints() const {
     std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
     return m_Breakpoints;
+}
+
+bool ScriptDebugger::isBreakpoint(int32_t aLine) {
+    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+    return m_Breakpoints.find(aLine) != m_Breakpoints.end();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -117,19 +138,19 @@ Ltg::DebugState ScriptDebugger::getState() const {
 }
 
 void ScriptDebugger::doContinue() {
-    m_pushCommand(Ltg::DebugCommand::Continue);
+    m_setCommand(Ltg::DebugCommand::Continue);
 }
 
 void ScriptDebugger::stepInto() {
-    m_pushCommand(Ltg::DebugCommand::StepInto);
+    m_setCommand(Ltg::DebugCommand::StepInto);
 }
 
 void ScriptDebugger::stepOver() {
-    m_pushCommand(Ltg::DebugCommand::StepOver);
+    m_setCommand(Ltg::DebugCommand::StepOver);
 }
 
 void ScriptDebugger::stepOut() {
-    m_pushCommand(Ltg::DebugCommand::StepOut);
+    m_setCommand(Ltg::DebugCommand::StepOut);
 }
 
 void ScriptDebugger::pause() {
@@ -146,15 +167,67 @@ void ScriptDebugger::stop() {
             m_PluginDebuggerPtr->requestStop();
         }
     }
-    // also unblock a possible pending onPause so the worker can abort right away
-    m_pushCommand(Ltg::DebugCommand::Stop);
+    // also unblock a possible pending wait so the worker aborts right away
+    m_setCommand(Ltg::DebugCommand::Stop);
 }
 
-void ScriptDebugger::m_pushCommand(Ltg::DebugCommand aCommand) {
+///////////////////////////////////////////////////////////////////////////////////
+//// LAZY EXPANSION (UI thread) /////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+
+void ScriptDebugger::requestExpand(int32_t aRef) {
+    if (aRef < 0) {
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+        if (m_Expansions.find(aRef) != m_Expansions.end()) {
+            return;  // already fetched
+        }
+    }
+    // not cached yet: (re)post the request on the expansion channel. it never overwrites a
+    // pending command, and the slot drains one node per frame (resolves over a few frames).
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        m_ExpandRef = aRef;
+        m_HasExpand = true;
+    }
+    m_Cond.notify_one();
+}
+
+bool ScriptDebugger::getChildren(int32_t aRef, std::vector<Ltg::DebugVar>& aoChildren) const {
+    std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+    const auto it = m_Expansions.find(aRef);
+    if (it == m_Expansions.end()) {
+        return false;
+    }
+    aoChildren = it->second;
+    return true;
+}
+
+void ScriptDebugger::m_setCommand(Ltg::DebugCommand aCommand) {
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
         m_Command = aCommand;
         m_HasCommand = true;
     }
     m_Cond.notify_one();
+}
+
+Ltg::DebugAction ScriptDebugger::m_waitNextAction() {
+    std::unique_lock<std::mutex> lock(m_Mutex);
+    m_Cond.wait(lock, [this]() { return m_HasCommand || m_HasExpand; });
+    Ltg::DebugAction action;
+    if (m_HasCommand) {  // a control command has priority and supersedes any pending expand
+        m_HasCommand = false;
+        m_HasExpand = false;
+        action.kind = Ltg::DebugAction::Kind::Command;
+        action.command = m_Command;
+        m_Mode = Mode::Running;
+    } else {
+        m_HasExpand = false;
+        action.kind = Ltg::DebugAction::Kind::Expand;
+        action.expandRef = m_ExpandRef;
+    }
+    return action;
 }

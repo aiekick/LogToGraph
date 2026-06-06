@@ -211,6 +211,11 @@ public:
     /// <returns>settings xml datas</returns>
     std::string GetSettingsXMLDatas();
 
+    /// will store the project script code in db (parameterized: tolerates quotes/newlines)
+    bool SetScriptCode(const std::string& vCode);
+    /// will get the project script code from db (empty if none)
+    std::string GetScriptCode();
+
 private:
     bool OpenDB();
     void CloseDB();

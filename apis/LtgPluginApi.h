@@ -170,8 +170,15 @@ struct ScriptingModule : public PluginModule, public IScriptDebugger {
     virtual bool load(IDatasModelWeak vDatasModel) = 0;
     // will unload the related scripting engine
     virtual void unload() = 0;
-    // will compile the script and return errors
+    // will compile the script from a file path and return errors
     virtual bool compileScript(const ScriptFilePathName& vFilePathName, ErrorContainer& vOutErrors) = 0;
+    // will compile the script from in-memory code (project script stored in the .ltg db).
+    // default no-op so plugins that only support file-based scripts compile unchanged.
+    virtual bool compileScriptCode(const std::string& aCode, ErrorContainer& aOutErrors) {
+        (void)aCode;
+        (void)aOutErrors;
+        return false;
+    }
     // will call the start function from script and return errors
     virtual bool callScriptStart(ErrorContainer& vOutErrors) = 0;
     // will call the exec function from script with a buffer and return errors

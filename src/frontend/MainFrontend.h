@@ -179,4 +179,5 @@ private:
     void m_drawMainMenuBar();
     void m_drawMainStatusBar();
     void m_drawAboutDialog();
+    void m_DrawImportScriptDialog();
 };
