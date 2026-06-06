@@ -62,8 +62,6 @@ public:
     void unloadPlugins();
     std::vector<Ltg::PluginModuleInfos> getPluginModulesInfos() const;
     Ltg::PluginModulePtr createPluginModule(const std::string& vPluginNodeName);
-    std::vector<Ltg::PluginPaneConfig> getPluginPanes() const;
-    std::vector<Ltg::PluginSettingsConfig> getPluginSettings() const;
 
 private:
     void m_loadPlugin(const std::filesystem::directory_entry& vEntry, const std::set<Ltg::PluginModuleType> vTypesToLoad);

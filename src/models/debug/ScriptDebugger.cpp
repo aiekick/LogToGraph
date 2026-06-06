@@ -1,0 +1,233 @@
+/*
+Copyright 2022-2026 Stephane Cuillerdier (aka aiekick)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+#include "ScriptDebugger.h"
+
+///////////////////////////////////////////////////////////////////////////////////
+//// RENDEZVOUS (worker thread) /////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+
+Ltg::DebugAction ScriptDebugger::onPause(const Ltg::DebugState& aState) {
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        m_State = aState;
+        m_Mode = Mode::Paused;
+    }
+    {
+        std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+        m_Expansions.clear();  // a fresh pause invalidates every previously read ref
+    }
+    return m_waitNextAction();
+}
+
+Ltg::DebugAction ScriptDebugger::waitAction() {
+    return m_waitNextAction();
+}
+
+void ScriptDebugger::publishExpansion(int32_t aRef, const std::vector<Ltg::DebugVar>& aChildren) {
+    std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+    m_Expansions[aRef] = aChildren;  // cached until the next pause; getChildren stops the re-posting
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+//// SESSION BINDING ////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+
+void ScriptDebugger::bindPlugin(Ltg::IScriptDebugger* apPluginDebugger) {
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    m_PluginDebuggerPtr = apPluginDebugger;
+    m_Mode = Mode::Running;
+    m_HasCommand = false;
+    m_HasExpand = false;
+}
+
+void ScriptDebugger::unbindPlugin() {
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        m_PluginDebuggerPtr = nullptr;
+        m_Mode = Mode::Idle;
+    }
+    std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+    m_Expansions.clear();
+}
+
+bool ScriptDebugger::shouldArmDebug() const {
+    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+    return m_DebugArmed || !m_Breakpoints.empty();
+}
+
+Ltg::BreakpointLines ScriptDebugger::getBreakpoints() const {
+    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+    return m_Breakpoints;
+}
+
+bool ScriptDebugger::isBreakpoint(int32_t aLine) {
+    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+    return m_Breakpoints.find(aLine) != m_Breakpoints.end();
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+//// BREAKPOINTS (UI thread) ////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+
+void ScriptDebugger::setBreakpoint(const std::string& aScriptFilePathName, int32_t aLine, bool aAdd) {
+    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+    m_ScriptFilePathName = aScriptFilePathName;
+    if (aAdd) {
+        m_Breakpoints.insert(aLine);
+    } else {
+        m_Breakpoints.erase(aLine);
+    }
+}
+
+void ScriptDebugger::toggleBreakpoint(const std::string& aScriptFilePathName, int32_t aLine) {
+    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+    m_ScriptFilePathName = aScriptFilePathName;
+    if (m_Breakpoints.find(aLine) != m_Breakpoints.end()) {
+        m_Breakpoints.erase(aLine);
+    } else {
+        m_Breakpoints.insert(aLine);
+    }
+}
+
+void ScriptDebugger::clearBreakpoints() {
+    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+    m_Breakpoints.clear();
+}
+
+std::string ScriptDebugger::getScriptFilePathName() const {
+    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+    return m_ScriptFilePathName;
+}
+
+void ScriptDebugger::setDebugArmed(bool aArmed) {
+    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+    m_DebugArmed = aArmed;
+}
+
+bool ScriptDebugger::isDebugArmed() const {
+    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+    return m_DebugArmed;
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+//// EXECUTION CONTROL (UI thread) //////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+
+ScriptDebugger::Mode ScriptDebugger::getMode() const {
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    return m_Mode;
+}
+
+Ltg::DebugState ScriptDebugger::getState() const {
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    return m_State;
+}
+
+void ScriptDebugger::doContinue() {
+    m_setCommand(Ltg::DebugCommand::Continue);
+}
+
+void ScriptDebugger::stepInto() {
+    m_setCommand(Ltg::DebugCommand::StepInto);
+}
+
+void ScriptDebugger::stepOver() {
+    m_setCommand(Ltg::DebugCommand::StepOver);
+}
+
+void ScriptDebugger::stepOut() {
+    m_setCommand(Ltg::DebugCommand::StepOut);
+}
+
+void ScriptDebugger::pause() {
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    if (m_PluginDebuggerPtr != nullptr) {
+        m_PluginDebuggerPtr->requestPause();
+    }
+}
+
+void ScriptDebugger::stop() {
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        if (m_PluginDebuggerPtr != nullptr) {
+            m_PluginDebuggerPtr->requestStop();
+        }
+    }
+    // also unblock a possible pending wait so the worker aborts right away
+    m_setCommand(Ltg::DebugCommand::Stop);
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+//// LAZY EXPANSION (UI thread) /////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+
+void ScriptDebugger::requestExpand(int32_t aRef) {
+    if (aRef < 0) {
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+        if (m_Expansions.find(aRef) != m_Expansions.end()) {
+            return;  // already fetched
+        }
+    }
+    // not cached yet: (re)post the request on the expansion channel. it never overwrites a
+    // pending command, and the slot drains one node per frame (resolves over a few frames).
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        m_ExpandRef = aRef;
+        m_HasExpand = true;
+    }
+    m_Cond.notify_one();
+}
+
+bool ScriptDebugger::getChildren(int32_t aRef, std::vector<Ltg::DebugVar>& aoChildren) const {
+    std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+    const auto it = m_Expansions.find(aRef);
+    if (it == m_Expansions.end()) {
+        return false;
+    }
+    aoChildren = it->second;
+    return true;
+}
+
+void ScriptDebugger::m_setCommand(Ltg::DebugCommand aCommand) {
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        m_Command = aCommand;
+        m_HasCommand = true;
+    }
+    m_Cond.notify_one();
+}
+
+Ltg::DebugAction ScriptDebugger::m_waitNextAction() {
+    std::unique_lock<std::mutex> lock(m_Mutex);
+    m_Cond.wait(lock, [this]() { return m_HasCommand || m_HasExpand; });
+    Ltg::DebugAction action;
+    if (m_HasCommand) {  // a control command has priority and supersedes any pending expand
+        m_HasCommand = false;
+        m_HasExpand = false;
+        action.kind = Ltg::DebugAction::Kind::Command;
+        action.command = m_Command;
+        m_Mode = Mode::Running;
+    } else {
+        m_HasExpand = false;
+        action.kind = Ltg::DebugAction::Kind::Expand;
+        action.expandRef = m_ExpandRef;
+    }
+    return action;
+}

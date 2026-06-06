@@ -1,19 +1,13 @@
 #include <systems/SettingsDialog.h>
 
-#include <systems/PluginManager.h>
-
 #include <imguipack.h>
 
 #include <project/ProjectFile.h>
 
 bool SettingsDialog::init() {
-    const auto& pluginSettings = PluginManager::ref().getPluginSettings();
-    for (const auto& s : pluginSettings) {
-        auto ptr = s.settings.lock();
-        if (ptr != nullptr) {
-            m_SettingsPerCategoryPath[ptr->getCategory()] = s.settings;
-        }
-    }
+    // plugins no longer implement ISettings, so there is no plugin-sourced settings to register
+    // here anymore. The dialog keeps all its machinery for host/app settings; m_SettingsPerCategoryPath
+    // stays empty until app-side settings are registered.
     return true;
 }
 
