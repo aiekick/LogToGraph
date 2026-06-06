@@ -3,7 +3,7 @@
 #include <ezlibs/ezClass.hpp>
 #include <ezlibs/ezSingleton.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
-#include <apis/LtgPluginApi.h>
+#include <systems/ISettings.h>
 
 class SettingsDialog : public ez::xml::Config {
     DISABLE_CONSTRUCTORS(SettingsDialog)

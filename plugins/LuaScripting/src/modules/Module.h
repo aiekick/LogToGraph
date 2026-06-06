@@ -2,7 +2,6 @@
 
 #include <modules/LuaDatasModel.h>
 #include <apis/LtgPluginApi.h>
-#include <settings/Settings.h>
 #include <string>
 #include <vector>
 #include <memory>
@@ -19,14 +18,13 @@ struct lua_Debug;
 
 class Module : public Ltg::ScriptingModule {
 public:
-    static Ltg::ScriptingModulePtr create(const SettingsWeak& vSettings);
+    static Ltg::ScriptingModulePtr create();
 
 private:
     enum class StepMode { None, Into, Over, Out };
 
 private:
     std::unique_ptr<sol::state> m_luaPtr = nullptr;
-    SettingsWeak m_settings;
     Ltg::IDatasModelWeak m_datasModel;
     LuaDatasModelPtr m_luaDatasModelPtr = nullptr;
 

@@ -119,38 +119,6 @@ Ltg::PluginModulePtr PluginManager::createPluginModule(const std::string& vPlugi
     return nullptr;
 }
 
-std::vector<Ltg::PluginPaneConfig> PluginManager::getPluginPanes() const {
-    std::vector<Ltg::PluginPaneConfig> pluginsPanes;
-    for (auto plugin : m_Plugins) {
-        if (plugin.second) {
-            auto pluginInstancePtr = plugin.second->get().lock();
-            if (pluginInstancePtr) {
-                auto _pluginPanes = pluginInstancePtr->getPanes();
-                if (!_pluginPanes.empty()) {
-                    pluginsPanes.insert(pluginsPanes.end(), _pluginPanes.begin(), _pluginPanes.end());
-                }
-            }
-        }
-    }
-    return pluginsPanes;
-}
-
-std::vector<Ltg::PluginSettingsConfig> PluginManager::getPluginSettings() const {
-    std::vector<Ltg::PluginSettingsConfig> pluginSettings;
-    for (auto plugin : m_Plugins) {
-        if (plugin.second) {
-            auto pluginInstancePtr = plugin.second->get().lock();
-            if (pluginInstancePtr) {
-                auto _pluginSettings = pluginInstancePtr->getSettings();
-                if (!_pluginSettings.empty()) {
-                    pluginSettings.insert(pluginSettings.end(), _pluginSettings.begin(), _pluginSettings.end());
-                }
-            }
-        }
-    }
-    return pluginSettings;
-}
-
 //////////////////////////////////////////////////////////////
 //// PRIVATE /////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////

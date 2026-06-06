@@ -1,12 +1,8 @@
 #pragma once
 
 #include <apis/LtgPluginApi.h>
-#include <Settings/Settings.h>
 
 class LuaScripting : public Ltg::PluginInterface {
-private:
-    SettingsPtr m_SettingsPtr = nullptr;  // common eettings for whole module
-
 public:
     LuaScripting();
     virtual ~LuaScripting() = default;
@@ -23,6 +19,4 @@ public:
     std::string getDescription() const override;
     std::vector<Ltg::PluginModuleInfos> getModulesInfos() const override;
     Ltg::PluginModulePtr createModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) override;
-    std::vector<Ltg::PluginPaneConfig> getPanes() const override;
-    std::vector<Ltg::PluginSettingsConfig> getSettings() const override;
 };

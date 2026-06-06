@@ -282,6 +282,10 @@ bool ScriptingEngine::StopWorkerThread() {
     bool res = IsJoinable();
     if (res) {
         ScriptingEngine::s_working = false;
+        // a worker paused in the debugger (onPause) is asleep on a condvar; s_working=false alone
+        // does NOT wake it, so Join() would deadlock the UI. Unblock the pause first (same as
+        // AbortAndJoinWorker): stop() pushes a Stop command + notifies, the hook aborts the run.
+        ScriptDebugger::ref()->stop();
         Join();
     }
     return res;
