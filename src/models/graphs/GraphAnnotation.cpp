@@ -51,11 +51,11 @@ static inline ImPlotPoint operator*(ImPlotPoint f, double v) {
 static inline ImPlotPoint operator/(ImPlotPoint v, double f) {
     return ImPlotPoint(v.x * f, v.y / f);
 }
-static inline ez::dvec2 s_toDVec2(const ImPlotPoint& v) {
-    return ez::dvec2(v.x, v.y);
+static inline ez::math::dvec2 s_toDVec2(const ImPlotPoint& v) {
+    return ez::math::dvec2(v.x, v.y);
 }
 static inline ImPlotPoint ImpClamp(ImPlotPoint v, double a, double b) {
-    return ImPlotPoint(ez::clamp(v.x, a, b), ez::clamp(v.y, a, b));
+    return ImPlotPoint(ez::math::clamp(v.x, a, b), ez::math::clamp(v.y, a, b));
 }
 static inline double ImpDot(ImPlotPoint a, ImPlotPoint b) {
     return a.x * b.x + a.y * b.y;
@@ -69,7 +69,7 @@ static inline double ImpDistance(ImPlotPoint A, ImPlotPoint B) {
     return sqrt(dx * dx + dy * dy);
 }
 
-bool GraphAnnotation::sIsMouseHoverLine(const ez::dvec2& vMousePos, const double& vRadius, const ez::dvec2& vStart, const ez::dvec2& vEnd, ez::dvec2& vOutLinePoint) {
+bool GraphAnnotation::sIsMouseHoverLine(const ez::math::dvec2& vMousePos, const double& vRadius, const ez::math::dvec2& vStart, const ez::math::dvec2& vEnd, ez::math::dvec2& vOutLinePoint) {
     const auto mp = ImPlot::PixelsToPlot(vMousePos);
     const auto st = ImPlot::PixelsToPlot(vStart);
     const auto en = ImPlot::PixelsToPlot(vEnd);
@@ -77,7 +77,7 @@ bool GraphAnnotation::sIsMouseHoverLine(const ez::dvec2& vMousePos, const double
     const auto a = mp - st;
     const auto b = en - st;
     const auto dot_b = s_dot(b, b);
-    if (ez::isEqual(dot_b, 0.0))
+    if (ez::math::isEqual(dot_b, 0.0))
         return false;
 
     // projected point on infinite line
@@ -110,10 +110,10 @@ bool GraphAnnotation::sIsMouseHoverLine2P(const ImVec2& vMousePos,
     const auto PA = P - A;
 
     const auto id = ImpDot(BA, BA);
-    if (ez::isEqual(id, 0.0))
+    if (ez::math::isEqual(id, 0.0))
         return false;
 
-    const auto H = ez::clamp(ImpDot(PA, PA) / id, 0.0, 1.0);
+    const auto H = ez::math::clamp(ImpDot(PA, PA) / id, 0.0, 1.0);
     const auto Q = PA - H * BA;
     const auto D = ImpLength(Q);
 
@@ -221,7 +221,7 @@ bool GraphAnnotation::sIsMouseHoverLine4P(const ImVec2& vMousePos,
 
 std::string GraphAnnotation::sGetHumanReadableElapsedTime(const double& vElapsedTime) {
     // always positiv delta
-    int64_t nano_seconds = static_cast<int64_t>(ez::abs((vElapsedTime) * 1e9));
+    int64_t nano_seconds = static_cast<int64_t>(ez::math::abs((vElapsedTime) * 1e9));
     int64_t micro_seconds = nano_seconds / 1000;
     int64_t milli_seconds = micro_seconds / 1000;
     int64_t seconds = milli_seconds / 1000;
@@ -295,7 +295,7 @@ void GraphAnnotation::SetEndPoint(const ImPlotPoint& vEndPoint) {
     m_LabelPos.x = (m_StartPos.x + m_EndPos.x) * 0.5;
     m_LabelPos.y = (m_StartPos.y + m_EndPos.y) * 0.5;
 
-    m_Color = ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor;
+    m_Color = ProjectFile::ref()->m_GraphColors.graphHoveredTimeColor;
 }
 
 void GraphAnnotation::SetSignalSerieParent(const SignalSerieWeak& vSignalSerie) {
@@ -316,7 +316,7 @@ void GraphAnnotation::DrawToPoint(SignalSeriePtr vSignalSeriePtr, const ImVec2& 
         if (win_ptr) {
             auto draw_list_ptr = win_ptr->DrawList;
             if (draw_list_ptr) {
-                const auto col = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor);
+                const auto col = ImGui::GetColorU32(ProjectFile::ref()->m_GraphColors.graphHoveredTimeColor);
                 const auto st = ImPlot::PlotToPixels(m_StartPos);
                 const auto en = vMousePoint;
 
@@ -337,7 +337,7 @@ void GraphAnnotation::Draw() {
             auto draw_list_ptr = win_ptr->DrawList;
             if (draw_list_ptr) {
                 // todo : to optimize
-                const auto col = ImGui::GetColorU32(ProjectFile::Instance()->m_GraphColors.graphHoveredTimeColor);
+                const auto col = ImGui::GetColorU32(ProjectFile::ref()->m_GraphColors.graphHoveredTimeColor);
                 const auto st = ImPlot::PlotToPixels(m_StartPos);
                 const auto en = ImPlot::PlotToPixels(m_EndPos);
 

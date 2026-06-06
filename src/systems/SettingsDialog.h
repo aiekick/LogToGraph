@@ -1,9 +1,15 @@
 #pragma once
 
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
 #include <apis/LtgPluginApi.h>
 
 class SettingsDialog : public ez::xml::Config {
+    DISABLE_CONSTRUCTORS(SettingsDialog)
+    DISABLE_DESTRUCTORS(SettingsDialog)
+    IMPLEMENT_SINGLETON(SettingsDialog)
+
 public:
     std::map<Ltg::SettingsCategoryPath, Ltg::ISettingsWeak> m_SettingsPerCategoryPath;
     bool m_ShowDialog = false;
@@ -27,10 +33,4 @@ private:
     void m_DrawButtonsPane();
     bool m_Load();
     bool m_Save();
-
-public:  // singleton
-    static SettingsDialog* Instance() {
-        static SettingsDialog _instance;
-        return &_instance;
-    }
 };

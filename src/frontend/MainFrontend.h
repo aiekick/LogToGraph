@@ -16,7 +16,9 @@ limitations under the License.
 
 #pragma once
 
-#include <ImGuiPack.h>
+#include <imguipack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
 
 #include <systems/FrameActionSystem.h>
@@ -100,6 +102,10 @@ confirmation dialog for close font :
 */
 
 class MainFrontend : public ez::xml::Config {
+    DISABLE_CONSTRUCTORS(MainFrontend)
+    DISABLE_DESTRUCTORS(MainFrontend)
+    IMPLEMENT_SINGLETON(MainFrontend)
+
 private:
     bool m_ShowImGui = false;
     bool m_ShowImPlot = false;
@@ -116,8 +122,6 @@ public:
     static bool sCentralWindowHovered;
 
 public:
-    virtual ~MainFrontend();
-
     bool init();
     void unit();
 
@@ -175,10 +179,4 @@ private:
     void m_drawMainMenuBar();
     void m_drawMainStatusBar();
     void m_drawAboutDialog();
-
-public:  // singleton
-    static MainFrontend* Instance() {
-        static MainFrontend _instance;
-        return &_instance;
-    };
 };

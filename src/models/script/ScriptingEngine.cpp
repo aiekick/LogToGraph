@@ -87,22 +87,22 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
 
     if (!scriptFilePathName.empty()) {
         if (ez::file::isFileExist(scriptFilePathName)) {
-            if (scriptingPtr->load(ScriptingEngine::Instance())) {
+            if (scriptingPtr->load(ScriptingEngine::ref())) {
                 Ltg::ErrorContainer errorContainer;
                 if (!scriptingPtr->compileScript(scriptFilePathName, errorContainer)) {
                     LogVarLightError("Fail to compile script \"%s\"", scriptFilePathName.c_str());
                 } else {
-                    LogEngine::Instance()->Clear();
-                    GraphView::Instance()->Clear();
-                    DataBase::Instance()->OpenDBFile(ProjectFile::Instance()->m_ProjectFilePathName);
-                    DataBase::Instance()->ClearDataTables();
+                    LogEngine::ref()->Clear();
+                    GraphView::ref()->Clear();
+                    DataBase::ref()->OpenDBFile(ProjectFile::ref()->m_ProjectFilePathName);
+                    DataBase::ref()->ClearDataTables();
                     for (const auto& sourceFilePathName : sourceFilePathNames) {
                         if (!sourceFilePathName.empty() && ez::file::isFileExist(sourceFilePathName)) {
                             const auto fileContent = ez::file::loadFileToString(sourceFilePathName);
                             if (!fileContent.empty()) {
                                 try {
-                                    source_file_id = DataBase::Instance()->AddSourceFile(sourceFilePathName);
-                                    DataBase::Instance()->BeginTransaction();
+                                    source_file_id = DataBase::ref()->AddSourceFile(sourceFilePathName);
+                                    DataBase::ref()->BeginTransaction();
                                     if (scriptingPtr->callScriptStart(errorContainer)) {
                                         const auto fileLines = ez::str::splitStringToVector(fileContent, '\n');
                                         rowCount = (int32_t)fileLines.size();
@@ -124,16 +124,16 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                                         }
                                         scriptingPtr->callScriptEnd(errorContainer);
                                     }
-                                    DataBase::Instance()->CommitTransaction();
+                                    DataBase::ref()->CommitTransaction();
                                 } catch (std::exception& e) {
                                     LogVarLightError("%s", e.what());
-                                    DataBase::Instance()->RollbackTransaction();
+                                    DataBase::ref()->RollbackTransaction();
                                 }
                             }
                         }
                     }
-                    LogEngine::Instance()->Finalize();  // retrieve datas from database
-                    DataBase::Instance()->CloseDBFile();
+                    LogEngine::ref()->Finalize();  // retrieve datas from database
+                    DataBase::ref()->CloseDBFile();
                 }
                 scriptingPtr->unload();
             }
@@ -226,7 +226,7 @@ void ScriptingEngine::AddSignalValue(const SignalCategory& vCategory,
                                      const SignalEpochTime& vDate,
                                      const SignalValue& vValue,
                                      const SignalDesc& vDesc) {
-    LogEngine::Instance()->AddSignalTick(source_file_parent, vCategory, vName, vDate, vValue, vDesc);
+    LogEngine::ref()->AddSignalTick(source_file_parent, vCategory, vName, vDate, vValue, vDesc);
 }
 
 void ScriptingEngine::AddSignalStatus(const SignalCategory& vCategory,
@@ -234,7 +234,7 @@ void ScriptingEngine::AddSignalStatus(const SignalCategory& vCategory,
                                       const SignalEpochTime& vDate,
                                       const SignalString& vString,
                                       const SignalStatus& vStatus) {
-    LogEngine::Instance()->AddSignalStatus(source_file_parent, vCategory, vName, vDate, vString, vStatus);
+    LogEngine::ref()->AddSignalStatus(source_file_parent, vCategory, vName, vDate, vString, vStatus);
 }
 
 ///////////////////////////////////////////////////////
@@ -244,12 +244,12 @@ void ScriptingEngine::AddSignalStatus(const SignalCategory& vCategory,
 void ScriptingEngine::StartWorkerThread(const bool vFirstLoad) {
     if (!StopWorkerThread()) {
         if (!vFirstLoad) {
-            LogEngine::Instance()->PrepareForSave();
+            LogEngine::ref()->PrepareForSave();
         }
-        LogEngine::Instance()->Clear();
-        GraphView::Instance()->Clear();
-        ToolPane::Instance()->Clear();
-        LogPane::Instance()->Clear();
+        LogEngine::ref()->Clear();
+        GraphView::ref()->Clear();
+        ToolPane::ref()->Clear();
+        LogPane::ref()->Clear();
         ScriptingEngine::s_working = true;
         m_WorkerThread = std::thread(  //
             &ScriptingEngine::m_run,
@@ -281,11 +281,11 @@ bool ScriptingEngine::FinishIfRequired() {
     if (IsJoinable()) {
         if (!ScriptingEngine::s_working) {
             Join();
-            LogPane::Instance()->Clear();
-            LogPaneSecondView::Instance()->Clear();
-            GraphListPane::Instance()->UpdateDB();
-            ToolPane::Instance()->UpdateTree();
-            LogEngine::Instance()->PrepareAfterLoad();
+            LogPane::ref()->Clear();
+            LogPaneSecondView::ref()->Clear();
+            GraphListPane::ref()->UpdateDB();
+            ToolPane::ref()->UpdateTree();
+            LogEngine::ref()->PrepareAfterLoad();
             return true;
         }
     }
@@ -318,7 +318,7 @@ void ScriptingEngine::addSignalTag(double vEpoch, double r, double g, double b, 
             static_cast<float>(g),
             static_cast<float>(b),
             static_cast<float>(a));
-        DataBase::Instance()->AddSignalTag(vEpoch, color, vName, vHelp);
+        DataBase::ref()->AddSignalTag(vEpoch, color, vName, vHelp);
     }
 }
 
@@ -332,7 +332,7 @@ void ScriptingEngine::addSignalStatus(const std::string& vCategory, const std::s
         }
         return;
     }
-    DataBase::Instance()->AddSignalStatus(source_file_id, vCategory, vName, vEpoch, vStatus, "");
+    DataBase::ref()->AddSignalStatus(source_file_id, vCategory, vName, vEpoch, vStatus, "");
 }
 
 void ScriptingEngine::addSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue, const std::string& vDesc) {
@@ -347,7 +347,7 @@ void ScriptingEngine::addSignalValue(const std::string& vCategory, const std::st
         }
         return;
     }
-    DataBase::Instance()->AddSignalTick(source_file_id, vCategory, vName, vEpoch, vValue, vDesc);
+    DataBase::ref()->AddSignalTick(source_file_id, vCategory, vName, vEpoch, vValue, vDesc);
 }
 
 void ScriptingEngine::addSignalStartZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vStartMsg) {
@@ -360,7 +360,7 @@ void ScriptingEngine::addSignalStartZone(const std::string& vCategory, const std
         }
         return;
     }
-    DataBase::Instance()->AddSignalStatus(source_file_id, vCategory, vName, vEpoch, vStartMsg, LogEngine::sc_START_ZONE);
+    DataBase::ref()->AddSignalStatus(source_file_id, vCategory, vName, vEpoch, vStartMsg, LogEngine::sc_START_ZONE);
 }
 
 void ScriptingEngine::addSignalEndZone(const std::string& vCategory, const std::string& vName, double vEpoch, const std::string& vEndMsg) {
@@ -373,7 +373,7 @@ void ScriptingEngine::addSignalEndZone(const std::string& vCategory, const std::
         }
         return;
     }
-    DataBase::Instance()->AddSignalStatus(source_file_id, vCategory, vName, vEpoch, vEndMsg, LogEngine::sc_END_ZONE);
+    DataBase::ref()->AddSignalStatus(source_file_id, vCategory, vName, vEpoch, vEndMsg, LogEngine::sc_END_ZONE);
 }
 
 ///////////////////////////////////////////////////////
@@ -404,10 +404,10 @@ bool ScriptingEngine::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml:
 void ScriptingEngine::m_fetchScriptingModules() {
     m_scriptingModuleCombo.clear();
     m_scriptingModuleCombo.getArrayRef().push_back("None");
-    auto modules = PluginManager::Instance()->getPluginModulesInfos();
+    auto modules = PluginManager::ref().getPluginModulesInfos();
     for (const auto& mod : modules) {
         if (mod.type == Ltg::PluginModuleType::SCRIPTING) {
-            auto ptr = std::dynamic_pointer_cast<Ltg::ScriptingModule>(PluginManager::Instance()->createPluginModule(mod.label));
+            auto ptr = std::dynamic_pointer_cast<Ltg::ScriptingModule>(PluginManager::ref().createPluginModule(mod.label));
             if (ptr != nullptr) {
                 m_scriptingModules[mod.label] = ptr;
                 m_scriptingModuleCombo.getArrayRef().push_back(mod.label);
@@ -419,7 +419,7 @@ void ScriptingEngine::m_fetchScriptingModules() {
 void ScriptingEngine::m_selectScriptingModule(const Ltg::ScriptingModuleName& vName) {
     if (m_scriptingModules.find(vName) != m_scriptingModules.end()) {
         m_SelectedScriptingModule = m_scriptingModules.at(vName);
-        ProjectFile::Instance()->SetProjectChange();
+        ProjectFile::ref()->SetProjectChange();
         m_scriptingModuleCombo.select(vName);
         m_SelectedScriptingModuleName = vName;
     }

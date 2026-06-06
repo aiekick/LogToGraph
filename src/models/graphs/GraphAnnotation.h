@@ -31,7 +31,7 @@ class GraphAnnotation {
 public:
     static GraphAnnotationPtr Create();
     // will check if mouse pos in at less than vRadius to the line from vStart to vEnd, and return true the line nearest point vOutLinePoint
-    static bool sIsMouseHoverLine(const ez::dvec2& vMousePos, const double& vRadius, const ez::dvec2& vStart, const ez::dvec2& vEnd, ez::dvec2& vOutLinePoint);
+    static bool sIsMouseHoverLine(const ez::math::dvec2& vMousePos, const double& vRadius, const ez::math::dvec2& vStart, const ez::math::dvec2& vEnd, ez::math::dvec2& vOutLinePoint);
     // will check if mouse pos is at less than vRadius to the segment from vStart to vEnd, and return true the line nearest point vOutLinePoint nad the dist to line
     // vOutDistToLine
     static bool sIsMouseHoverLine2P(const ImVec2& vMousePos,

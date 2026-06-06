@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.20)
 
 set(PROJECT LuaScripting)
 
@@ -75,8 +75,23 @@ else()
 endif()
 
 set_target_properties(${PROJECT} PROPERTIES	OUTPUT_NAME "${PROJECT}")
-target_compile_definitions(${PROJECT} PRIVATE BUILD_CTOOLS_SHARED_LIBS)	
-target_compile_definitions(${PROJECT} PRIVATE BUILD_IMGUI_PACK_SHARED_LIBS)
+## these defines mirror USE_SHARED_LIBS from the root CMake — only emit them when
+## imguipack is actually built as a DLL, otherwise IMGUI_API resolves to dllimport
+## against a static lib and ImGui::Header (and friends) end up unresolved.
+if (USE_SHARED_LIBS)
+	target_compile_definitions(${PROJECT} PRIVATE BUILD_CTOOLS_SHARED_LIBS)
+	target_compile_definitions(${PROJECT} PRIVATE BUILD_IMGUI_PACK_SHARED_LIBS)
+endif()
+
+## sol2 config — MUST be visible to every TU before the first <sol/sol.hpp>:
+## - SOL_ALL_SAFETIES_ON=1     : full runtime safety checks (arg counts, types, …)
+## - SOL_EXCEPTIONS_SAFE_PROPAGATION=0 : force sol2 to wrap C-function trampolines
+##   with try/catch instead of letting C++ exceptions reach LuaJIT EXT (which
+##   would convert them to the literal string "C++ exception" — see
+##   luajit/src/lj_errmsg.h ERRDEF(ERRCPP,...)). Required for set_exception_handler
+##   to surface real std::exception::what() messages to Lua scripts.
+target_compile_definitions(${PROJECT} PRIVATE SOL_ALL_SAFETIES_ON=1)
+target_compile_definitions(${PROJECT} PRIVATE SOL_EXCEPTIONS_SAFE_PROPAGATION=0)
 
 if(USE_DEBUG_SANITIZER)
 	target_compile_options(${PROJECT} PRIVATE $<$<CONFIG:Debug>:-fsanitize=address -static-libasan>)
@@ -112,6 +127,8 @@ target_include_directories(${PROJECT} PRIVATE
 	${LUA_JIT_INCLUDE_DIR}/src
 	${IMGUIPACK_INCLUDE_DIRS}
 	${EZLIBS_INCLUDE_DIR}
+	${GLAD_INCLUDE_DIR}                ## CustomInAppGpuProfiler.h (consumed via add_definitions) pulls glad+glfw
+	${GLFW_INCLUDE_DIR}
 	${CMAKE_SOURCE_DIR}
 	${SOL2_INCLUDE_DIR}
 )
@@ -129,12 +146,12 @@ set(LOADED_LOG_TO_GRAPH_PLUGINS ${LOADED_LOG_TO_GRAPH_PLUGINS} ${PROJECT} PARENT
 ################# BUILD INCREMENT TOOL #################
 ########################################################
 
-## only for Debug
-add_custom_command(
-	TARGET ${PROJECT} PRE_BUILD
-	COMMAND BuildInc -prefix=${PROJECT} $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/src/Headers/${PROJECT}Build.h>
-	DEPENDS ${PROJECT}
-)
+if (TARGET ezBuildInc AND $<CONFIG> STREQUAL "Debug")
+	add_custom_command(
+		TARGET ${PROJECT} PRE_BUILD
+		COMMAND ezBuildInc ${PROJECT} $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/src/headers/version.h>
+	)
+endif()
 
 ########################################################
 ########################################################

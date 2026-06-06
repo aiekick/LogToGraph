@@ -19,9 +19,15 @@ limitations under the License.
 #include <memory>
 #include <vector>
 #include <headers/DatasDef.h>
-#include <ImGuiPack.h>
+#include <imguipack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
 
 class GraphAnnotationModel {
+    DISABLE_CONSTRUCTORS(GraphAnnotationModel)
+    DISABLE_DESTRUCTORS(GraphAnnotationModel)
+    IMPLEMENT_SHARED_SINGLETON(GraphAnnotationModel)
+
 private:
     std::vector<GraphAnnotationPtr> m_GraphAnnotationModel;
 
@@ -34,16 +40,4 @@ public:
     GraphAnnotationPtr& at(const size_t& vIdx);
     void erase(GraphAnnotationPtr vGraphAnnotationPtr);
     size_t size();
-
-public:  // singleton
-    static std::shared_ptr<GraphAnnotationModel> Instance() {
-        static auto _instance = std::make_shared<GraphAnnotationModel>();
-        return _instance;
-    }
-
-public:
-    GraphAnnotationModel() = default;                                                // Prevent construction
-    GraphAnnotationModel(const GraphAnnotationModel&) = delete;                      // Prevent construction by copying
-    GraphAnnotationModel& operator=(const GraphAnnotationModel&) { return *this; };  // Prevent assignment
-    virtual ~GraphAnnotationModel() = default;                                       // Prevent unwanted destruction};
 };

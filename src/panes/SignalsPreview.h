@@ -16,7 +16,9 @@ limitations under the License.
 
 #pragma once
 
-#include <ImGuiPack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
+#include <imguipack.h>
 #include <models/log/LogEngine.h>
 #include <headers/DatasDef.h>
 #include <stdint.h>
@@ -26,14 +28,18 @@ limitations under the License.
 
 class ProjectFile;
 class SignalsPreview : public AbstractPane {
+    DISABLE_CONSTRUCTORS(SignalsPreview)
+    DISABLE_DESTRUCTORS(SignalsPreview)
+    IMPLEMENT_SHARED_SINGLETON(SignalsPreview)
+
 private:
     ImGuiListClipper m_VirtualClipper;
     std::vector<SignalTickWeak> m_PreviewTicks;
 
 public:
-    bool Init() override;
-    void Unit() override;
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
+    bool init() override;
+    void unit() override;
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
 
     void Clear();
     void SetHoveredTime(const SignalEpochTime& vHoveredTime);
@@ -42,16 +48,4 @@ private:
     void DrawTable();
     int CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize, ImVec2& vOutButtonSize);
     int DrawSignalButton(SignalTickPtr vPtr, ImVec2 vGlyphSize);
-
-public:  // singleton
-    static std::shared_ptr<SignalsPreview> Instance() {
-        static auto _instance = std::make_shared<SignalsPreview>();
-        return _instance;
-    }
-
-public:
-    SignalsPreview() = default;                                          // Prevent construction
-    SignalsPreview(const SignalsPreview&) = delete;                      // Prevent construction by copying
-    SignalsPreview& operator=(const SignalsPreview&) { return *this; };  // Prevent assignment
-    virtual ~SignalsPreview() = default;                                 // Prevent unwanted destruction};
 };

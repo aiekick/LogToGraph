@@ -26,8 +26,13 @@ limitations under the License.
 #include <functional>
 #include <headers/DatasDef.h>
 #include <apis/LtgPluginApi.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
 
 class ScriptingEngine : public Ltg::IDatasModel, public ez::xml::Config {
+    DISABLE_CONSTRUCTORS(ScriptingEngine)
+    DISABLE_DESTRUCTORS(ScriptingEngine)
+    IMPLEMENT_SHARED_SINGLETON(ScriptingEngine)
 public:
     static std::mutex s_workerThread_Mutex;
     static std::atomic<bool> s_working;
@@ -117,15 +122,4 @@ public:  // configuration
     ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;
     bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
 
-public:  // singleton
-    static std::shared_ptr<ScriptingEngine> Instance() {
-        static std::shared_ptr<ScriptingEngine> _instance = std::make_shared<ScriptingEngine>();
-        return _instance;
-    }
-
-public:
-    ScriptingEngine() = default;                                           // Prevent construction
-    ScriptingEngine(const ScriptingEngine&) = delete;                      // Prevent construction by copying
-    ScriptingEngine& operator=(const ScriptingEngine&) { return *this; };  // Prevent assignment
-    virtual ~ScriptingEngine() = default;                                  // Prevent unwanted destruction};
 };

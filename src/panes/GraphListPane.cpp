@@ -40,18 +40,18 @@ void GraphListPane::Clear() {
     m_FilteredSignalSeries.clear();
 }
 
-bool GraphListPane::Init() {
+bool GraphListPane::init()  {
     return true;
 }
 
-void GraphListPane::Unit() {}
+void GraphListPane::unit() {}
 
-bool GraphListPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool GraphListPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
+    if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -59,7 +59,7 @@ bool GraphListPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, 
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-            if (ProjectFile::Instance()->IsProjectLoaded()) {
+            if (ProjectFile::ref()->IsProjectLoaded()) {
                 if (ImGui::BeginMenuBar()) {
                     DrawMenuBar();
                     ImGui::EndMenuBar();
@@ -76,13 +76,13 @@ bool GraphListPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, 
 void GraphListPane::UpdateDB() {
     m_CategorizedSignalSeries.clear();
 
-    for (auto& item_cat : LogEngine::Instance()->GetSignalSeries()) {
+    for (auto& item_cat : LogEngine::ref()->GetSignalSeries()) {
         for (auto& item_name : item_cat.second) {
             m_CategorizedSignalSeries[item_cat.first].push_back(item_name.second);
         }
     }
 
-    PrepareLog(ProjectFile::Instance()->m_AllGraphSignalsSearchString);
+    PrepareLog(ProjectFile::ref()->m_AllGraphSignalsSearchString);
 }
 
 void GraphListPane::DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSerie) {
@@ -94,34 +94,34 @@ void GraphListPane::DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSe
             ImGui::PushID(vIdx);
             ImGui::TableSetColumnIndex(0);
             if (ImGui::Selectable(datas_ptr->category.c_str(), &datas_ptr->show, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, GRAPHS_HEIGHT))) {
-                ProjectFile::Instance()->SetProjectChange();
-                LogEngine::Instance()->ShowHideSignal(datas_ptr->category, datas_ptr->name, datas_ptr->show);
-                if (ProjectFile::Instance()->m_CollapseLogSelection) {
-                    LogPane::Instance()->PrepareLog();
+                ProjectFile::ref()->SetProjectChange();
+                LogEngine::ref()->ShowHideSignal(datas_ptr->category, datas_ptr->name, datas_ptr->show);
+                if (ProjectFile::ref()->m_CollapseLogSelection) {
+                    LogPane::ref()->PrepareLog();
                 }
-                ProjectFile::Instance()->SetProjectChange();
+                ProjectFile::ref()->SetProjectChange();
             }
 
             ImGui::TableSetColumnIndex(1);
             if (ImGui::Selectable(datas_ptr->name.c_str(), &datas_ptr->show, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, GRAPHS_HEIGHT))) {
-                ProjectFile::Instance()->SetProjectChange();
-                LogEngine::Instance()->ShowHideSignal(datas_ptr->category, datas_ptr->name, datas_ptr->show);
-                if (ProjectFile::Instance()->m_CollapseLogSelection) {
-                    LogPane::Instance()->PrepareLog();
+                ProjectFile::ref()->SetProjectChange();
+                LogEngine::ref()->ShowHideSignal(datas_ptr->category, datas_ptr->name, datas_ptr->show);
+                if (ProjectFile::ref()->m_CollapseLogSelection) {
+                    LogPane::ref()->PrepareLog();
                 }
-                ProjectFile::Instance()->SetProjectChange();
+                ProjectFile::ref()->SetProjectChange();
             }
 
             ImGui::TableSetColumnIndex(2);
             const auto& col_u32 = datas_ptr->show ? datas_ptr->color_u32 : ImPlot::GetColormapColorU32(vIdx, GRAPHS_COLOR_MAP);
             ImDrawList* draw_list = ImPlot::GetPlotDrawList();
             ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0, 0));
-            const auto& time_range = LogEngine::Instance()->GetTicksTimeSerieRange();
-            if (ImPlot::BeginPlot(datas_ptr->name.c_str(), ImVec2(-1, GRAPHS_HEIGHT), ImPlotFlags_CanvasOnly | ImPlotFlags_NoChild)) {
+            const auto& time_range = LogEngine::ref()->GetTicksTimeSerieRange();
+            if (ImPlot::BeginPlot(datas_ptr->name.c_str(), ImVec2(-1, GRAPHS_HEIGHT), ImPlotFlags_CanvasOnly | ImPlotFlags_NoFrame)) {
                 ImPlot::SetupAxes(0, 0, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
                 auto& datas_ptr_range_value = datas_ptr->range_value;
                 double y_offset = (datas_ptr_range_value.y - datas_ptr_range_value.x) * 0.1;
-                if (ez::isEqual(y_offset, 0.0)) {
+                if (ez::math::isEqual(y_offset, 0.0)) {
                     y_offset = 0.5;
                 }
 
@@ -169,8 +169,8 @@ void GraphListPane::DrawMenuBar() {
     bool change = false;
 
     if (ImGui::BeginMenu("Settings")) {
-        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInAllGraphView)) {
-            ProjectFile::Instance()->SetProjectChange();
+        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::ref()->m_ShowVariableSignalsInAllGraphView)) {
+            ProjectFile::ref()->SetProjectChange();
             change = true;
         }
 
@@ -179,11 +179,11 @@ void GraphListPane::DrawMenuBar() {
 
     ImGui::Text("%s", "Search : ");
 
-    auto& search_string = ProjectFile::Instance()->m_AllGraphSignalsSearchString;
+    auto& search_string = ProjectFile::ref()->m_AllGraphSignalsSearchString;
     snprintf(m_search_buffer, 1024, "%s", search_string.c_str());
 
     if (ImGui::ContrastedButton("R##GraphListPane_SearchDrawTree")) {
-        ProjectFile::Instance()->SetProjectChange();
+        ProjectFile::ref()->SetProjectChange();
         search_string.clear();
         m_search_buffer[0] = '\0';
         change = true;
@@ -191,7 +191,7 @@ void GraphListPane::DrawMenuBar() {
 
     ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
     if (ImGui::InputText("##GraphListPane_Search", m_search_buffer, 1024)) {
-        ProjectFile::Instance()->SetProjectChange();
+        ProjectFile::ref()->SetProjectChange();
         search_string = ez::str::toLower(m_search_buffer);
         change = true;
     }
@@ -203,7 +203,7 @@ void GraphListPane::DrawMenuBar() {
 }
 
 void GraphListPane::DrawTree() {
-    auto& search_string = ProjectFile::Instance()->m_AllGraphSignalsSearchString;
+    auto& search_string = ProjectFile::ref()->m_AllGraphSignalsSearchString;
 
     static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
         ImGuiTableFlags_NoHostExtendY | ImGuiTableFlags_Resizable;
@@ -255,7 +255,7 @@ void GraphListPane::PrepareLog(const std::string& vSearchString) {
                 if (is_their_some_search && signal_ptr->low_case_name_for_search.find(vSearchString) == std::string::npos) {
                     continue;
                 }
-                if (ProjectFile::Instance()->m_ShowVariableSignalsInAllGraphView && signal_ptr->isConstant()) {
+                if (ProjectFile::ref()->m_ShowVariableSignalsInAllGraphView && signal_ptr->isConstant()) {
                     continue;
                 }
                 m_FilteredSignalSeries.push_back(item_name);
@@ -267,20 +267,20 @@ void GraphListPane::PrepareLog(const std::string& vSearchString) {
 void GraphListPane::HideAllGraphs() {
     bool _one_at_least = false;
 
-    for (auto& item_cat : LogEngine::Instance()->GetSignalSeries()) {
+    for (auto& item_cat : LogEngine::ref()->GetSignalSeries()) {
         for (auto& item_name : item_cat.second) {
             if (item_name.second) {
                 if (item_name.second->show) {
                     _one_at_least = true;
                 }
 
-                LogEngine::Instance()->ShowHideSignal(item_name.second->category, item_name.second->name, false);
+                LogEngine::ref()->ShowHideSignal(item_name.second->category, item_name.second->name, false);
             }
         }
     }
 
     if (_one_at_least) {
-        GraphView::Instance()->Clear();
-        ProjectFile::Instance()->SetProjectChange();
+        GraphView::ref()->Clear();
+        ProjectFile::ref()->SetProjectChange();
     }
 }

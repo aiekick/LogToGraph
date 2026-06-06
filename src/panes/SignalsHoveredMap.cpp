@@ -32,18 +32,18 @@ limitations under the License.
 
 void SignalsHoveredMap::Clear() {}
 
-bool SignalsHoveredMap::Init() {
+bool SignalsHoveredMap::init()  {
     return true;
 }
 
-void SignalsHoveredMap::Unit() {}
+void SignalsHoveredMap::unit() {}
 
-bool SignalsHoveredMap::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool SignalsHoveredMap::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
+    if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -51,7 +51,7 @@ bool SignalsHoveredMap::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpen
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-            if (ProjectFile::Instance()->IsProjectLoaded()) {
+            if (ProjectFile::ref()->IsProjectLoaded()) {
                 DrawTable();
             }
         }
@@ -66,12 +66,12 @@ int SignalsHoveredMap::CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize,   /* 
 {
     float aw = ImGui::GetContentRegionAvail().x;
 
-    float width = ProjectFile::Instance()->m_SignalPreview_SizeX;
+    float width = ProjectFile::ref()->m_SignalPreview_SizeX;
 
-    int count = (int)(aw / ez::maxi(width, 1.0f));
-    width = aw / (float)ez::maxi(count, 1);
+    int count = (int)(aw / ez::math::maxi(width, 1.0f));
+    width = aw / (float)ez::math::maxi(count, 1);
 
-    ProjectFile::Instance()->m_SignalPreview_CountX = count;
+    ProjectFile::ref()->m_SignalPreview_CountX = count;
 
     if (count > 0) {
         vOutCellSize = ImVec2(width, width);
@@ -140,19 +140,19 @@ void SignalsHoveredMap::DrawTable() {
     if (ImGui::BeginMenuBar()) {
         float aw = ImGui::GetContentRegionAvail().x;
 
-        ImGui::SliderFloat("Button Width", &ProjectFile::Instance()->m_SignalPreview_SizeX, 10.0f, 100.0f);
+        ImGui::SliderFloat("Button Width", &ProjectFile::ref()->m_SignalPreview_SizeX, 10.0f, 100.0f);
 
         ImGui::EndMenuBar();
     }
 
     auto win = ImGui::GetCurrentWindowRead();
     if (win) {
-        const auto& signals_count = LogEngine::Instance()->GetPreviewTicks().size();
+        const auto& signals_count = LogEngine::ref()->GetPreviewTicks().size();
         if (signals_count) {
             ImVec2 cell_size, button_size;
             const auto& signals_max_count_x = CalcSignalsButtonCountAndSize(cell_size, button_size);
             if (signals_max_count_x) {
-                const int& rowCount = (int)ez::ceil((double)signals_count / (double)signals_max_count_x);
+                const int& rowCount = (int)ez::math::ceil((double)signals_count / (double)signals_max_count_x);
 
                 uint32_t idx = 0U;
                 m_VirtualClipper.Begin(rowCount, cell_size.y);
@@ -164,7 +164,7 @@ void SignalsHoveredMap::DrawTable() {
                         for (uint32_t i = 0; i < (uint32_t)signals_max_count_x; ++i) {
                             uint32_t tick_idx = i + j * signals_max_count_x;
                             if (tick_idx < signals_count) {
-                                auto ptr = LogEngine::Instance()->GetPreviewTicks().at(tick_idx).lock();
+                                auto ptr = LogEngine::ref()->GetPreviewTicks().at(tick_idx).lock();
                                 if (ptr) {
                                     uint32_t x = idx % signals_max_count_x;
 

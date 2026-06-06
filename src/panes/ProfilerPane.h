@@ -15,30 +15,24 @@
 
 #pragma once
 
-#include <ImGuiPack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
+#include <imguipack.h>
 #include <ImGuiFileDialog.h>
 
 #include <string>
 
 class ProjectFile;
 class ProfilerPane : public AbstractPane {
+    DISABLE_CONSTRUCTORS(ProfilerPane)
+    DISABLE_DESTRUCTORS(ProfilerPane)
+    IMPLEMENT_SHARED_SINGLETON(ProfilerPane)
+
 private:
     LayoutPaneFlag m_InOutPaneShown = -1;
 
 public:
-    bool Init() override;
-    void Unit() override;
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
-
-public:  // singleton
-    static std::shared_ptr<ProfilerPane> Instance() {
-        static auto _instance = std::make_shared<ProfilerPane>();
-        return _instance;
-    }
-
-public:
-    ProfilerPane();                                                  // Prevent construction
-    ProfilerPane(const ProfilerPane&) {};                            // Prevent construction by copying
-    ProfilerPane& operator=(const ProfilerPane&) { return *this; };  // Prevent assignment
-    virtual ~ProfilerPane();                                         // Prevent unwanted destruction};
+    bool init() override;
+    void unit() override;
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
 };

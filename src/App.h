@@ -1,20 +1,18 @@
 #pragma once
 
 #include <ezlibs/ezApp.hpp>
+#include <ezlibs/ezClass.hpp>
 
 class App : ez::App {
-public:
-    App(int vArgc, char** vArgv);
-    int run();
+    DISABLE_CONSTRUCTORS(App)
+    DISABLE_DESTRUCTORS(App)
 
 public:
-    App() = default;           // Prevent construction
-    virtual ~App() = default;  // Prevent unwanted destruction
+    App(int aArgc, char** apArgv);
+    int run();
 
 private:
     void m_InitMessaging();
-
-protected:
-    App(const App&) = default;  // Prevent construction by copying
-    App& operator=(const App&) { return *this; };  // Prevent assignment
+    void m_InitSingletons();
+    void m_UnitSingletons();
 };

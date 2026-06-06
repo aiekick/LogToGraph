@@ -5,7 +5,8 @@
 -- getRowIndex()						     -- return the row number of the file
 -- getRowCount()							 -- return the number of rows of the file
 
--- stringToEpoch(string epoch, double hour_offset)
+
+-- stringToEpoch(string epoch, double hour_offset) -- epoch_sring must be in format '%Y-%m-%d %H:%M:%S'
 -- epochToString(Epoch epoch_time, double hour_offset)
 
 -- add a signal tag with date, color a name. the help will be displayed when mouse over the tag
@@ -17,14 +18,13 @@
 -- addSignalEndZone(string signal_category, string signal_name, Epoch signal_epoch_time, string signal_string)
 
 function startFile()
-	--RecursPrint(ltg)
 	ltg:logInfo(" --- Start of file parsing ---");
 end
 
 function parse(buffer)
 	_section, _time, _name, _value = string.match(buffer, "<profiler section=\"(.*)\" epoch_time=\"(.*)\" name=\"(.*)\" render_time_ms=\"(.*)\">")
 	if _section ~= nil and _time ~= nil and _name ~= nil and _value ~= nil then
-		ltg:addSignalValue(_section, _name, ltg:stringToEpoch(_time, 0), tonumber(_value))
+		ltg:addSignalValue(_section, _name, tonumber(_time), tonumber(_value))
 	end
 end
 

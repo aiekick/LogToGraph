@@ -136,8 +136,9 @@ std::string DataBase::GetSettingsXMLDatas() {
     // select at line 0
     auto select_query = u8R"(select * from app_settings where rowid = 1;)";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(m_SqliteDB, select_query, (int)strlen(select_query), &stmt, nullptr) != SQLITE_OK) {
-        LogVarError("%s", "Fail to get xml_datas from app_settings table of database");
+    int res_prep = sqlite3_prepare_v2(m_SqliteDB, select_query, (int)strlen(select_query), &stmt, nullptr);
+    if (res_prep != SQLITE_OK) {
+        LogVarError("sqlite3_prepare_v2 failed (code %d): %s", res_prep, sqlite3_errmsg(m_SqliteDB));
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             auto len = sqlite3_column_bytes(stmt, 0);
@@ -249,8 +250,9 @@ DBRowID DataBase::GetSourceFile(const SourceFileName& vSourceFile) {
 
     auto select_query = ez::str::toStr(u8R"(select rowid from signal_sources where signal_sources.source = "%s";)", vSourceFile.c_str());
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr) != SQLITE_OK) {
-        LogVarError("%s", "Fail to get id from signal_sources in database");
+    int res_prep = sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr);
+    if (res_prep != SQLITE_OK) {
+        LogVarError("sqlite3_prepare_v2 failed (code %d): %s", res_prep, sqlite3_errmsg(m_SqliteDB));
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             res = (DBRowID)sqlite3_column_int(stmt, 0);
@@ -267,8 +269,9 @@ DBRowID DataBase::GetSignalCategory(const SignalCategory& vSignalCategory) {
 
     auto select_query = ez::str::toStr(u8R"(select rowid from signal_categories where signal_categories.category = "%s";)", vSignalCategory.c_str());
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr) != SQLITE_OK) {
-        LogVarError("%s", "Fail to get id from signal_categories in database");
+    int res_prep = sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr);
+    if (res_prep != SQLITE_OK) {
+        LogVarError("sqlite3_prepare_v2 failed (code %d): %s", res_prep, sqlite3_errmsg(m_SqliteDB));
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             res = (DBRowID)sqlite3_column_int(stmt, 0);
@@ -285,8 +288,9 @@ DBRowID DataBase::GetSignalName(const SignalName& vSignalName) {
 
     auto select_query = ez::str::toStr(u8R"(select rowid from signal_names where signal_names.name = "%s";)", vSignalName.c_str());
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr) != SQLITE_OK) {
-        LogVarError("%s", "Fail to get id from signal_names in database");
+    int res_prep = sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr);
+    if (res_prep != SQLITE_OK) {
+        LogVarError("sqlite3_prepare_v2 failed (code %d): %s", res_prep, sqlite3_errmsg(m_SqliteDB));
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             res = (DBRowID)sqlite3_column_int(stmt, 0);
@@ -332,12 +336,11 @@ ORDER BY
     sqlite3_stmt* stmt = nullptr;
     int res = sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr);
     if (res != SQLITE_OK) {
-        LogVarError("%s", "Fail to get id from signal_names in database");
+        LogVarError("sqlite3_prepare_v2 failed (code %d): %s", res, sqlite3_errmsg(m_SqliteDB));
     } else {
-        while (res == SQLITE_OK || res == SQLITE_ROW) {
-            // on r�cup�re une ligne dans la table
+        while (true) {
             res = sqlite3_step(stmt);
-            if (res == SQLITE_OK || res == SQLITE_ROW) {
+            if (res == SQLITE_ROW) {
                 /*
                     signal_sources.rowid	int
                     signal_sources.source	string
@@ -350,6 +353,11 @@ ORDER BY
 
                 // call callback with datas passed in args
                 vCallback(source_file_id, source_file_path_name_string);
+            } else if (res == SQLITE_DONE) {
+                break;
+            } else {
+                LogVarError("sqlite3_step failed (code %d): %s", res, sqlite3_errmsg(m_SqliteDB));
+                break;
             }
         }
     }
@@ -391,12 +399,12 @@ order by
     sqlite3_stmt* stmt = nullptr;
     int res = sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr);
     if (res != SQLITE_OK) {
-        LogVarError("%s", "Fail to get id from signal_names in database");
+        // surface the actual sqlite diagnostic instead of a hard-coded fallback string
+        LogVarError("sqlite3_prepare_v2 failed (code %d): %s", res, sqlite3_errmsg(m_SqliteDB));
     } else {
-        while (res == SQLITE_OK || res == SQLITE_ROW) {
-            // on r�cup�re une ligne dans la table
+        while (true) {
             res = sqlite3_step(stmt);
-            if (res == SQLITE_OK || res == SQLITE_ROW) {
+            if (res == SQLITE_ROW) {
                 /*
                   signal_sources.rowid		    uint
                   signal_ticks.epoch_time		double
@@ -434,6 +442,13 @@ order by
 
                 // call callback with datas passed in args
                 vCallback(source_file_id, epoch_time, category_string, name_string, signal_value, signal_string, signal_status, signal_desc);
+            } else if (res == SQLITE_DONE) {
+                // end of result set — normal termination
+                break;
+            } else {
+                // any other code is a real failure during iteration
+                LogVarError("sqlite3_step failed (code %d): %s", res, sqlite3_errmsg(m_SqliteDB));
+                break;
             }
         }
     }
@@ -459,12 +474,11 @@ FROM
     sqlite3_stmt* stmt = nullptr;
     int res = sqlite3_prepare_v2(m_SqliteDB, select_query.c_str(), (int)select_query.size(), &stmt, nullptr);
     if (res != SQLITE_OK) {
-        LogVarError("%s", "Fail to get id from signal_tags in database");
+        LogVarError("sqlite3_prepare_v2 failed (code %d): %s", res, sqlite3_errmsg(m_SqliteDB));
     } else {
-        while (res == SQLITE_OK || res == SQLITE_ROW) {
-            // on r�cup�re une ligne dans la table
+        while (true) {
             res = sqlite3_step(stmt);
-            if (res == SQLITE_OK || res == SQLITE_ROW) {
+            if (res == SQLITE_ROW) {
                 /*
                   signal_tags.epoch_time        double
                   signal_tags.tag_color         string
@@ -492,6 +506,11 @@ FROM
 
                 // call callback with datas passed in args
                 vCallback(epoch_time, tag_color, tag_name_string, tag_help_string);
+            } else if (res == SQLITE_DONE) {
+                break;
+            } else {
+                LogVarError("sqlite3_step failed (code %d): %s", res, sqlite3_errmsg(m_SqliteDB));
+                break;
             }
         }
     }
@@ -505,8 +524,11 @@ FROM
 
 bool DataBase::OpenDB() {
     if (!m_SqliteDB) {
-        if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE, nullptr) != SQLITE_OK)  // db possibily not exist
-        {
+        int rc = sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE, nullptr);
+        if (rc != SQLITE_OK) {
+            // db possibily not exist — log the underlying error before trying to create the schema
+            // (sqlite3_errmsg on a non-NULL handle is safe even right after a failed open_v2)
+            LogVarError("sqlite3_open_v2 failed (code %d): %s", rc, m_SqliteDB ? sqlite3_errmsg(m_SqliteDB) : "no handle");
             CreateDBTables();
         }
     }
@@ -520,10 +542,12 @@ bool DataBase::CreateDB() {
     if (!m_SqliteDB) {
         ez::file::destroyFile(m_DataBaseFilePathName);
 
-        if (sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK)  // db possibily not exist
-        {
+        int rc = sqlite3_open_v2(m_DataBaseFilePathName.c_str(), &m_SqliteDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+        if (rc == SQLITE_OK) {
             CreateDBTables();
             CloseDB();
+        } else {
+            LogVarError("sqlite3_open_v2 failed (code %d): %s", rc, m_SqliteDB ? sqlite3_errmsg(m_SqliteDB) : "no handle");
         }
     }
 

@@ -35,18 +35,18 @@ limitations under the License.
 //// OVERRIDES ////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-bool LogPane::Init() {
+bool LogPane::init() {
     return true;
 }
 
-void LogPane::Unit() {}
+void LogPane::unit() {}
 
-bool LogPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool LogPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
+    if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -54,7 +54,7 @@ bool LogPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiC
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-            if (ProjectFile::Instance()->IsProjectLoaded()) {
+            if (ProjectFile::ref()->IsProjectLoaded()) {
                 if (ImGui::BeginMenuBar()) {
                     DrawMenuBar();
                     ImGui::EndMenuBar();
@@ -74,31 +74,31 @@ void LogPane::Clear() {
 
 void LogPane::CheckItem(SignalTickPtr vSignalTick) {
     if (vSignalTick && ImGui::IsItemHovered()) {
-        LogEngine::Instance()->SetHoveredTime(vSignalTick->time_epoch);
+        LogEngine::ref()->SetHoveredTime(vSignalTick->time_epoch);
 
         if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-            LogEngine::Instance()->ShowHideSignal(vSignalTick->category, vSignalTick->name);
-            ProjectFile::Instance()->SetProjectChange();
-            ToolPane::Instance()->UpdateTree();
-            GraphListPane::Instance()->UpdateDB();
+            LogEngine::ref()->ShowHideSignal(vSignalTick->category, vSignalTick->name);
+            ProjectFile::ref()->SetProjectChange();
+            ToolPane::ref()->UpdateTree();
+            GraphListPane::ref()->UpdateDB();
 
             m_need_re_preparation = true;
         }
 
         // first mark
         if (ImGui::IsKeyPressed(ImGuiKey_F)) {
-            LogEngine::Instance()->SetFirstDiffMark(vSignalTick->time_epoch);
+            LogEngine::ref()->SetFirstDiffMark(vSignalTick->time_epoch);
         }
 
         // second mark
         if (ImGui::IsKeyPressed(ImGuiKey_S)) {
-            LogEngine::Instance()->SetSecondDiffMark(vSignalTick->time_epoch);
+            LogEngine::ref()->SetSecondDiffMark(vSignalTick->time_epoch);
         }
 
         // second mark
         if (ImGui::IsKeyPressed(ImGuiKey_R)) {
-            LogEngine::Instance()->SetFirstDiffMark(0.0);
-            LogEngine::Instance()->SetSecondDiffMark(0.0);
+            LogEngine::ref()->SetFirstDiffMark(0.0);
+            LogEngine::ref()->SetSecondDiffMark(0.0);
         }
     }
 }
@@ -106,24 +106,24 @@ void LogPane::CheckItem(SignalTickPtr vSignalTick) {
 void LogPane::DrawMenuBar() {
     bool need_update = false;
     if (ImGui::BeginMenu("Settings")) {
-        if (ImGui::MenuItem("Collapse Selection", nullptr, &ProjectFile::Instance()->m_CollapseLogSelection)) {
+        if (ImGui::MenuItem("Collapse Selection", nullptr, &ProjectFile::ref()->m_CollapseLogSelection)) {
             need_update = true;
         }
-        if (ImGui::MenuItem("Auto resize columns", nullptr, &ProjectFile::Instance()->m_AutoResizeLogColumns)) {
+        if (ImGui::MenuItem("Auto resize columns", nullptr, &ProjectFile::ref()->m_AutoResizeLogColumns)) {
             need_update = true;
         }
-        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInLogView)) {
-            LogEngine::Instance()->SetHoveredTime(LogEngine::Instance()->GetHoveredTime());
+        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::ref()->m_ShowVariableSignalsInLogView)) {
+            LogEngine::ref()->SetHoveredTime(LogEngine::ref()->GetHoveredTime());
             need_update = true;
         }
-        if (ImGui::MenuItem("Hide some values", nullptr, &ProjectFile::Instance()->m_HideSomeLogValues)) {
+        if (ImGui::MenuItem("Hide some values", nullptr, &ProjectFile::ref()->m_HideSomeLogValues)) {
             need_update = true;
         }
         ImGui::EndMenu();
     }
 
-    if (LogEngine::Instance()->isSomeSelection()) {
-        if (!ProjectFile::Instance()->m_CollapseLogSelection) {
+    if (LogEngine::ref()->isSomeSelection()) {
+        if (!ProjectFile::ref()->m_CollapseLogSelection) {
             if (m_LogListClipper.DisplayStart > 0) {
                 if (ImGui::MenuItem(ICON_FONT_ARROW_UP_THICK)) {
                     m_backSelectionNeeded = true;
@@ -137,28 +137,28 @@ void LogPane::DrawMenuBar() {
         }
     }
 
-    if (ProjectFile::Instance()->m_HideSomeLogValues) {
+    if (ProjectFile::ref()->m_HideSomeLogValues) {
         ImGui::Text("(?)");
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("%s", "you can define many values, ex : 1,2,3.2,5.8");
         }
 
         if (ImGui::ContrastedButton("R##ResetLogPaneTable")) {
-            ProjectFile::Instance()->m_LogValuesToHide.clear();
+            ProjectFile::ref()->m_LogValuesToHide.clear();
             need_update = true;
         }
 
         static char _values_hide_buffer[1024 + 1] = "";
-        snprintf(_values_hide_buffer, 1024, "%s", ProjectFile::Instance()->m_LogValuesToHide.c_str());
+        snprintf(_values_hide_buffer, 1024, "%s", ProjectFile::ref()->m_LogValuesToHide.c_str());
         if (ImGui::InputText("##Valuestohide", _values_hide_buffer, 1024)) {
             need_update = true;
-            ProjectFile::Instance()->m_LogValuesToHide = _values_hide_buffer;
+            ProjectFile::ref()->m_LogValuesToHide = _values_hide_buffer;
         }
     }
 
     if (need_update) {
         PrepareLog();
-        ProjectFile::Instance()->SetProjectChange();
+        ProjectFile::ref()->SetProjectChange();
     }
 }
 
@@ -167,7 +167,7 @@ void LogPane::goOnNextSelection() {
     for (int32_t idx = m_LogListClipper.DisplayStart + 1; idx < max_idx; ++idx) {
         const auto infos_ptr = m_LogDatas.at(idx).lock();
         if (infos_ptr) {
-            if (LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name)) {
+            if (LogEngine::ref()->isSignalShown(infos_ptr->category, infos_ptr->name)) {
                 ImGui::SetScrollY(ImGui::GetScrollY() + ImGui::GetTextLineHeightWithSpacing() * (idx - m_LogListClipper.DisplayStart));
                 break;
             }
@@ -180,7 +180,7 @@ void LogPane::goOnBackSelection() {
     for (int32_t idx = m_LogListClipper.DisplayStart - 1; idx >= 0; --idx) {
         const auto infos_ptr = m_LogDatas.at(idx).lock();
         if (infos_ptr) {
-            if (LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name)) {
+            if (LogEngine::ref()->isSignalShown(infos_ptr->category, infos_ptr->name)) {
                 ImGui::SetScrollY(ImGui::GetScrollY() + ImGui::GetTextLineHeightWithSpacing() * (idx - m_LogListClipper.DisplayStart));
                 break;
             }
@@ -191,7 +191,7 @@ void LogPane::goOnBackSelection() {
 void LogPane::DrawTable() {
     ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_NoHostExtendY;
 
-    if (!ProjectFile::Instance()->m_AutoResizeLogColumns) {
+    if (!ProjectFile::ref()->m_AutoResizeLogColumns) {
         flags |= ImGuiTableFlags_Resizable;
     }
 
@@ -236,7 +236,7 @@ void LogPane::DrawTable() {
                 if (infos_ptr) {
                     ImGui::TableNextRow();
 
-                    selected = LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name, &color);
+                    selected = LogEngine::ref()->isSignalShown(infos_ptr->category, infos_ptr->name, &color);
                     if (selected && color) {
                         ImGui::PushStyleColor(ImGuiCol_Header, (ImU32)color);
                         ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
@@ -313,42 +313,42 @@ void LogPane::DrawTable() {
 }
 
 void LogPane::PrepareLog() {
-    if (ScriptingEngine::Instance()->IsJoinable())
+    if (ScriptingEngine::ref()->IsJoinable())
         return;
 
     m_LogDatas.clear();
 
-    if (ProjectFile::Instance()->m_HideSomeLogValues) {
+    if (ProjectFile::ref()->m_HideSomeLogValues) {
         m_ValuesToHide.clear();
-        auto arr = ez::str::splitStringToVector(ProjectFile::Instance()->m_LogValuesToHide, ",");
+        auto arr = ez::str::splitStringToVector(ProjectFile::ref()->m_LogValuesToHide, ",");
         for (const auto& a : arr) {
             m_ValuesToHide.push_back(ez::dvariant(a).GetD());
         }
     }
 
-    const auto _count_logs = LogEngine::Instance()->GetSignalTicks().size();
-    const auto _collapseSelection = ProjectFile::Instance()->m_CollapseLogSelection;
+    const auto _count_logs = LogEngine::ref()->GetSignalTicks().size();
+    const auto _collapseSelection = ProjectFile::ref()->m_CollapseLogSelection;
 
     for (size_t idx = 0U; idx < _count_logs; ++idx) {
-        const auto& infos_ptr = LogEngine::Instance()->GetSignalTicks().at(idx);
+        const auto& infos_ptr = LogEngine::ref()->GetSignalTicks().at(idx);
         if (infos_ptr) {
             auto parent_ptr = infos_ptr->parent.lock();
             if (parent_ptr != nullptr) {
-                if (ProjectFile::Instance()->m_ShowVariableSignalsInLogView && parent_ptr->isConstant()) {
+                if (ProjectFile::ref()->m_ShowVariableSignalsInLogView && parent_ptr->isConstant()) {
                     continue;
                 }
             }
 
-            auto selected = LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name);
+            auto selected = LogEngine::ref()->isSignalShown(infos_ptr->category, infos_ptr->name);
             if (_collapseSelection && !selected) {
                 continue;
             }
 
-            if (ProjectFile::Instance()->m_HideSomeLogValues) {
+            if (ProjectFile::ref()->m_HideSomeLogValues) {
                 bool found = false;
 
                 for (const auto& a : m_ValuesToHide) {
-                    if (ez::isEqual(a, infos_ptr->value)) {
+                    if (ez::math::isEqual(a, infos_ptr->value)) {
                         found = true;
                         break;
                     }

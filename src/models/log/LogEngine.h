@@ -24,6 +24,8 @@ limitations under the License.
 #include <stdint.h>
 #include <unordered_map>
 #include <headers/DatasDef.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
 
 struct SignalSetting {
@@ -33,6 +35,10 @@ struct SignalSetting {
 };
 
 class LogEngine : public ez::xml::Config {
+    DISABLE_CONSTRUCTORS(LogEngine)
+    DISABLE_DESTRUCTORS(LogEngine)
+    IMPLEMENT_SHARED_SINGLETON(LogEngine)
+
 private:
     // for searching, so no need the category
     typedef std::map<SignalName, SignalSerieWeak> OrderedCategoryLessSignalDatasContainer;
@@ -129,15 +135,4 @@ public:
     void ComputeDiffResult();
     SignalDiffWeakContainerRef GetDiffResultTicks();
 
-public:  // singleton
-    static std::shared_ptr<LogEngine> Instance() {
-        static auto _instance = std::make_shared<LogEngine>();
-        return _instance;
-    }
-
-public:
-    LogEngine() = default;                                     // Prevent construction
-    LogEngine(const LogEngine&) = delete;                      // Prevent construction by copying
-    LogEngine& operator=(const LogEngine&) { return *this; };  // Prevent assignment
-    virtual ~LogEngine() = default;                            // Prevent unwanted destruction};
 };

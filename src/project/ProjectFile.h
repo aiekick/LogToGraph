@@ -20,8 +20,10 @@
 #include <unordered_map>
 #include <headers/DatasDef.h>
 #include <apis/LtgPluginApi.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
-#include <ezlibs/ezVec4.hpp>
+#include <ezlibs/ezMath/ezVec4.hpp>
 
 struct GraphColor {
     ImVec4 graphBarColor = ImVec4(0.2f, 0.5f, 0.8f, 0.5f);
@@ -33,6 +35,8 @@ struct GraphColor {
 };
 
 class ProjectFile : public Ltg::IProject, public ez::xml::Config {
+    IMPLEMENT_SHARED_SINGLETON(ProjectFile)
+
 public:  // to save
     GraphColor m_GraphColors;
     bool m_CollapseLogSelection = false;
@@ -115,10 +119,4 @@ public:
 public:
     ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") override;
     bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) override;
-
-public:  // singleton
-    static std::shared_ptr<ProjectFile> Instance() {
-        static auto _instancePtr = std::make_shared<ProjectFile>();
-        return _instancePtr;
-    }
 };

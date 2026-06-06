@@ -34,18 +34,18 @@ limitations under the License.
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-bool SignalsPreview::Init() {
+bool SignalsPreview::init()  {
     return true;
 }
 
-void SignalsPreview::Unit() {}
+void SignalsPreview::unit() {}
 
-bool SignalsPreview::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool SignalsPreview::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
+    if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -53,7 +53,7 @@ bool SignalsPreview::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened,
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-            if (ProjectFile::Instance()->IsProjectLoaded()) {
+            if (ProjectFile::ref()->IsProjectLoaded()) {
                 DrawTable();
             }
         }
@@ -68,7 +68,7 @@ void SignalsPreview::Clear() {
 }
 
 void SignalsPreview::SetHoveredTime(const SignalEpochTime& vHoveredTime) {
-    size_t count_signals = LogEngine::Instance()->GetSignalsCount();
+    size_t count_signals = LogEngine::ref()->GetSignalsCount();
 
     if (m_PreviewTicks.empty()) {
         m_PreviewTicks.resize(count_signals);
@@ -76,8 +76,8 @@ void SignalsPreview::SetHoveredTime(const SignalEpochTime& vHoveredTime) {
 
     size_t idx = 0U;
     size_t visible_idx = 0U;
-    size_t visible_count = LogEngine::Instance()->GetVisibleCount();
-    for (auto& item_cat : LogEngine::Instance()->GetSignalSeries()) {
+    size_t visible_count = LogEngine::ref()->GetVisibleCount();
+    for (auto& item_cat : LogEngine::ref()->GetSignalSeries()) {
         for (auto& item_name : item_cat.second) {
             if (item_name.second) {
                 SignalTickPtr last_ptr = nullptr;
@@ -86,7 +86,7 @@ void SignalsPreview::SetHoveredTime(const SignalEpochTime& vHoveredTime) {
                     if (last_ptr && vHoveredTime >= last_ptr->time_epoch && ptr && vHoveredTime <= ptr->time_epoch) {
                         if (idx < count_signals) {
                             m_PreviewTicks[idx] = last_ptr;
-                            if (ProjectFile::Instance()->m_AutoColorize) {
+                            if (ProjectFile::ref()->m_AutoColorize) {
                                 auto parent_ptr = last_ptr->parent.lock();
                                 if (parent_ptr && parent_ptr->show) {
                                     parent_ptr->color_u32 = ImGui::GetColorU32(ez::getRainBowColor((int32_t)visible_idx, (int32_t)visible_count));
@@ -115,13 +115,13 @@ int SignalsPreview::CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize,   /* cel
 {
     float aw = ImGui::GetContentRegionAvail().x;
 
-    int count = ProjectFile::Instance()->m_SignalPreview_CountX;
-    float width = ProjectFile::Instance()->m_SignalPreview_SizeX;
+    int count = ProjectFile::ref()->m_SignalPreview_CountX;
+    float width = ProjectFile::ref()->m_SignalPreview_SizeX;
 
-    count = (int)(aw / ez::maxi(width, 1.0f));
-    width = aw / (float)ez::maxi(count, 1);
+    count = (int)(aw / ez::math::maxi(width, 1.0f));
+    width = aw / (float)ez::math::maxi(count, 1);
 
-    ProjectFile::Instance()->m_SignalPreview_CountX = count;
+    ProjectFile::ref()->m_SignalPreview_CountX = count;
 
     if (count > 0) {
         vOutCellSize = ImVec2(width, width);
@@ -190,8 +190,8 @@ void SignalsPreview::DrawTable() {
     if (ImGui::BeginMenuBar()) {
         float aw = ImGui::GetContentRegionAvail().x;
 
-        // ImGui::SliderUIntDefaultCompact(aw, "Count buttons x", &ProjectFile::Instance()->m_SignalPreview_CountX, 1U, 1000U, 20U);
-        ImGui::SliderFloat("Button Width", &ProjectFile::Instance()->m_SignalPreview_SizeX, 10.0f, 100.0f);
+        // ImGui::SliderUIntDefaultCompact(aw, "Count buttons x", &ProjectFile::ref()->m_SignalPreview_CountX, 1U, 1000U, 20U);
+        ImGui::SliderFloat("Button Width", &ProjectFile::ref()->m_SignalPreview_SizeX, 10.0f, 100.0f);
 
         ImGui::EndMenuBar();
     }
@@ -203,7 +203,7 @@ void SignalsPreview::DrawTable() {
             ImVec2 cell_size, button_size;
             const auto& signals_max_count_x = CalcSignalsButtonCountAndSize(cell_size, button_size);
             if (signals_max_count_x) {
-                const int& rowCount = (int)ez::ceil((double)signals_count / (double)signals_max_count_x);
+                const int& rowCount = (int)ez::math::ceil((double)signals_count / (double)signals_max_count_x);
 
                 uint32_t idx = 0U;
                 m_VirtualClipper.Begin(rowCount, cell_size.y);
