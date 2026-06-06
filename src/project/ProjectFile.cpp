@@ -34,6 +34,7 @@
 #include <panes/debug/StackTreePane.h>
 #include <panes/debug/ScopePane.h>
 #include <panes/debug/CalltracePane.h>
+#include <panes/debug/WatcherPane.h>
 #include <models/script/ScriptingEngine.h>
 #include <models/debug/ScriptDebugger.h>
 
@@ -91,6 +92,7 @@ void ProjectFile::ClearDatas() {
     StackTreePane::ref()->Clear();
     ScopePane::ref()->Clear();
     CalltracePane::ref()->Clear();
+    WatcherPane::ref()->Clear();
     // per-project settings (forwarded to every registered ISettings; default no-op for APP-only impls)
     SettingsDialog::ref().clearProjectSettings();
 }

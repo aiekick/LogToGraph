@@ -33,6 +33,20 @@ bool CodeEditor::init() {
         }
         ImGui::EndDisabled();
     });
+    // right-click on the text area → menu with "Watch <token>" when the click lands on an identifier.
+    m_Editor.SetTextContextMenuCallback([this](int aLine, int aColumn) {
+        if (!m_OnTokenContext) {
+            return;
+        }
+        const std::string token = m_ExtractTokenAt(aLine, aColumn);
+        if (token.empty()) {
+            return;
+        }
+        const std::string label = std::string("Watch \"") + token + "\"";
+        if (ImGui::MenuItem(label.c_str())) {
+            m_OnTokenContext(token);
+        }
+    });
     // a narrow gutter decorator: a red dot marks a breakpoint, double-click toggles it
     m_Editor.SetLineDecorator(16.0f, [this](TextEditor::Decorator& aDecorator) {
         const int32_t line0 = aDecorator.line;  // zero-based
@@ -270,6 +284,62 @@ void CodeEditor::SetSaveCallback(std::function<void()> aCallback) {
 
 void CodeEditor::SetBreakpointToggledCallback(std::function<void(int32_t, bool)> aCallback) {
     m_OnBreakpointToggled = aCallback;
+}
+
+void CodeEditor::SetTokenContextCallback(std::function<void(const std::string&)> aCallback) {
+    m_OnTokenContext = aCallback;
+}
+
+std::string CodeEditor::m_ExtractTokenAt(int aLine, int aColumn) {
+    // Extract the identifier under (aLine, aColumn) from GetText(). The widget does not expose a
+    // "word at position" helper, so we re-scan the source text. Cheap: only fires on right-click.
+    if (aLine < 0 || aColumn < 0) {
+        return std::string();
+    }
+    const std::string fullText = m_Editor.GetText();
+    // find the byte offset where line `aLine` starts (0-based)
+    size_t lineStart = 0;
+    int currentLine = 0;
+    while (currentLine < aLine && lineStart < fullText.size()) {
+        if (fullText[lineStart] == '\n') {
+            ++currentLine;
+        }
+        ++lineStart;
+    }
+    if (currentLine < aLine || lineStart >= fullText.size()) {
+        return std::string();
+    }
+    size_t lineEnd = lineStart;
+    while (lineEnd < fullText.size() && fullText[lineEnd] != '\n') {
+        ++lineEnd;
+    }
+    const size_t clickPos = lineStart + static_cast<size_t>(aColumn);
+    if (clickPos >= lineEnd) {
+        return std::string();
+    }
+    auto isIdentChar = [](char aChar) {
+        return (aChar >= 'A' && aChar <= 'Z') || (aChar >= 'a' && aChar <= 'z') || (aChar >= '0' && aChar <= '9') || aChar == '_';
+    };
+    if (!isIdentChar(fullText[clickPos])) {
+        return std::string();
+    }
+    size_t leftBound = clickPos;
+    while (leftBound > lineStart && isIdentChar(fullText[leftBound - 1])) {
+        --leftBound;
+    }
+    size_t rightBound = clickPos;
+    while (rightBound < lineEnd && isIdentChar(fullText[rightBound])) {
+        ++rightBound;
+    }
+    if (rightBound <= leftBound) {
+        return std::string();
+    }
+    // reject pure number literals (identifier rule: must not start with a digit)
+    const char firstChar = fullText[leftBound];
+    if (firstChar >= '0' && firstChar <= '9') {
+        return std::string();
+    }
+    return fullText.substr(leftBound, rightBound - leftBound);
 }
 
 void CodeEditor::SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines, int64_t aRevision) {

@@ -402,9 +402,15 @@ void Module::m_onHook(lua_State* apLua, lua_Debug* apDebug) {
     }
     Ltg::DebugState state = m_buildState(apLua, apDebug);
     Ltg::DebugAction action = m_debugHostPtr->onPause(state);  // BLOCKS until the first action
-    while (action.kind == Ltg::DebugAction::Kind::Expand) {
-        const std::vector<Ltg::DebugVar> children = m_expandRef(apLua, action.expandRef);
-        m_debugHostPtr->publishExpansion(action.expandRef, children);
+    // drain expand/eval requests until the host hands back a control command (Continue/Step/Stop).
+    while (action.kind == Ltg::DebugAction::Kind::Expand || action.kind == Ltg::DebugAction::Kind::Eval) {
+        if (action.kind == Ltg::DebugAction::Kind::Expand) {
+            const std::vector<Ltg::DebugVar> children = m_expandRef(apLua, action.expandRef);
+            m_debugHostPtr->publishExpansion(action.expandRef, children);
+        } else {  // Eval — watch expression evaluated in the innermost frame's scope
+            const Ltg::EvalResult result = m_evalExpression(apLua, apDebug, action.evalExpression);
+            m_debugHostPtr->publishEvalResult(action.evalId, result);
+        }
         action = m_debugHostPtr->waitAction();  // BLOCKS until the next action
     }
     m_releaseDebugRefs(apLua);
@@ -528,6 +534,80 @@ std::vector<Ltg::DebugVar> Module::m_expandRef(lua_State* apLua, int32_t aRef) {
     }
     lua_pop(apLua, 1);  // pop the referenced value
     return children;
+}
+
+Ltg::EvalResult Module::m_evalExpression(lua_State* apLua, lua_Debug* apDebug, const std::string& aExpression) {
+    // evaluate `aExpression` in the innermost paused frame's scope. compile as `return <expr>` so
+    // any Lua expression (identifier, indexing, even a call) yields a single value; then build a
+    // sandboxed environment table (globals as fallback via __index, then overlay upvalues, then
+    // locals — locals win for shadowing) and setfenv the chunk before pcall'ing it.
+    Ltg::EvalResult result;
+    const int32_t topBefore = lua_gettop(apLua);
+
+    const std::string chunk = "return " + aExpression;
+    if (luaL_loadbuffer(apLua, chunk.c_str(), chunk.size(), "watch") != 0) {
+        const char* err = lua_tostring(apLua, -1);
+        result.error = err != nullptr ? err : "compile error";
+        lua_settop(apLua, topBefore);
+        return result;
+    }
+    const int32_t functionIndex = lua_gettop(apLua);
+
+    // env table with _G as the fallback chain (via __index in a metatable)
+    lua_newtable(apLua);
+    const int32_t envIndex = lua_gettop(apLua);
+    lua_newtable(apLua);                          // metatable
+    lua_pushvalue(apLua, LUA_GLOBALSINDEX);       // push _G
+    lua_setfield(apLua, -2, "__index");           // metatable.__index = _G
+    lua_setmetatable(apLua, envIndex);            // setmetatable(env, metatable) — consumes metatable
+
+    // overlay upvalues of the paused function
+    lua_getinfo(apLua, "f", apDebug);             // push the current frame's function
+    const int32_t pausedFunctionIndex = lua_gettop(apLua);
+    int32_t upvalueIndex = 1;
+    while (true) {
+        const char* upvalueName = lua_getupvalue(apLua, pausedFunctionIndex, upvalueIndex);
+        if (upvalueName == nullptr) {
+            break;
+        }
+        if (upvalueName[0] != '\0') {
+            lua_setfield(apLua, envIndex, upvalueName);  // env[name] = value (consumes value)
+        } else {
+            lua_pop(apLua, 1);
+        }
+        ++upvalueIndex;
+    }
+    lua_pop(apLua, 1);  // pop the paused function
+
+    // overlay locals (last → win against upvalues / globals)
+    int32_t localIndex = 1;
+    while (true) {
+        const char* localName = lua_getlocal(apLua, apDebug, localIndex);
+        if (localName == nullptr) {
+            break;
+        }
+        if (localName[0] != '(' && localName[0] != '\0') {  // skip internal slots like "(*temporary)"
+            lua_setfield(apLua, envIndex, localName);
+        } else {
+            lua_pop(apLua, 1);
+        }
+        ++localIndex;
+    }
+
+    // set the function's environment to env (consumes env from the stack top), then call
+    lua_setfenv(apLua, functionIndex);
+    if (lua_pcall(apLua, 0, 1, 0) != 0) {
+        const char* err = lua_tostring(apLua, -1);
+        result.error = err != nullptr ? err : "runtime error";
+        lua_settop(apLua, topBefore);
+        return result;
+    }
+
+    // success: the single return is at top of the stack
+    result.value = luaValueToString(apLua, -1);
+    result.typeName = lua_typename(apLua, lua_type(apLua, -1));
+    lua_settop(apLua, topBefore);
+    return result;
 }
 
 void Module::m_releaseDebugRefs(lua_State* apLua) {

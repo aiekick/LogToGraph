@@ -69,5 +69,6 @@ private:
     int32_t m_makeRef(lua_State* apLua, int32_t aIndex);
     Ltg::DebugVar m_makeVar(lua_State* apLua, int32_t aIndex, const std::string& aName, const std::string& aKeyType);
     std::vector<Ltg::DebugVar> m_expandRef(lua_State* apLua, int32_t aRef);
+    Ltg::EvalResult m_evalExpression(lua_State* apLua, lua_Debug* apDebug, const std::string& aExpression);
     void m_releaseDebugRefs(lua_State* apLua);
 };

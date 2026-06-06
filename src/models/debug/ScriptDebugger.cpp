@@ -29,7 +29,8 @@ Ltg::DebugAction ScriptDebugger::onPause(const Ltg::DebugState& aState) {
     }
     {
         std::lock_guard<std::mutex> treeLock(m_TreeMutex);
-        m_Expansions.clear();  // a fresh pause invalidates every previously read ref
+        m_Expansions.clear();    // a fresh pause invalidates every previously read ref
+        m_EvalResults.clear();   // and every previously evaluated watch expression
     }
     return m_waitNextAction();
 }
@@ -43,6 +44,11 @@ void ScriptDebugger::publishExpansion(int32_t aRef, const std::vector<Ltg::Debug
     m_Expansions[aRef] = aChildren;  // cached until the next pause; getChildren stops the re-posting
 }
 
+void ScriptDebugger::publishEvalResult(int32_t aEvalId, const Ltg::EvalResult& aResult) {
+    std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+    m_EvalResults[aEvalId] = aResult;  // cached until the next pause; getEvalResult stops the re-posting
+}
+
 ///////////////////////////////////////////////////////////////////////////////////
 //// SESSION BINDING ////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -53,6 +59,7 @@ void ScriptDebugger::bindPlugin(Ltg::IScriptDebugger* apPluginDebugger) {
     m_Mode.store(Mode::Running, std::memory_order_release);
     m_HasCommand = false;
     m_HasExpand = false;
+    m_HasEval = false;
 }
 
 void ScriptDebugger::unbindPlugin() {
@@ -63,6 +70,7 @@ void ScriptDebugger::unbindPlugin() {
     }
     std::lock_guard<std::mutex> treeLock(m_TreeMutex);
     m_Expansions.clear();
+    m_EvalResults.clear();
 }
 
 bool ScriptDebugger::shouldArmDebug() const {
@@ -129,6 +137,11 @@ void ScriptDebugger::Clear() {
         std::lock_guard<std::mutex> lock(m_Mutex);
         m_State = Ltg::DebugState{};
         m_StateRevision.fetch_add(1, std::memory_order_release);
+    }
+    {
+        std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+        m_Expansions.clear();
+        m_EvalResults.clear();
     }
 }
 
@@ -229,6 +242,37 @@ bool ScriptDebugger::getChildren(int32_t aRef, std::vector<Ltg::DebugVar>& aoChi
     return true;
 }
 
+void ScriptDebugger::requestEval(int32_t aEvalId, const std::string& aExpression) {
+    if (aEvalId < 0 || aExpression.empty()) {
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+        if (m_EvalResults.find(aEvalId) != m_EvalResults.end()) {
+            return;  // already evaluated since the current pause
+        }
+    }
+    // not cached yet: (re)post on the eval channel. eval is overwriteable by a control command,
+    // so the user can still resume/step while a long expression is being evaluated.
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        m_EvalId = aEvalId;
+        m_EvalExpression = aExpression;
+        m_HasEval = true;
+    }
+    m_Cond.notify_one();
+}
+
+bool ScriptDebugger::getEvalResult(int32_t aEvalId, Ltg::EvalResult& aoResult) const {
+    std::lock_guard<std::mutex> treeLock(m_TreeMutex);
+    const auto it = m_EvalResults.find(aEvalId);
+    if (it == m_EvalResults.end()) {
+        return false;
+    }
+    aoResult = it->second;
+    return true;
+}
+
 void ScriptDebugger::m_setCommand(Ltg::DebugCommand aCommand) {
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
@@ -240,14 +284,20 @@ void ScriptDebugger::m_setCommand(Ltg::DebugCommand aCommand) {
 
 Ltg::DebugAction ScriptDebugger::m_waitNextAction() {
     std::unique_lock<std::mutex> lock(m_Mutex);
-    m_Cond.wait(lock, [this]() { return m_HasCommand || m_HasExpand; });
+    m_Cond.wait(lock, [this]() { return m_HasCommand || m_HasEval || m_HasExpand; });
     Ltg::DebugAction action;
-    if (m_HasCommand) {  // a control command has priority and supersedes any pending expand
+    if (m_HasCommand) {  // control command has top priority — supersedes pending eval/expand
         m_HasCommand = false;
+        m_HasEval = false;
         m_HasExpand = false;
         action.kind = Ltg::DebugAction::Kind::Command;
         action.command = m_Command;
         m_Mode.store(Mode::Running, std::memory_order_release);
+    } else if (m_HasEval) {
+        m_HasEval = false;
+        action.kind = Ltg::DebugAction::Kind::Eval;
+        action.evalId = m_EvalId;
+        action.evalExpression = m_EvalExpression;
     } else {
         m_HasExpand = false;
         action.kind = Ltg::DebugAction::Kind::Expand;

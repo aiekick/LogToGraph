@@ -47,6 +47,9 @@ private:  // rendezvous between the worker thread (onPause/waitAction) and the U
     std::atomic<Mode> m_Mode{Mode::Idle};
     bool m_HasCommand{false};  // control command (continue/step/stop) — has priority
     Ltg::DebugCommand m_Command{Ltg::DebugCommand::Continue};
+    bool m_HasEval{false};  // pending watch-eval request — fires between commands and expansions
+    int32_t m_EvalId{-1};
+    std::string m_EvalExpression;
     bool m_HasExpand{false};  // pending lazy-expansion request
     int32_t m_ExpandRef{-1};
     Ltg::DebugState m_State;
@@ -55,9 +58,10 @@ private:  // rendezvous between the worker thread (onPause/waitAction) and the U
     std::atomic<int64_t> m_StateRevision{0};
     Ltg::IScriptDebugger* m_PluginDebuggerPtr{nullptr};
 
-private:  // lazy expansion cache (children read by the worker, displayed by the UI)
+private:  // lazy expansion + eval caches (children/values read by the worker, displayed by the UI)
     mutable std::mutex m_TreeMutex;
     std::unordered_map<int32_t, std::vector<Ltg::DebugVar>> m_Expansions;
+    std::unordered_map<int32_t, Ltg::EvalResult> m_EvalResults;
 
 private:  // breakpoints, source of truth, lines are 1-based
     mutable std::mutex m_BreakpointsMutex;
@@ -75,6 +79,7 @@ public:
     Ltg::DebugAction onPause(const Ltg::DebugState& aState) final;
     Ltg::DebugAction waitAction() final;
     void publishExpansion(int32_t aRef, const std::vector<Ltg::DebugVar>& aChildren) final;
+    void publishEvalResult(int32_t aEvalId, const Ltg::EvalResult& aResult) final;
     bool isBreakpoint(int32_t aLine) final;
 
     // session binding — called by ScriptingEngine around the parse run
@@ -114,6 +119,11 @@ public:
     // lazy node expansion — UI thread
     void requestExpand(int32_t aRef);
     bool getChildren(int32_t aRef, std::vector<Ltg::DebugVar>& aoChildren) const;
+
+    // watch evaluation — UI thread. requestEval posts the request once per evalId until a result
+    // is cached; getEvalResult returns true when the worker has published one.
+    void requestEval(int32_t aEvalId, const std::string& aExpression);
+    bool getEvalResult(int32_t aEvalId, Ltg::EvalResult& aoResult) const;
 
 private:
     void m_setCommand(Ltg::DebugCommand aCommand);

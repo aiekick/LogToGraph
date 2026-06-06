@@ -36,6 +36,7 @@
 #include <panes/debug/ScopePane.h>
 #include <panes/debug/CalltracePane.h>
 #include <panes/debug/BreakpointsPane.h>
+#include <panes/debug/WatcherPane.h>
 
 #include <imguipack.h>
 #include <iagp.h>
@@ -126,6 +127,7 @@ void App::m_InitSingletons() {
     ScopePane::initSingleton();
     CalltracePane::initSingleton();
     BreakpointsPane::initSingleton();
+    WatcherPane::initSingleton();
 }
 
 void App::m_UnitSingletons() {
@@ -134,6 +136,7 @@ void App::m_UnitSingletons() {
     // (use-after-free), and std::thread's dtor would std::terminate on a still-joinable thread.
     ScriptingEngine::ref()->AbortAndJoinWorker();
     // panes
+    WatcherPane::unitSingleton();
     BreakpointsPane::unitSingleton();
     CalltracePane::unitSingleton();
     ScopePane::unitSingleton();

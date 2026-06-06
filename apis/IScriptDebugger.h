@@ -76,28 +76,41 @@ struct DebugState {
 // Set of breakpoint lines (1-based) for the active script.
 using BreakpointLines = std::unordered_set<int32_t>;
 
-// What the paused plugin should do next: resume with a command, or read the
-// children of an expandable node before resuming.
+// What the paused plugin should do next: resume with a command, read the children of an
+// expandable node, or evaluate a watch expression in the current paused frame.
 struct DebugAction {
-    enum class Kind { Command, Expand };
+    enum class Kind { Command, Expand, Eval };
     Kind kind = Kind::Command;
     DebugCommand command = DebugCommand::Continue;  // when kind == Command
     int32_t expandRef = -1;                         // when kind == Expand (a registry ref)
+    int32_t evalId = -1;                            // when kind == Eval — caller-assigned id used to route the result back
+    std::string evalExpression;                     // when kind == Eval — the Lua expression to evaluate in the paused frame
+};
+
+// Result of an evaluation in the paused frame, published asynchronously through publishEvalResult.
+// `error` is non-empty on parse/runtime failure; in that case `value` / `typeName` are unspecified.
+struct EvalResult {
+    std::string value;
+    std::string typeName;
+    std::string error;
 };
 
 // Implemented by the host (ScriptDebugger), called by the plugin from the worker
 // thread. The plugin loops:
 //   action = onPause(state)
 //   while action is Expand: publishExpansion(ref, children); action = waitAction()
+//   while action is Eval: publishEvalResult(id, value, typeName, error); action = waitAction()
 //   apply action.command
 struct IScriptDebugHost {
     virtual ~IScriptDebugHost() = default;
     // publish the paused snapshot (roots) and block until the first action
     virtual DebugAction onPause(const DebugState& aState) = 0;
-    // block until the next action (after an expansion has been handled)
+    // block until the next action (after an expansion / evaluation has been handled)
     virtual DebugAction waitAction() = 0;
     // publish the lazily-read children of an expandable node (non-blocking)
     virtual void publishExpansion(int32_t aRef, const std::vector<DebugVar>& aChildren) = 0;
+    // publish the result of an evaluation request — routed back to the caller by `aEvalId`
+    virtual void publishEvalResult(int32_t aEvalId, const EvalResult& aResult) = 0;
     // queried by the plugin hook on each line: is there a breakpoint on this line ?
     // live + thread-safe, so add/remove during a session takes effect immediately
     virtual bool isBreakpoint(int32_t aLine) = 0;

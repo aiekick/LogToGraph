@@ -11,6 +11,7 @@
 #include <models/debug/ScriptDebugger.h>
 #include <models/script/ScriptingEngine.h>
 #include <project/ProjectFile.h>
+#include <panes/debug/WatcherPane.h>
 
 bool CodePane::init() {
     // for avoid a reallocation of the vector for each push/emplace
@@ -245,6 +246,9 @@ void CodePane::OpenFile(const std::string& vFilePathName, size_t vErrorLine, std
             sheet.codeEditor.SetBreakpointToggledCallback([filePathForCallback](int32_t aLine, bool aAdd) {
                 ScriptDebugger::ref()->setBreakpoint(filePathForCallback, aLine + 1, aAdd);
             });
+            sheet.codeEditor.SetTokenContextCallback([](const std::string& aToken) {
+                WatcherPane::ref()->AddExpression(aToken);
+            });
             sheet.codeEditor.SetCode(code, type);
             sheet.codeEditor.AddErrorMarker(vErrorLine, vErrorMsg);
         }
@@ -270,6 +274,9 @@ void CodePane::OpenScript(const std::string& aCode) {
         const std::string scriptId = sc_PROJECT_SCRIPT_ID;
         sheet.codeEditor.SetBreakpointToggledCallback([scriptId](int32_t aLine, bool aAdd) {
             ScriptDebugger::ref()->setBreakpoint(scriptId, aLine + 1, aAdd);
+        });
+        sheet.codeEditor.SetTokenContextCallback([](const std::string& aToken) {
+            WatcherPane::ref()->AddExpression(aToken);
         });
         // editor Ctrl+S (or its File > Save) persists the project script into the .ltg db
         sheet.codeEditor.SetSaveCallback([]() { ProjectFile::ref()->Save(); });

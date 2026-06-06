@@ -46,6 +46,7 @@ limitations under the License.
 #include <panes/debug/ScopePane.h>
 #include <panes/debug/CalltracePane.h>
 #include <panes/debug/BreakpointsPane.h>
+#include <panes/debug/WatcherPane.h>
 
 #include <res/fontIcons.h>
 
@@ -109,6 +110,7 @@ bool MainFrontend::init() {
     ImLayout::ref().addPane(ImLayout::PaneInfos(CalltracePane::ref(), ICON_FONT_FORMAT_LIST_BULLETED " Call Trace", "Debug", ICON_FONT_FORMAT_LIST_BULLETED " Call Trace", "BOTTOM", 0.3f, false, false));
     ImLayout::ref().addPane(ImLayout::PaneInfos(StackTreePane::ref(), ICON_FONT_FILE_TREE " Stack Tree", "Debug", ICON_FONT_FILE_TREE " Stack Tree", "BOTTOM", 0.3f, false, false));
     ImLayout::ref().addPane(ImLayout::PaneInfos(ScopePane::ref(), ICON_FONT_CROSSHAIRS " Scope", "Debug", ICON_FONT_CROSSHAIRS " Scope", "BOTTOM", 0.3f, false, false));
+    ImLayout::ref().addPane(ImLayout::PaneInfos(WatcherPane::ref(), ICON_FONT_EYE " Watcher", "Debug", ICON_FONT_EYE " Watcher", "BOTTOM", 0.3f, false, false));
 
     // InitPanes is done in m_InitPanes, because a specific order is needed
 
