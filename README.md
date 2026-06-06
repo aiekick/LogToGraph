@@ -58,7 +58,7 @@ end
 LogToGraph can work with many plugins.
 
 - Lua
-- Python (WIP)
+- maybe AngelScript inf ew times
 
 ## Howto : Analyse of the log file in LogToGraph
 
