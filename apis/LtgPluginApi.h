@@ -88,8 +88,14 @@ struct ScriptingError {
     ScriptFilePathName file;
     size_t line = 0;
     size_t column = 0;
+    std::string message;  // full error text, used as the per-line marker tooltip in the editor
 };
 typedef std::vector<ScriptingError> ErrorContainer;
+
+// chunk name passed to the scripting runtime when compiling the in-memory project script.
+// the host's CodePane uses the SAME string as the sheet id, so a ScriptingError's `file` field
+// can be routed back to the matching sheet. keep both sides in sync.
+static constexpr const char* sc_PROJECT_SCRIPT_CHUNK = "<project script>";
 
 // lua_register(lua_state_ptr, "print", lua_int_print_args);
 struct IDatasModel {

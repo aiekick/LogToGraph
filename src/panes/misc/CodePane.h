@@ -4,7 +4,7 @@
 #include <ezlibs/ezSingleton.hpp>
 #include <imguipack.h>
 #include <frontend/Components/CodeEditor.h>
-#include <apis/IScriptDebugger.h>
+#include <apis/LtgPluginApi.h>  // also pulls IScriptDebugger.h transitively; brings ScriptingError + sc_PROJECT_SCRIPT_CHUNK
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -33,6 +33,9 @@ private:
     // paused state cache — refreshed only when ScriptDebugger::getStateRevision() advances (i.e. on a new pause)
     int64_t m_LastStateRevision = -1;
     Ltg::DebugState m_StateCache;
+    // last-run scripting errors — refreshed when ScriptingEngine::GetErrorsRevision() advances
+    int64_t m_LastErrorsRevisionSeen = -1;
+    std::vector<Ltg::ScriptingError> m_ErrorsCache;
 
 public:
     bool init() final;

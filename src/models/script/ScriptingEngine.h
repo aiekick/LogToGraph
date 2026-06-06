@@ -59,6 +59,11 @@ private:  // Misc
 private:  // thread
     std::thread m_WorkerThread;
 
+private:  // errors collected during the last run (worker writes, UI reads via revision pattern)
+    mutable std::mutex m_ErrorsMutex;
+    std::vector<Ltg::ScriptingError> m_LastRunErrors;
+    std::atomic<int64_t> m_ErrorsRevision{0};
+
 public:
     void Clear();
 
@@ -105,6 +110,10 @@ public:
     bool IsJoinable();
     void Join();
     bool FinishIfRequired();
+
+    // errors collected during the last run — UI reads them via revision-cache pattern (worker fills under mutex)
+    int64_t GetErrorsRevision() const;  // atomic acquire load; no mutex
+    std::vector<Ltg::ScriptingError> GetLastRunErrors() const;  // mutex-locked copy by value (worker mutates)
 
     bool drawMenu();
     bool isValidScriptingSelected() const;

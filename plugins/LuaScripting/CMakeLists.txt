@@ -127,6 +127,10 @@ target_include_directories(${PROJECT} PRIVATE
 target_link_libraries(${PROJECT}
 	${LUA_JIT_LIBRARIES}
 	${SOL2_LIBRARIES}
+	# boost_regex is created by imguipack when USE_IMGUI_COLOR_TEXT_EDIT is ON (forced ON by the host
+	# in cmake/imguipack.cmake). Linking it here gives the plugin a real regex engine without dragging
+	# imguipack, and keeps the host + plugin on the SAME regex library for future ltg:regex bindings.
+	boost_regex
 )
 
 # add plugin name in parent LOADED_STROCKER_PLUGINS list

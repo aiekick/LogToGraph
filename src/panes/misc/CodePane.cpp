@@ -32,6 +32,8 @@ void CodePane::Clear() {
     m_Breakpoints0BasedCache.clear();
     m_LastStateRevision = -1;
     m_StateCache = Ltg::DebugState{};
+    m_LastErrorsRevisionSeen = -1;
+    m_ErrorsCache.clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -72,6 +74,24 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
             if (stateRevision != m_LastStateRevision) {
                 m_StateCache = ScriptDebugger::ref()->getState();
                 m_LastStateRevision = stateRevision;
+            }
+
+            // scripting errors — refreshed when ScriptingEngine bumps GetErrorsRevision(). on a bump,
+            // wipe all sheets' error markers then push the new ones to each matching sheet (route by err.file).
+            const int64_t errorsRevision = ScriptingEngine::ref()->GetErrorsRevision();
+            if (errorsRevision != m_LastErrorsRevisionSeen) {
+                m_ErrorsCache = ScriptingEngine::ref()->GetLastRunErrors();
+                m_LastErrorsRevisionSeen = errorsRevision;
+                for (auto& sheet : m_CodeSheets) {
+                    sheet.codeEditor.ClearErrorMarkers();
+                }
+                for (const auto& errorEntry : m_ErrorsCache) {
+                    for (auto& sheet : m_CodeSheets) {
+                        if (sheet.filepathName == errorEntry.file) {
+                            sheet.codeEditor.AddErrorMarker(errorEntry.line, errorEntry.message);
+                        }
+                    }
+                }
             }
 
             const bool isPaused = (ScriptDebugger::ref()->getMode() == ScriptDebugger::Mode::Paused);

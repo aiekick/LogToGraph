@@ -67,6 +67,14 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
 
     vGenerationTime = 0.0f;
 
+    // wipe errors from the previous run + bump revision so the UI clears its editor markers before
+    // we start producing new ones (release order; UI reads via acquire load — no mutex on hot path).
+    {
+        std::lock_guard<std::mutex> lock(m_ErrorsMutex);
+        m_LastRunErrors.clear();
+        m_ErrorsRevision.fetch_add(1, std::memory_order_release);
+    }
+
     const int64_t firstTimeMark = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
     Ltg::ScriptingModulePtr scriptingPtr = nullptr;
@@ -148,12 +156,28 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                         ScriptDebugger::ref()->unbindPlugin();
                     }
                 }
+                // publish whatever errors accumulated (compile + runtime) for the UI to consume.
+                // errorContainer goes out of scope right after — this is the last chance to capture.
+                {
+                    std::lock_guard<std::mutex> lock(m_ErrorsMutex);
+                    m_LastRunErrors = errorContainer;
+                    m_ErrorsRevision.fetch_add(1, std::memory_order_release);
+                }
                 scriptingPtr->unload();
             }
         }
     }
 
     vWorking = false;
+}
+
+int64_t ScriptingEngine::GetErrorsRevision() const {
+    return m_ErrorsRevision.load(std::memory_order_acquire);
+}
+
+std::vector<Ltg::ScriptingError> ScriptingEngine::GetLastRunErrors() const {
+    std::lock_guard<std::mutex> lock(m_ErrorsMutex);
+    return m_LastRunErrors;
 }
 
 ///////////////////////////////////////////////////

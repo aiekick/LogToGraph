@@ -299,7 +299,7 @@ void CodeEditor::m_RebuildMarkers() {
     m_Editor.ClearMarkers();
     // breakpoints are drawn by the line decorator (a red dot); markers carry errors + current line
     for (const auto& errorMarker : m_ErrorMarkers) {
-        m_Editor.AddMarker(errorMarker.first, 0, IM_COL32(200, 0, 40, 80), "", errorMarker.second);
+        m_Editor.AddMarker(errorMarker.first - 1, 0, IM_COL32(200, 0, 40, 80), "", errorMarker.second);
     }
     // current paused line: amber line number + translucent amber text
     if (m_CurrentExecLine >= 0) {

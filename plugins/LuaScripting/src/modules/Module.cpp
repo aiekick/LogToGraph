@@ -13,6 +13,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
+// boost::regex (vendored by imguipack via USE_IMGUI_COLOR_TEXT_EDIT) — same engine the host will use
+// when the future shared ltg:regex(...) brick lands. linked through the boost_regex CMake target.
+#include <boost/regex.hpp>
+
 #include <lua.hpp>
 #include <sol/sol.hpp>
 
@@ -24,6 +28,33 @@ namespace {
 // freed with the state — so there is no process-wide static to be destroyed (and crash) at the
 // plugin DLL's unload.
 const char* const kDebugModuleRegistryKey = "ltg_debug_module";
+
+// Parse a Lua/sol2 error message and extract (file, line). Sol2 wraps an in-memory chunk as
+// `[string "NAME"]:LINE: MSG`; a file-based script reads `NAME:LINE: MSG`. On a match, the full
+// original message is kept as `aoErr.message` (it stays useful for the tooltip even if regex only
+// found a prefix). On no match, the message lands on `aFallbackChunk:0` so the host can still display
+// it (just unanchored). Returns true on a regex match.
+bool parseLuaError(const std::string& aMsg, const std::string& aFallbackChunk, Ltg::ScriptingError& aoErr) {
+    // delimiter `re(...)re` mandatory: the chunkRe pattern contains a literal `)"` (the `+)"` after
+    // the `[^"]+` group), which would otherwise close an empty-delimiter R"(...)" prematurely.
+    static const boost::regex chunkRe(R"re(\[string\s+"([^"]+)"\]:(\d+):\s*(.*))re");
+    static const boost::regex plainRe(R"re(([^:\[\]\s]+):(\d+):\s*(.*))re");
+    boost::smatch match;
+    aoErr.message = aMsg;
+    if (boost::regex_search(aMsg, match, chunkRe)) {
+        aoErr.file = match[1].str();
+        aoErr.line = static_cast<size_t>(std::stoul(match[2].str()));
+        return true;
+    }
+    if (boost::regex_search(aMsg, match, plainRe)) {
+        aoErr.file = match[1].str();
+        aoErr.line = static_cast<size_t>(std::stoul(match[2].str()));
+        return true;
+    }
+    aoErr.file = aFallbackChunk;
+    aoErr.line = 0;
+    return false;
+}
 
 // Stringify a value on the Lua stack WITHOUT luaL_tolstring (absent from LuaJIT 5.1).
 // The type is checked first so lua_tostring is only called on real strings (it would
@@ -198,7 +229,9 @@ bool Module::compileScript(const Ltg::ScriptFilePathName& vFilePathName, Ltg::Er
 
 bool Module::compileScriptCode(const std::string& aCode, Ltg::ErrorContainer& vOutErrors) {
     try {
-        m_luaPtr->script(aCode);  // compile + run the chunk from memory (defines parse/startFile/endFile)
+        // pass an explicit chunk name so sol2's error messages identify our project script
+        // (otherwise sol2 uses the first line of code as the chunk name, which breaks routing).
+        m_luaPtr->script(aCode, Ltg::sc_PROJECT_SCRIPT_CHUNK);  // compile + run the chunk (defines parse/startFile/endFile)
         bool res = true;
         sol::function parse = (*m_luaPtr)["parse"];
         if (!parse.valid()) {
@@ -209,10 +242,20 @@ bool Module::compileScriptCode(const std::string& aCode, Ltg::ErrorContainer& vO
         res &= callScriptEnd(vOutErrors);
         return res;
     } catch (const sol::error& ex) {
+        Ltg::ScriptingError err;
+        parseLuaError(ex.what(), Ltg::sc_PROJECT_SCRIPT_CHUNK, err);
+        vOutErrors.push_back(err);
         LogVarError("Lua: Error in the Lua script : %s", ex.what());
     } catch (const std::exception& ex) {
+        Ltg::ScriptingError err;
+        parseLuaError(ex.what(), Ltg::sc_PROJECT_SCRIPT_CHUNK, err);
+        vOutErrors.push_back(err);
         LogVarError("Lua: Error in the Lua script : %s", ex.what());
     } catch (...) {
+        Ltg::ScriptingError err;
+        err.file = Ltg::sc_PROJECT_SCRIPT_CHUNK;
+        err.message = "Unknown error in the Lua script";
+        vOutErrors.push_back(err);
         LogVarError("Lua: %s", "Unknown error in the Lua script");
     }
     return false;
@@ -226,8 +269,11 @@ bool Module::callScriptStart(Ltg::ErrorContainer& vOutErrors) {
     }
     sol::protected_function_result result = startFile();
     if (!result.valid()) {
-        sol::error err = result;
-        LogVarLightError("Lua: error in startFile func call : %s", err.what());
+        sol::error solErr = result;
+        Ltg::ScriptingError err;
+        parseLuaError(solErr.what(), Ltg::sc_PROJECT_SCRIPT_CHUNK, err);
+        vOutErrors.push_back(err);
+        LogVarLightError("Lua: error in startFile func call : %s", solErr.what());
         return false;
     }
     return true;
@@ -241,8 +287,11 @@ bool Module::callScriptExec(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorCont
     }
     sol::protected_function_result result = parse(vOutDatas.buffer);
     if (!result.valid()) {
-        sol::error err = result;
-        LogVarLightError("Lua: error in parse func call : %s", err.what());
+        sol::error solErr = result;
+        Ltg::ScriptingError err;
+        parseLuaError(solErr.what(), Ltg::sc_PROJECT_SCRIPT_CHUNK, err);
+        vErrors.push_back(err);
+        LogVarLightError("Lua: error in parse func call : %s", solErr.what());
         return false;
     }
     return true;
@@ -256,8 +305,11 @@ bool Module::callScriptEnd(Ltg::ErrorContainer& vOutErrors) {
     }
     sol::protected_function_result result = endFile();
     if (!result.valid()) {
-        sol::error err = result;
-        LogVarLightError("Lua: error in endFile func call : %s", err.what());
+        sol::error solErr = result;
+        Ltg::ScriptingError err;
+        parseLuaError(solErr.what(), Ltg::sc_PROJECT_SCRIPT_CHUNK, err);
+        vOutErrors.push_back(err);
+        LogVarLightError("Lua: error in endFile func call : %s", solErr.what());
         return false;
     }
     return true;
