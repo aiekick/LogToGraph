@@ -1,56 +1,8 @@
-[submodule "3rdparty/glfw"]
-	path = 3rdparty/glfw
-	url = https://github.com/glfw/glfw.git
-	branch = master
-[submodule "3rdparty/tinyxml2"]
-	path = 3rdparty/tinyxml2
-	url = https://github.com/leethomason/tinyxml2.git
-	branch = master
-[submodule "3rdparty/stb"]
-	path = 3rdparty/stb
-	url = https://github.com/nothings/stb.git
-	branch = master
-[submodule "3rdparty/glad"]
-	path = 3rdparty/glad
-	url = https://github.com/Dav1dde/glad.git
-	branch = c
-[submodule "3rdparty/ctools"]
-	path = 3rdparty/ctools
-	url = https://github.com/aiekick/cTools.git
-	branch = master
-[submodule "3rdparty/imgui"]
-	path = 3rdparty/imgui
-	url = https://github.com/ocornut/imgui.git
-	branch = docking
-[submodule "3rdparty/freetype2"]
-	path = 3rdparty/freetype2
-	url = https://github.com/freetype/freetype2.git
-	branch = master
-[submodule "3rdparty/implot"]
-	path = 3rdparty/implot
-	url = https://github.com/epezent/implot.git
-	branch = master
-[submodule "3rdparty/BuildInc"]
-	path = 3rdparty/BuildInc
-	url = https://github.com/aiekick/buildinc.git
-	branch = master
-[submodule "3rdparty/ImGuiColorTextEdit"]
-	path = 3rdparty/ImGuiColorTextEdit
-	url = https://github.com/aiekick/ImGuiColorTextEdit.git
-	branch = master
-[submodule "3rdparty/ImGuiFileDialog"]
-	path = 3rdparty/ImGuiFileDialog
-	url = https://github.com/aiekick/ImGuiFileDialog.git
-	branch = Lib_Only
 [submodule "3rdparty/ezlibs"]
 	path = 3rdparty/ezlibs
 	url = https://github.com/aiekick/EzLibs.git
 	branch = master
-[submodule "3rdparty/ImGuiPack"]
-	path = 3rdparty/ImGuiPack
-	url = https://github.com/aiekick/ImGuiPack.git
-	branch = master
-[submodule "3rdparty/iagp"]
-	path = 3rdparty/iagp
-	url = https://github.com/aiekick/InAppGpuProfiler.git
+[submodule "3rdparty/imguipack"]
+	path = 3rdparty/imguipack
+	url = https://github.com/aiekick/imguipack.git
 	branch = master

@@ -20,9 +20,15 @@ limitations under the License.
 #include <string>
 #include <functional>
 #include <headers/DatasDef.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
 
 struct sqlite3;
 class DataBase {
+    DISABLE_CONSTRUCTORS(DataBase)
+    DISABLE_DESTRUCTORS(DataBase)
+    IMPLEMENT_SHARED_SINGLETON(DataBase)
+
 private:
     sqlite3* m_SqliteDB = nullptr;
     std::string m_DataBaseFilePathName = "datas.db3";
@@ -216,15 +222,4 @@ private:
     /// </summary>
     void EnableForeignKey();
 
-public:  // singleton
-    static std::shared_ptr<DataBase> Instance() {
-        static std::shared_ptr<DataBase> _instance = std::make_shared<DataBase>();
-        return _instance;
-    }
-
-public:
-    DataBase() = default;                                    // Prevent construction
-    DataBase(const DataBase&) = delete;                      // Prevent construction by copying
-    DataBase& operator=(const DataBase&) { return *this; };  // Prevent assignment
-    virtual ~DataBase() = default;                           // Prevent unwanted destruction};
 };

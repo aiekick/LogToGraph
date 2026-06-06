@@ -2,12 +2,12 @@
 
 #include <systems/PluginManager.h>
 
-#include <ImGuiPack/ImGuiPack.h>
+#include <imguipack.h>
 
 #include <project/ProjectFile.h>
 
 bool SettingsDialog::init() {
-    const auto& pluginSettings = PluginManager::Instance()->getPluginSettings();
+    const auto& pluginSettings = PluginManager::ref().getPluginSettings();
     for (const auto& s : pluginSettings) {
         auto ptr = s.settings.lock();
         if (ptr != nullptr) {
@@ -108,7 +108,7 @@ bool SettingsDialog::m_Save() {
             ptr->saveSettings();
         }
     }
-    ProjectFile::Instance()->SetProjectChange();
+    ProjectFile::ref()->SetProjectChange();
     return false;
 }
 

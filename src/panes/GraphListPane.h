@@ -16,7 +16,9 @@ limitations under the License.
 
 #pragma once
 
-#include <ImGuiPack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
+#include <imguipack.h>
 #include <models/log/LogEngine.h>
 #include <stdint.h>
 #include <string>
@@ -25,6 +27,10 @@ limitations under the License.
 
 class ProjectFile;
 class GraphListPane : public AbstractPane {
+    DISABLE_CONSTRUCTORS(GraphListPane)
+    DISABLE_DESTRUCTORS(GraphListPane)
+    IMPLEMENT_SHARED_SINGLETON(GraphListPane)
+
 private:
     ImGuiListClipper m_VirtualClipper;
     std::map<SignalCategory, std::vector<SignalSerieWeak>> m_CategorizedSignalSeries;
@@ -33,23 +39,11 @@ private:
 
 public:
     void Clear();
-    bool Init() override;
-    void Unit() override;
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
+    bool init() override;
+    void unit() override;
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
 
     void UpdateDB();
-
-public:  // singleton
-    static std::shared_ptr<GraphListPane> Instance() {
-        static auto _instance = std::make_shared<GraphListPane>();
-        return _instance;
-    }
-
-public:
-    GraphListPane() = default;                                         // Prevent construction
-    GraphListPane(const GraphListPane&) = delete;                      // Prevent construction by copying
-    GraphListPane& operator=(const GraphListPane&) { return *this; };  // Prevent assignment
-    virtual ~GraphListPane() = default;                                // Prevent unwanted destruction};
 
 private:
     void DisplayItem(const int& vIdx, const SignalSerieWeak& vDatasSerie);

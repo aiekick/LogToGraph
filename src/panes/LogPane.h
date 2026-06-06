@@ -16,7 +16,9 @@ limitations under the License.
 
 #pragma once
 
-#include <ImGuiPack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
+#include <imguipack.h>
 #include <models/log/LogEngine.h>
 #include <headers/DatasDef.h>
 #include <stdint.h>
@@ -26,6 +28,10 @@ limitations under the License.
 
 class ProjectFile;
 class LogPane : public AbstractPane {
+    DISABLE_CONSTRUCTORS(LogPane)
+    DISABLE_DESTRUCTORS(LogPane)
+    IMPLEMENT_SHARED_SINGLETON(LogPane)
+
 private:
     ImGuiListClipper m_LogListClipper;
     SignalTicksWeakContainer m_LogDatas;
@@ -35,9 +41,9 @@ private:
     bool m_backSelectionNeeded = false;
 
 public:
-    bool Init() override;
-    void Unit() override;
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
+    bool init() override;
+    void unit() override;
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
 
     void Clear();
     void CheckItem(SignalTickPtr vSignalTick);
@@ -48,16 +54,4 @@ private:
     void goOnBackSelection();
     void DrawMenuBar();
     void DrawTable();
-
-public:  // singleton
-    static std::shared_ptr<LogPane> Instance() {
-        static auto _instance = std::make_shared<LogPane>();
-        return _instance;
-    }
-
-public:
-    LogPane() = default;                                   // Prevent construction
-    LogPane(const LogPane&) = delete;                      // Prevent construction by copying
-    LogPane& operator=(const LogPane&) { return *this; };  // Prevent assignment
-    virtual ~LogPane() = default;                          // Prevent unwanted destruction};
 };

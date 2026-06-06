@@ -28,19 +28,19 @@ limitations under the License.
 //// OVERRIDES ////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-bool GraphPane::Init() {
+bool GraphPane::init()  {
     return true;
 }
 
-void GraphPane::Unit() {}
+void GraphPane::unit() {}
 
-bool GraphPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool GraphPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
-        auto& graphGroups = GraphView::Instance()->GetGraphGroups();
+    if (apOpened != nullptr && *apOpened) {
+        auto& graphGroups = GraphView::ref()->GetGraphGroups();
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -48,15 +48,15 @@ bool GraphPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGu
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-            if (ProjectFile::Instance()->IsProjectLoaded()) {
+            if (ProjectFile::ref()->IsProjectLoaded()) {
                 if (ImGui::BeginMenuBar()) {
-                    GraphView::Instance()->DrawMenuBar();
+                    GraphView::ref()->DrawMenuBar();
                     ImGui::EndMenuBar();
                 }
 
                 if (!graphGroups.empty()) {
                     // on compte le nombre de graphs
-                    uint32_t count_graphs = GraphView::Instance()->GetGraphCount();
+                    uint32_t count_graphs = GraphView::ref()->GetGraphCount();
 
                     // on calcule la taille de chaque graphs
                     ImVec2 amh = ImGui::GetContentRegionAvail();
@@ -72,9 +72,9 @@ bool GraphPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGu
 
                         for (auto it = graphGroups.begin(); it != graphGroups.end(); ++it) {
                             if (it == graphGroups.begin()) {
-                                GraphView::Instance()->DrawAloneGraphs(*it, amh, first_graph);
+                                GraphView::ref()->DrawAloneGraphs(*it, amh, first_graph);
                             } else {
-                                GraphView::Instance()->DrawGroupedGraphs(*it, amh, first_graph);
+                                GraphView::ref()->DrawGroupedGraphs(*it, amh, first_graph);
                             }
                         }
 
@@ -90,22 +90,3 @@ bool GraphPane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGu
     return change;
 }
 
-void GraphPane::DoVirtualLayout() {
-    auto window_ptr = ImGui::FindWindowByName(GetName().c_str());
-    if (window_ptr) {
-        auto& graphGroups = GraphView::Instance()->GetGraphGroups();
-        if (graphGroups.size() > 2U) {
-            auto start_gg_it = graphGroups.begin();
-            ++start_gg_it;
-            auto end_gg_it = graphGroups.end();
-            --end_gg_it;
-            --end_gg_it;
-            for (auto ggIt = start_gg_it; ggIt != end_gg_it; ++ggIt) {
-                auto graph_group_ptr = *ggIt;
-                if (graph_group_ptr) {
-                    ImGui::DockBuilderDockWindow(graph_group_ptr->GetImGuiLabel(), window_ptr->DockId);
-                }
-            }
-        }
-    }
-}

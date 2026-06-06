@@ -34,18 +34,18 @@ static GraphColor s_DefaultGraphColors;
 
 void SignalsHoveredList::Clear() {}
 
-bool SignalsHoveredList::Init() {
+bool SignalsHoveredList::init()  {
     return true;
 }
 
-void SignalsHoveredList::Unit() {}
+void SignalsHoveredList::unit() {}
 
-bool SignalsHoveredList::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool SignalsHoveredList::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
+    if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -53,7 +53,7 @@ bool SignalsHoveredList::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpe
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-            if (ProjectFile::Instance()->IsProjectLoaded()) {
+            if (ProjectFile::ref()->IsProjectLoaded()) {
                 if (ImGui::BeginMenuBar()) {
                     DrawMenuBar();
                     ImGui::EndMenuBar();
@@ -73,12 +73,12 @@ int SignalsHoveredList::CalcSignalsButtonCountAndSize(
 {
     float aw = ImGui::GetContentRegionAvail().x;
 
-    float width = ProjectFile::Instance()->m_SignalPreview_SizeX;
+    float width = ProjectFile::ref()->m_SignalPreview_SizeX;
 
-    int count = (int)(aw / ez::maxi(width, 1.0f));
-    width = aw / (float)ez::maxi(count, 1);
+    int count = (int)(aw / ez::math::maxi(width, 1.0f));
+    width = aw / (float)ez::math::maxi(count, 1);
 
-    ProjectFile::Instance()->m_SignalPreview_CountX = count;
+    ProjectFile::ref()->m_SignalPreview_CountX = count;
 
     if (count > 0) {
         vOutCellSize = ImVec2(width, width);
@@ -90,27 +90,27 @@ int SignalsHoveredList::CalcSignalsButtonCountAndSize(
 
 void SignalsHoveredList::DrawMenuBar() {
     if (ImGui::BeginMenu("Settings")) {
-        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::Instance()->m_ShowVariableSignalsInHoveredListView)) {
-            ProjectFile::Instance()->SetProjectChange();
-            LogEngine::Instance()->SetHoveredTime(LogEngine::Instance()->GetHoveredTime(), true);
+        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::ref()->m_ShowVariableSignalsInHoveredListView)) {
+            ProjectFile::ref()->SetProjectChange();
+            LogEngine::ref()->SetHoveredTime(LogEngine::ref()->GetHoveredTime(), true);
         }
 
         {  // color of updated text rect
             if (ImGui::ContrastedButton("R##ResetSelectionColor")) {
-                ProjectFile::Instance()->SetProjectChange();
-                ProjectFile::Instance()->m_GraphColors.graphHoveredUpdatedRectColor = s_DefaultGraphColors.graphHoveredUpdatedRectColor;
+                ProjectFile::ref()->SetProjectChange();
+                ProjectFile::ref()->m_GraphColors.graphHoveredUpdatedRectColor = s_DefaultGraphColors.graphHoveredUpdatedRectColor;
             }
             ImGui::SameLine();
             if (ImGui::ColorEdit4(
                     "Updated values rect color##ResetSelectionColor",  //
-                    &ProjectFile::Instance()->m_GraphColors.graphHoveredUpdatedRectColor.x,
+                    &ProjectFile::ref()->m_GraphColors.graphHoveredUpdatedRectColor.x,
                     ImGuiColorEditFlags_NoInputs)) {
-                ProjectFile::Instance()->SetProjectChange();
+                ProjectFile::ref()->SetProjectChange();
             }
         }
 
         if (ImGui::SliderFloatDefault(
-                150.0f, "Updated values rect thickness", &ProjectFile::Instance()->m_HoveredListChangedTextRectThickNess, 0.01f, 10.0f, 2.0f)) {
+                150.0f, "Updated values rect thickness", &ProjectFile::ref()->m_HoveredListChangedTextRectThickNess, 0.01f, 10.0f, 2.0f)) {
         }
 
         ImGui::EndMenu();
@@ -120,7 +120,7 @@ void SignalsHoveredList::DrawMenuBar() {
 void SignalsHoveredList::DrawTable() {
     auto win = ImGui::GetCurrentWindowRead();
     if (win) {
-        const auto& signals_count = LogEngine::Instance()->GetPreviewTicks().size();
+        const auto& signals_count = LogEngine::ref()->GetPreviewTicks().size();
         if (signals_count) {
             static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
                 ImGuiTableFlags_NoHostExtendY | ImGuiTableFlags_Resizable;
@@ -137,9 +137,9 @@ void SignalsHoveredList::DrawTable() {
 
                 ImGui::TableHeadersRow();
 
-                const auto& updatedRectColor = ProjectFile::Instance()->m_GraphColors.graphHoveredUpdatedRectColor;
+                const auto& updatedRectColor = ProjectFile::ref()->m_GraphColors.graphHoveredUpdatedRectColor;
                 const auto& updatedRectOffset = ImVec2(2.0f, 2.0f);
-                const auto updatedRectTickness = ProjectFile::Instance()->m_HoveredListChangedTextRectThickNess;
+                const auto updatedRectTickness = ProjectFile::ref()->m_HoveredListChangedTextRectThickNess;
 
                 int32_t count_color_push = 0;
                 ImU32 color = 0U;
@@ -150,11 +150,11 @@ void SignalsHoveredList::DrawTable() {
                         if (i < 0)
                             continue;
 
-                        const auto infos_ptr = LogEngine::Instance()->GetPreviewTicks().at((size_t)i).lock();
+                        const auto infos_ptr = LogEngine::ref()->GetPreviewTicks().at((size_t)i).lock();
                         if (infos_ptr) {
                             ImGui::TableNextRow();
 
-                            selected = LogEngine::Instance()->isSignalShown(infos_ptr->category, infos_ptr->name, &color);
+                            selected = LogEngine::ref()->isSignalShown(infos_ptr->category, infos_ptr->name, &color);
                             if (selected && color) {
                                 ImGui::PushStyleColor(ImGuiCol_Header, (ImU32)color);
                                 ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);

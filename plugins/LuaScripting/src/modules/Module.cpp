@@ -1,15 +1,16 @@
+// sol2 config (SOL_ALL_SAFETIES_ON, SOL_EXCEPTIONS_SAFE_PROPAGATION) is now
+// injected by the plugin's CMakeLists so it reaches every TU before any
+// <sol/sol.hpp> include.
 #include "Module.h"
 #include <ezlibs/ezFile.hpp>
 #include <ezlibs/ezTime.hpp>
 #include <ezlibs/ezLog.hpp>
-#include <ImGuiPack.h>
+#include <imguipack.h>
 #include <exception>
 #include <chrono>
 #include <ctime>
 
 #include <lua.hpp>
-
-#define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
 
 Ltg::ScriptingModulePtr Module::create(const SettingsWeak& vSettings) {
@@ -33,6 +34,20 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
         m_datasModel = vDatasModel;
 
         m_luaPtr = std::make_unique<sol::state>();
+
+        // By default, sol2 converts C++ exceptions thrown from bound functions into a
+        // generic "C++ exception" lua_error — the actual std::exception::what() is lost.
+        // This handler forwards the real what() string back to Lua, so script error messages
+        // surface the original throw text ("Invalid date format", etc.) instead.
+        m_luaPtr->set_exception_handler(
+            [](lua_State* L, sol::optional<const std::exception&> maybe_exception, sol::string_view description) {
+                if (maybe_exception) {
+                    const std::exception& ex = *maybe_exception;
+                    return sol::stack::push(L, ex.what());
+                }
+                return sol::stack::push(L, description);
+            });
+
         m_luaPtr->open_libraries(sol::lib::base);
         m_luaPtr->open_libraries(sol::lib::package);
         m_luaPtr->open_libraries(sol::lib::coroutine);

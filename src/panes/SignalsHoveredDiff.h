@@ -16,7 +16,9 @@ limitations under the License.
 
 #pragma once
 
-#include <ImGuiPack.h>
+#include <ezlibs/ezClass.hpp>
+#include <ezlibs/ezSingleton.hpp>
+#include <imguipack.h>
 #include <models/log/LogEngine.h>
 #include <headers/DatasDef.h>
 #include <stdint.h>
@@ -26,29 +28,21 @@ limitations under the License.
 
 class ProjectFile;
 class SignalsHoveredDiff : public AbstractPane {
+    DISABLE_CONSTRUCTORS(SignalsHoveredDiff)
+    DISABLE_DESTRUCTORS(SignalsHoveredDiff)
+    IMPLEMENT_SHARED_SINGLETON(SignalsHoveredDiff)
+
 private:
     ImGuiListClipper m_VirtualClipper;
     std::vector<SignalTickWeak> m_PreviewTicks;
 
 public:
     void Clear();
-    bool Init() override;
-    void Unit() override;
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened = nullptr, ImGuiContext* vContextPtr = nullptr, void* vUserDatas = nullptr) override;
+    bool init() override;
+    void unit() override;
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
 
 private:
     static void CheckItem(const SignalTickPtr& vSignalTick);
     void DrawTable();
-
-public:  // singleton
-    static std::shared_ptr<SignalsHoveredDiff> Instance() {
-        static auto _instance = std::make_shared<SignalsHoveredDiff>();
-        return _instance;
-    }
-
-public:
-    SignalsHoveredDiff() = default;                                              // Prevent construction
-    SignalsHoveredDiff(const SignalsHoveredDiff&) = delete;                      // Prevent construction by copying
-    SignalsHoveredDiff& operator=(const SignalsHoveredDiff&) { return *this; };  // Prevent assignment
-    virtual ~SignalsHoveredDiff() = default;                                     // Prevent unwanted destruction};
 };

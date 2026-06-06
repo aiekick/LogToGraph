@@ -22,7 +22,7 @@ limitations under the License.
 #include <string>
 #include <unordered_map>
 #include <headers/DatasDef.h>
-#include <ezlibs/ezVec2.hpp>
+#include <ezlibs/ezMath/ezVec2.hpp>
 
 class SignalSerie {
 public:

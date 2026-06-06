@@ -16,7 +16,7 @@ limitations under the License.
 
 #include "TranslationHelper.h"
 
-#include <ImGuiPack/ImGuiPack.h>
+#include <imguipack.h>
 
 #include <ezlibs/ezVariant.hpp>
 

@@ -1,6 +1,7 @@
 #pragma once
 
-#define SOL_ALL_SAFETIES_ON 1
+// sol2 config (SOL_ALL_SAFETIES_ON, SOL_EXCEPTIONS_SAFE_PROPAGATION) is injected
+// by the plugin's CMakeLists for every TU.
 #include <sol/sol.hpp>
 
 #include <apis/LtgPluginApi.h>

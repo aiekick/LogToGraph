@@ -30,12 +30,15 @@ LuaScripting::LuaScripting() = default;
 
 bool LuaScripting::init(ez::Log* vLoggerInstancePtr) {
     m_SettingsPtr = std::make_shared<Settings>();
-    ez::Log::instance(vLoggerInstancePtr); // get the instance from the host app
+    // borrow the host's ez::Log so every LogVar* call from this DLL routes through
+    // the host's standardLogFunctor (which pushes into the Messaging pane)
+    ez::Log::initSingleton(vLoggerInstancePtr);
     return true;
 }
 
 void LuaScripting::unit() {
     m_SettingsPtr.reset();
+    ez::Log::unitSingleton();  // only releases the borrow — does NOT delete the host instance
 }
 
 uint32_t LuaScripting::getMinimalAppVersionSupported() const {

@@ -2,10 +2,15 @@ cmake_minimum_required(VERSION 3.20)
 
 set(PROJECT LogToGraph)
 
-enable_language(C CXX)
 project(${PROJECT} CXX)
 
-option(USE_BUILDING_AS_SHARED "Enable shared building" ON)
+enable_language(C CXX)
+
+## new imguipack's TextEditor uses a protected static `defaultPalette` accessed inline
+## from its constructor; the symbol is not exported on the DLL boundary so a shared
+## imguipack triggers LNK2001 in any consumer that embeds a TextEditor member. Build
+## everything static to dodge it (and keep linkage symmetrical with the new ezlibs).
+option(USE_BUILDING_AS_SHARED "Enable shared building" OFF)
 option(USE_BUILDING_OF_TESTS "Enable the build of tests" OFF)
 
 ## for group smake targets in the dir CmakeTargets
@@ -79,14 +84,22 @@ add_definitions(-DUSE_STD_FILESYSTEM)
 add_definitions(-DIMGUI_ENABLE_FREETYPE)
 add_definitions(-DIMGUI_DEFINE_MATH_OPERATORS)
 add_definitions(-DUSE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS)
+add_definitions(-DNEW_SINGLETON) ## align consumer code with imguipack's USE_NEW_SINGLETON
 add_definitions(-DILAYOUT_PANE_INCLUDE="${CMAKE_SOURCE_DIR}/apis/ILayoutPane.h")
-add_definitions(-DIMGUI_INCLUDE="${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/ImGuiPack.h")
+## IMGUI_INCLUDE must NOT point to imguipack.h (that file pulls every imgui_tools header,
+## which creates a circular include with TextEditor.h/ImCodeEditor.h). Point it at the
+## raw imgui_internal.h instead — the custom config is still picked up via IMGUI_USER_CONFIG.
+add_definitions(-DIMGUI_INCLUDE="${CMAKE_SOURCE_DIR}/3rdparty/imguipack/3rdparty/imgui_docking/imgui_internal.h")
 add_definitions(-DIMGUI_USER_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImGuiConfig.h")
 add_definitions(-DCUSTOM_IMWIDGETS_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImWidgetsConfig.h")
 add_definitions(-DCUSTOM_IN_APP_GPU_PROFILER_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomInAppGpuProfiler.h")
 add_definitions(-DCUSTOM_IMGUIFILEDIALOG_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImGuiFileDialogConfig.h")
-add_definitions(-DCUSTOM_LOG_TO_GRAPH_BACKEND_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomStrockerBackendConfig.h")
+add_definitions(-DCUSTOM_LOG_TO_GRAPH_BACKEND_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomLtgBackendConfig.h")
 add_definitions(-DCUSTOM_THEME_HELPER_CONFIG_HEADER="${CMAKE_SOURCE_DIR}/src/headers/CustomImGuiThemeHelperConfigHeader.h")
+
+if(USE_BUILDING_OF_TESTS)
+	enable_testing()
+endif()
 
 include(cmake/3rdparty.cmake)
 
@@ -138,13 +151,13 @@ file(GLOB_RECURSE PROJECT_CMAKE_FILES
 		${CMAKE_SOURCE_DIR}/cmake/*.cmake)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/cmake PREFIX cmake FILES ${PROJECT_CMAKE_FILES})
 
-file(GLOB IMGUI_IMPL_SOURCES 
-		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/backends/imgui_impl_glfw.cpp
-		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/backends/imgui_impl_glfw.h
-		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/backends/imgui_impl_opengl3.cpp
-		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/backends/imgui_impl_opengl3.h
-		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/misc/freetype/imgui_freetype.cpp
-		${CMAKE_SOURCE_DIR}/3rdparty/ImGuiPack/3rdparty/imgui_docking/misc/freetype/imgui_freetype.h)
+file(GLOB IMGUI_IMPL_SOURCES
+		${CMAKE_SOURCE_DIR}/3rdparty/imguipack/3rdparty/imgui_docking/backends/imgui_impl_glfw.cpp
+		${CMAKE_SOURCE_DIR}/3rdparty/imguipack/3rdparty/imgui_docking/backends/imgui_impl_glfw.h
+		${CMAKE_SOURCE_DIR}/3rdparty/imguipack/3rdparty/imgui_docking/backends/imgui_impl_opengl3.cpp
+		${CMAKE_SOURCE_DIR}/3rdparty/imguipack/3rdparty/imgui_docking/backends/imgui_impl_opengl3.h
+		${CMAKE_SOURCE_DIR}/3rdparty/imguipack/3rdparty/imgui_docking/misc/freetype/imgui_freetype.cpp
+		${CMAKE_SOURCE_DIR}/3rdparty/imguipack/3rdparty/imgui_docking/misc/freetype/imgui_freetype.h)
 source_group(src\\ImGuiImpl FILES ${IMGUI_IMPL_SOURCES})
 
 if (MSVC)
@@ -206,10 +219,13 @@ if (WIN32)
 	target_compile_definitions(${PROJECT} PRIVATE -DGLFW_EXPOSE_NATIVE_WIN32)
 endif()
 
-set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${FINAL_BIN_DIR}")
-set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${FINAL_BIN_DIR}")
-set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${FINAL_BIN_DIR}")
-set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${FINAL_BIN_DIR}")
+set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${FINAL_BIN_DIR})
+set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${FINAL_BIN_DIR})
+set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${FINAL_BIN_DIR})
+set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${FINAL_BIN_DIR})
+set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${FINAL_BIN_DIR})
+
+set_target_properties(${PROJECT} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${FINAL_BIN_DIR})
 
 ########################################################
 ############## FORCE BUILD OF PLUGINS ##################
@@ -223,21 +239,11 @@ ENDFOREACH()
 ################# BUILD INCREMENT TOOL #################
 ########################################################
 
-## only for Debug
-add_subdirectory(3rdparty/BuildInc)
-## set_target_properties(BuildInc PROPERTIES FOLDER Tools)
-
-add_custom_command(
-	TARGET ${PROJECT} PRE_BUILD
-	COMMAND BuildInc -prefix=${PROJECT} $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/headers/${PROJECT}Build.h>
-	DEPENDS ${PROJECT})
-
-########################################################
-##### TESTS ############################################
-########################################################
-
-if(USE_BUILDING_OF_TESTS)
-	enable_testing()
+if (TARGET ezBuildInc AND $<CONFIG> STREQUAL "Debug")
+	add_custom_command(
+		TARGET ${PROJECT} PRE_BUILD
+		COMMAND ezBuildInc ${PROJECT} $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/headers/version.h>
+	)
 endif()
 
 #############################################################
@@ -249,7 +255,6 @@ endif()
 add_custom_command(
 	TARGET ${PROJECT} PRE_BUILD
 	COMMAND echo "$<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:Release>$<$<CONFIG:MinSizeRel>:MinSizeRel>$<$<CONFIG:RelWithDebInfo>:RelWithDebInfo>" > ${CMAKE_BINARY_DIR}/current_build_type
-	DEPENDS ${PROJECT}
 )
 
 ### outside of the building we read the last file content
@@ -259,88 +264,89 @@ if (EXISTS ${CMAKE_BINARY_DIR}/current_build_type)
 	string(STRIP ${CURRENT_BUILD_TYPE} CURRENT_BUILD_TYPE) ### removing end line wrote by echo command
 	set(PROJECT_BUILD_CONFIG_NAME ${CURRENT_BUILD_TYPE} CACHE STRING "" FORCE)
 	message(STATUS "CURRENT BUILD CONFIG is : ${PROJECT_BUILD_CONFIG_NAME}")
-endif()
 
-#############################################################
-### VERSION #################################################
-#############################################################
+	#############################################################
+	### VERSION #################################################
+	#############################################################
 
-file(READ ${CMAKE_SOURCE_DIR}/src/headers/${PROJECT}Build.h BuildIdFile)
-string(REGEX MATCH "#define ${PROJECT}_BuildNumber ([0-9]*)" _ ${BuildIdFile})
-set(BuildNumber ${CMAKE_MATCH_1})
-string(REGEX MATCH "#define ${PROJECT}_MinorNumber ([0-9]*)" _ ${BuildIdFile})
-set(MinorNumber ${CMAKE_MATCH_1})
-string(REGEX MATCH "#define ${PROJECT}_MajorNumber ([0-9]*)" _ ${BuildIdFile})
-set(MajorNumber ${CMAKE_MATCH_1})
-set(${PROJECT}_Version "v${MajorNumber}_${MinorNumber}_${BuildNumber}")
-message(STATUS "${PROJECT} Version to install : ${${PROJECT}_Version}")
+	file(READ ${CMAKE_SOURCE_DIR}/src/headers/${PROJECT}Build.h BuildIdFile)
+	string(REGEX MATCH "#define ${PROJECT}_BuildNumber ([0-9]*)" _ ${BuildIdFile})
+	set(BuildNumber ${CMAKE_MATCH_1})
+	string(REGEX MATCH "#define ${PROJECT}_MinorNumber ([0-9]*)" _ ${BuildIdFile})
+	set(MinorNumber ${CMAKE_MATCH_1})
+	string(REGEX MATCH "#define ${PROJECT}_MajorNumber ([0-9]*)" _ ${BuildIdFile})
+	set(MajorNumber ${CMAKE_MATCH_1})
+	set(${PROJECT}_Version "v${MajorNumber}_${MinorNumber}_${BuildNumber}")
+	message(STATUS "${PROJECT} Version to install : ${${PROJECT}_Version}")
 
-add_custom_command(
-	TARGET ${PROJECT} PRE_BUILD
-	COMMAND echo "${PROJECT}_${CMAKE_SYSTEM_NAME}_${PROJECT_BUILD_CONFIG_NAME}_${ARCH}_v${MajorNumber}.${MinorNumber}.${BuildNumber}" > ${CMAKE_SOURCE_DIR}/VERSION
-	DEPENDS ${PROJECT}
-)
+	add_custom_command(
+		TARGET ${PROJECT} PRE_BUILD
+		COMMAND echo "${PROJECT}_${CMAKE_SYSTEM_NAME}_${PROJECT_BUILD_CONFIG_NAME}_${ARCH}_v${MajorNumber}.${MinorNumber}.${BuildNumber}" > ${CMAKE_SOURCE_DIR}/VERSION
+		DEPENDS ${PROJECT}
+	)
 
-#############################################################
-### INSTALL #################################################
-#############################################################
+	#############################################################
+	### INSTALL #################################################
+	#############################################################
 
-install(TARGETS ${PROJECT} RUNTIME DESTINATION . COMPONENT APP_BINARY)
-install(FILES ${CMAKE_SOURCE_DIR}/LICENSE DESTINATION .	COMPONENT APP_FILES)
-install(FILES ${CMAKE_SOURCE_DIR}/VERSION DESTINATION .	COMPONENT APP_FILES OPTIONAL)
-install(FILES ${CMAKE_SOURCE_DIR}/CHANGELOG DESTINATION . COMPONENT APP_FILES OPTIONAL)
+	install(TARGETS ${PROJECT} RUNTIME DESTINATION . COMPONENT APP_BINARY)
+	install(FILES ${CMAKE_SOURCE_DIR}/LICENSE DESTINATION .	COMPONENT APP_FILES)
+	install(FILES ${CMAKE_SOURCE_DIR}/VERSION DESTINATION .	COMPONENT APP_FILES OPTIONAL)
+	install(FILES ${CMAKE_SOURCE_DIR}/CHANGELOG DESTINATION . COMPONENT APP_FILES OPTIONAL)
 
-#############################################################
-### PACKAGE #################################################
-## https://gitlab.kitware.com/cmake/community/-/wikis/doc/cpack/Component-Install-With-CPack
-#############################################################
+	#############################################################
+	### PACKAGE #################################################
+	## https://gitlab.kitware.com/cmake/community/-/wikis/doc/cpack/Component-Install-With-CPack
+	#############################################################
 
-set(PROJECT_PACKAGE_NAME "${PROJECT}_${CMAKE_SYSTEM_NAME}_${PROJECT_BUILD_CONFIG_NAME}_${ARCH}_v${MajorNumber}.${MinorNumber}.${BuildNumber}")
-set(PROJECT_SHORTCUT_NAME "${PROJECT}_v${MajorNumber}.${MinorNumber}.${BuildNumber}")
-set(PROJECT_SHORTCUT_TARGET "${PROJECT}_${CMAKE_SYSTEM_NAME}_${PROJECT_BUILD_CONFIG_NAME}_${ARCH}")
-set(ORGANIZATION_NAME "FunParadigm")
+	set(PROJECT_PACKAGE_NAME "${PROJECT}_${CMAKE_SYSTEM_NAME}_${PROJECT_BUILD_CONFIG_NAME}_${ARCH}_v${MajorNumber}.${MinorNumber}.${BuildNumber}")
+	set(PROJECT_SHORTCUT_NAME "${PROJECT}_v${MajorNumber}.${MinorNumber}.${BuildNumber}")
+	set(PROJECT_SHORTCUT_TARGET "${PROJECT}_${CMAKE_SYSTEM_NAME}_${PROJECT_BUILD_CONFIG_NAME}_${ARCH}")
+	set(ORGANIZATION_NAME "FunParadigm")
 
-if (USE_PACKAGE_TO_NSIS_OR_ZIP)
-	set(CPACK_GENERATOR "NSIS")
-	set(CPACK_NSIS_MODIFY_PATH ON)
-	set(CPACK_NSIS_DISPLAY_NAME ${PROJECT_SHORTCUT_NAME})
-	set(CPACK_NSIS_PACKAGE_NAME ${PROJECT_SHORTCUT_NAME})
-	if (WIN32)
-		set(CPACK_PACKAGE_INSTALL_DIRECTORY "${ORGANIZATION_NAME}\\\\${PROJECT_PACKAGE_NAME}")
-		set(CPACK_NSIS_CREATE_ICONS_EXTRA
-			"CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\${PROJECT_SHORTCUT_NAME}.lnk' '$INSTDIR\\\\${PROJECT_SHORTCUT_TARGET}.exe'"
-		)
-		set(CPACK_NSIS_DELETE_ICONS_EXTRA
-			"Delete '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\${PROJECT_SHORTCUT_NAME}.lnk'"
-		)
+	if (USE_PACKAGE_TO_NSIS_OR_ZIP)
+		set(CPACK_GENERATOR "NSIS")
+		set(CPACK_NSIS_MODIFY_PATH ON)
+		set(CPACK_NSIS_DISPLAY_NAME ${PROJECT_SHORTCUT_NAME})
+		set(CPACK_NSIS_PACKAGE_NAME ${PROJECT_SHORTCUT_NAME})
+		if (WIN32)
+			set(CPACK_PACKAGE_INSTALL_DIRECTORY "${ORGANIZATION_NAME}\\\\${PROJECT_PACKAGE_NAME}")
+			set(CPACK_NSIS_CREATE_ICONS_EXTRA
+				"CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\${PROJECT_SHORTCUT_NAME}.lnk' '$INSTDIR\\\\${PROJECT_SHORTCUT_TARGET}.exe'"
+			)
+			set(CPACK_NSIS_DELETE_ICONS_EXTRA
+				"Delete '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\${PROJECT_SHORTCUT_NAME}.lnk'"
+			)
+		endif()
+	else()
+		set(CPACK_GENERATOR "ZIP")
 	endif()
-else()
-	set(CPACK_GENERATOR "ZIP")
-endif()
-set(CPACK_MONOLITHIC_INSTALL 1)
-set(CPACK_THREADS 8)
-if (UNIX)
-	set(CPACK_SET_DESTDIR ON)
-endif()
-set(CPACK_PACKAGE_VENDOR ${ORGANIZATION_NAME})
-set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE 1)
-set(CPACK_PACKAGE_VERSION_MAJOR "${MajorNumber}")
-set(CPACK_PACKAGE_VERSION_MINOR "${MinorNumber}")
-set(CPACK_PACKAGE_VERSION_PATCH "${BuildNumber}")
-set(CPACK_PACKAGE_NAME "${PROJECT_PACKAGE_NAME}")
-set(CPACK_PACKAGE_FILE_NAME "${PROJECT_PACKAGE_NAME}")
-set(CPACK_COMPONENT_APPLICATIONS_DISPLAY_NAME "${PROJECT}")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_PACKAGE_NAME}")
-SET(CPACK_OUTPUT_FILE_PREFIX "${FINAL_BIN_DIR}/packages")
-set(CPACK_PACKAGE_VERSION "${MajorNumber}.${MinorNumber}.${BuildNumber}")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${${PROJECT}_PACKAGE_NAME} - Nodes based mesh composer")
+	set(CPACK_MONOLITHIC_INSTALL 1)
+	set(CPACK_THREADS 8)
+	if (UNIX)
+		set(CPACK_SET_DESTDIR ON)
+	endif()
+	set(CPACK_PACKAGE_VENDOR ${ORGANIZATION_NAME})
+	set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE 1)
+	set(CPACK_PACKAGE_VERSION_MAJOR "${MajorNumber}")
+	set(CPACK_PACKAGE_VERSION_MINOR "${MinorNumber}")
+	set(CPACK_PACKAGE_VERSION_PATCH "${BuildNumber}")
+	set(CPACK_PACKAGE_NAME "${PROJECT_PACKAGE_NAME}")
+	set(CPACK_PACKAGE_FILE_NAME "${PROJECT_PACKAGE_NAME}")
+	set(CPACK_COMPONENT_APPLICATIONS_DISPLAY_NAME "${PROJECT}")
+	set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_PACKAGE_NAME}")
+	SET(CPACK_OUTPUT_FILE_PREFIX "${FINAL_BIN_DIR}/packages")
+	set(CPACK_PACKAGE_VERSION "${MajorNumber}.${MinorNumber}.${BuildNumber}")
+	set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${${PROJECT}_PACKAGE_NAME} - Nodes based mesh composer")
 
-if (EXISTS ${CMAKE_SOURCE_DIR}/LICENSE)
-	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
-endif()
+	if (EXISTS ${CMAKE_SOURCE_DIR}/LICENSE)
+		set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+	endif()
 
-if (EXISTS ${CMAKE_SOURCE_DIR}/VERSION)
-	set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/VERSION")
-endif()
+	if (EXISTS ${CMAKE_SOURCE_DIR}/VERSION)
+		set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/VERSION")
+	endif()
 
-include(CPack)
+	include(CPack)
+
+endif()

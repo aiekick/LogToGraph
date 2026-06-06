@@ -7,12 +7,7 @@
 #include <ezlibs/ezLog.hpp>
 #include <ezlibs/ezFile.hpp>
 
-CodePane::CodePane() = default;
-CodePane::~CodePane() {
-    Unit();
-}
-
-bool CodePane::Init() {
+bool CodePane::init() {
     // for avoid a reallocation of the vector for each push/emplace
     // where the the language Type in each editor got corrupted
     // because passed by ref
@@ -35,7 +30,7 @@ bool CodePane::Init() {
     return true;
 }
 
-void CodePane::Unit() {
+void CodePane::unit() {
     m_CodeSheets.clear();
 }
 
@@ -43,12 +38,12 @@ void CodePane::Unit() {
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-bool CodePane::DrawPanes(const uint32_t& /*vCurrentFrame*/, bool* vOpened, ImGuiContext* vContextPtr, void* /*vUserDatas*/) {
-    ImGui::SetCurrentContext(vContextPtr);
+bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    
     bool change = false;
-    if (vOpened != nullptr && *vOpened) {
+    if (apOpened != nullptr && *apOpened) {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(GetName().c_str(), vOpened, flags)) {
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
 #ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
             auto win = ImGui::GetCurrentWindowRead();
             if (win->Viewport->Idx != 0)
@@ -86,13 +81,13 @@ void CodePane::OpenFile(const std::string& vFilePathName, size_t vErrorLine, std
     auto ps = ez::file::parsePathFileName(vFilePathName);
     if (ps.isOk) {
         const auto code = ez::file::loadFileToString(vFilePathName);
-        auto type = TextEditor::LanguageDefinition::C();
+        CodeEditorLanguage type = TextEditor::Language::C();
         if (ps.ext == "cpp" || ps.ext == "hpp") {
-            type = TextEditor::LanguageDefinition::Cpp();
+            type = TextEditor::Language::Cpp();
         } else if (ps.ext == "c" || ps.ext == "h") {
-            type = TextEditor::LanguageDefinition::C();
+            type = TextEditor::Language::C();
         } else if (ps.ext == "lua") {
-            type = TextEditor::LanguageDefinition::Lua();
+            type = TextEditor::Language::Lua();
         }
         if (existing_code_sheet_ptr != nullptr) {
             existing_code_sheet_ptr->wasModified = false;

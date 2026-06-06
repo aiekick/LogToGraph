@@ -45,19 +45,17 @@ typedef std::shared_ptr<IProject> IProjectPtr;
 typedef std::weak_ptr<IProject> IProjectWeak;
 
 struct PluginPane : public virtual ILayoutPane {
-    bool Init() override = 0;  // return false if the init was failed
-    void Unit() override = 0;
+    bool init() override = 0;  // return false if the init was failed
+    void unit() override = 0;
 
     // the return, is a user side use case here
-    bool DrawPanes(const uint32_t& vCurrentFrame, bool* vOpened, ImGuiContext* vContextPt, void* vUserDatas) override = 0;
-    bool DrawWidgets(const uint32_t& /*vCurrentFrame*/, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) override { return false; }
-    bool DrawOverlays(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vRect*/, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) override { return false; }
-    bool DrawDialogsAndPopups(const uint32_t& /*vCurrentFrame*/, const ImRect& /*vMaxRect*/, ImGuiContext* /*vContextPtr*/, void* /*vUserDatas*/) override {
-        return false;
-    }
+    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override = 0;
+    bool drawWidgets(LayoutPaneUserDatas /*apUserDatas*/) override { return false; }
+    bool drawOverlays(const ImRect& /*aRect*/, LayoutPaneUserDatas /*apUserDatas*/) override { return false; }
+    bool drawDialogsAndPopups(const ImRect& /*aRect*/, LayoutPaneUserDatas /*apUserDatas*/) override { return false; }
 
     // if for any reason the pane must be hidden temporary, the user can control this here
-    virtual bool CanBeDisplayed() override = 0;
+    virtual bool canBeDisplayed() override = 0;
 
     virtual void SetProjectInstance(IProjectWeak vProjectInstance) = 0;
 };

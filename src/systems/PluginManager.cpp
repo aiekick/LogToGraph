@@ -1,7 +1,7 @@
 #include <systems/PluginManager.h>
 
 #include <ezlibs/ezFile.hpp>
-#include <ezlibs/ezMath.hpp>
+#include <ezlibs/ezMath/ezMath.hpp>
 #include <ezlibs/ezLog.hpp>
 
 namespace fs = std::filesystem;
@@ -18,14 +18,14 @@ PluginInstance::~PluginInstance() {
 
 PluginReturnMsg PluginInstance::init(const std::string& vName, const std::string& vFilePathName) {
     m_Name = vName;
-    m_Loader = dlloader::DLLoader<Ltg::PluginInterface>(vFilePathName);
-    m_Loader.DLOpenLib();
-    m_PluginInstance = m_Loader.DLGetInstance();
-    if (m_Loader.IsAPlugin()) {
-        if (m_Loader.IsValid()) {
+    m_Loader = ez::plugin::Loader<Ltg::PluginInterface>(vFilePathName);
+    m_Loader.dlOpenLib();
+    m_PluginInstance = m_Loader.dlGetInstance();
+    if (m_Loader.isAPlugin()) {
+        if (m_Loader.isValid()) {
             if (m_PluginInstance) {
                 if (!m_PluginInstance->init(  //
-                        ez::Log::instance()   // redirection of the logger instance
+                        &ez::Log::ref()       // pass the host logger by pointer (legacy signature kept)
                         )) {
                     m_PluginInstance.reset();
                 } else {
@@ -43,7 +43,7 @@ void PluginInstance::unit() {
         m_PluginInstance->unit();
     }
     m_PluginInstance.reset();
-    m_Loader.DLCloseLib();
+    m_Loader.dlCloseLib();
 }
 
 PluginInterfaceWeak PluginInstance::get() const {
@@ -187,7 +187,7 @@ void PluginManager::m_loadPlugin(const fs::directory_entry& vEntry, const std::s
                                         const auto& modules = pluginInstancePtr->getModulesInfos();
                                         for (const auto& m : modules) {
                                             if (vTypesToLoad.find(m.type) != vTypesToLoad.end()) {
-                                                // au moin un des type est autorisé. donc on va charger le plugin
+                                                // au moin un des type est autorisï¿½. donc on va charger le plugin
                                                 authorized = true;
                                                 // pas besoin de s'eterniser
                                                 break;
@@ -220,8 +220,8 @@ void PluginManager::m_displayLoadedPlugins() {
             if (plugin.second != nullptr) {
                 auto plugin_instance_ptr = plugin.second->get().lock();
                 if (plugin_instance_ptr != nullptr) {
-                    max_name_size = ez::maxi(max_name_size, plugin_instance_ptr->getName().size() + minimal_space);
-                    max_vers_size = ez::maxi(max_vers_size, plugin_instance_ptr->getVersion().size() + minimal_space);
+                    max_name_size = ez::math::maxi(max_name_size, plugin_instance_ptr->getName().size() + minimal_space);
+                    max_vers_size = ez::math::maxi(max_vers_size, plugin_instance_ptr->getVersion().size() + minimal_space);
                 }
             }
         }

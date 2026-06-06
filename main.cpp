@@ -35,13 +35,16 @@ int main(int argc, char** argv) {
 #endif
 #endif
 
+    ez::Log::initSingleton();  // new singleton model: explicit init/unit
     try {
         App app(argc, argv);
         app.run();
-        ez::Log::instance()->close();
+        ez::Log::ref().close();
+        ez::Log::unitSingleton();
     } catch (const std::exception& e) {
         LogVarLightInfo("Exception %s", e.what());
-        ez::Log::instance()->close();
+        ez::Log::ref().close();
+        ez::Log::unitSingleton();
         EZ_TOOLS_DEBUG_BREAK;
         return EXIT_FAILURE;
     }
