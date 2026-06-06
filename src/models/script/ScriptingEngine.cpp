@@ -36,6 +36,7 @@ limitations under the License.
 #include <ezlibs/ezFile.hpp>
 
 #include <systems/PluginManager.h>
+#include <models/debug/ScriptDebugger.h>
 
 using namespace std::chrono;
 
@@ -77,7 +78,7 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
     if (m_scriptingModules.find(selectedScripting) != m_scriptingModules.end()) {
         scriptingPtr = m_scriptingModules.at(selectedScripting);
     }
-    const auto scriptFilePathName = m_scriptFilePathName;
+    const auto scriptCode = m_scriptCode;
     const auto sourceFilePathNames = m_sourceFilePathNames;
 
     s_workerThread_Mutex.unlock();
@@ -85,13 +86,21 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
     int32_t rowIndex = 0;  // the current line pos read from file
     int32_t rowCount = 0;  // the current line pos read from file
 
-    if (!scriptFilePathName.empty()) {
-        if (ez::file::isFileExist(scriptFilePathName)) {
+    if (!scriptCode.empty()) {
+        if (scriptingPtr != nullptr) {
             if (scriptingPtr->load(ScriptingEngine::ref())) {
                 Ltg::ErrorContainer errorContainer;
-                if (!scriptingPtr->compileScript(scriptFilePathName, errorContainer)) {
-                    LogVarLightError("Fail to compile script \"%s\"", scriptFilePathName.c_str());
+                if (!scriptingPtr->compileScriptCode(scriptCode, errorContainer)) {
+                    LogVarLightError("%s", "Fail to compile the project script");
                 } else {
+                    // arm the shared debugger only when a session is wanted (breakpoints set or debug
+                    // toggle on); otherwise no hook is installed and LuaJIT keeps its full speed
+                    auto* debugHostPtr = ScriptDebugger::ref().get();
+                    const bool debugArmed = ScriptDebugger::ref()->shouldArmDebug();
+                    if (debugArmed) {
+                        ScriptDebugger::ref()->bindPlugin(scriptingPtr.get());
+                        scriptingPtr->enableDebug(debugHostPtr);
+                    }
                     LogEngine::ref()->Clear();
                     GraphView::ref()->Clear();
                     DataBase::ref()->OpenDBFile(ProjectFile::ref()->m_ProjectFilePathName);
@@ -134,6 +143,10 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                     }
                     LogEngine::ref()->Finalize();  // retrieve datas from database
                     DataBase::ref()->CloseDBFile();
+                    if (debugArmed) {
+                        scriptingPtr->disableDebug();
+                        ScriptDebugger::ref()->unbindPlugin();
+                    }
                 }
                 scriptingPtr->unload();
             }
@@ -217,6 +230,11 @@ void ScriptingEngine::SetScriptFilePathName(const SourceFilePathName& vFilePathN
     m_scriptFilePathName = vFilePathName;
 }
 
+void ScriptingEngine::SetScriptCode(const std::string& vCode) {
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    m_scriptCode = vCode;
+}
+
 void ScriptingEngine::AddSourceFilePathName(const SourceFilePathName& vFilePathName) {
     m_sourceFilePathNames.push_back(vFilePathName);
 }
@@ -264,9 +282,24 @@ bool ScriptingEngine::StopWorkerThread() {
     bool res = IsJoinable();
     if (res) {
         ScriptingEngine::s_working = false;
+        // a worker paused in the debugger (onPause) is asleep on a condvar; s_working=false alone
+        // does NOT wake it, so Join() would deadlock the UI. Unblock the pause first (same as
+        // AbortAndJoinWorker): stop() pushes a Stop command + notifies, the hook aborts the run.
+        ScriptDebugger::ref()->stop();
         Join();
     }
     return res;
+}
+
+void ScriptingEngine::AbortAndJoinWorker() {
+    // abort a running or breakpoint-paused worker and join it. called at shutdown BEFORE the
+    // singletons it relies on (ScriptDebugger) are destroyed, so a worker blocked in
+    // ScriptDebugger::onPause cannot outlive them.
+    ScriptingEngine::s_working = false;  // ask the parse loop to break
+    ScriptDebugger::ref()->stop();       // unblock a worker paused in onPause
+    if (IsJoinable()) {
+        Join();
+    }
 }
 
 bool ScriptingEngine::IsJoinable() {

@@ -29,7 +29,6 @@ PLUGIN_PREFIX void deleter(LuaScripting* ptr) {
 LuaScripting::LuaScripting() = default;
 
 bool LuaScripting::init(ez::Log* vLoggerInstancePtr) {
-    m_SettingsPtr = std::make_shared<Settings>();
     // borrow the host's ez::Log so every LogVar* call from this DLL routes through
     // the host's standardLogFunctor (which pushes into the Messaging pane)
     ez::Log::initSingleton(vLoggerInstancePtr);
@@ -37,7 +36,6 @@ bool LuaScripting::init(ez::Log* vLoggerInstancePtr) {
 }
 
 void LuaScripting::unit() {
-    m_SettingsPtr.reset();
     ez::Log::unitSingleton();  // only releases the borrow — does NOT delete the host instance
 }
 
@@ -85,18 +83,7 @@ std::vector<Ltg::PluginModuleInfos> LuaScripting::getModulesInfos() const {
 
 Ltg::PluginModulePtr LuaScripting::createModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) {
     if (vPluginModuleName == "Lua") {
-        return Module::create(m_SettingsPtr);
+        return Module::create();
     }
     return nullptr;
-}
-
-std::vector<Ltg::PluginPaneConfig> LuaScripting::getPanes() const {
-    std::vector<Ltg::PluginPaneConfig> res;
-    return res;
-}
-
-std::vector<Ltg::PluginSettingsConfig> LuaScripting::getSettings() const {
-    std::vector<Ltg::PluginSettingsConfig> res;
-    res.push_back(Ltg::PluginSettingsConfig(m_SettingsPtr));
-    return res;
 }

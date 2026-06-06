@@ -5,18 +5,83 @@
 #include <ezlibs/ezFile.hpp>
 #include <ezlibs/ezTime.hpp>
 #include <ezlibs/ezLog.hpp>
-#include <imguipack.h>
 #include <exception>
 #include <chrono>
 #include <ctime>
+#include <cstdio>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <lua.hpp>
 #include <sol/sol.hpp>
 
-Ltg::ScriptingModulePtr Module::create(const SettingsWeak& vSettings) {
-    assert(!vSettings.expired());
+namespace {
+
+// Registry key binding a lua_State to its owning Module, so the C line hook can recover the
+// Module from the lua_State it is handed (lua_sethook carries no user data). The binding lives
+// in the state's own registry: it works for several states at once and for coroutines, and is
+// freed with the state — so there is no process-wide static to be destroyed (and crash) at the
+// plugin DLL's unload.
+const char* const kDebugModuleRegistryKey = "ltg_debug_module";
+
+// Stringify a value on the Lua stack WITHOUT luaL_tolstring (absent from LuaJIT 5.1).
+// The type is checked first so lua_tostring is only called on real strings (it would
+// otherwise coerce a number in place and disturb the stack inside the hook).
+std::string luaValueToString(lua_State* apLua, int32_t aIndex) {
+    const int32_t valueType = lua_type(apLua, aIndex);
+    switch (valueType) {
+        case LUA_TNIL: return "nil";
+        case LUA_TBOOLEAN: return lua_toboolean(apLua, aIndex) != 0 ? "true" : "false";
+        case LUA_TNUMBER: {
+            char buffer[64];
+            snprintf(buffer, sizeof(buffer), "%.14g", lua_tonumber(apLua, aIndex));
+            return buffer;
+        }
+        case LUA_TSTRING: return std::string(lua_tostring(apLua, aIndex));
+        default: {
+            char buffer[64];
+            snprintf(buffer, sizeof(buffer), "%s: %p", lua_typename(apLua, valueType), lua_topointer(apLua, aIndex));
+            return buffer;
+        }
+    }
+}
+
+int32_t luaStackDepth(lua_State* apLua) {
+    int32_t depth = 0;
+    lua_Debug frameInfo;
+    while (lua_getstack(apLua, depth, &frameInfo) != 0) {
+        ++depth;
+    }
+    return depth;
+}
+
+// cap on children read per lazy expansion (one level), to keep a single expand cheap
+constexpr int32_t kMaxExpandChildren = 1000;
+
+// stringify a table key without coercing it on the stack (would break lua_next)
+std::string luaKeyToString(lua_State* apLua, int32_t aIndex) {
+    const int32_t keyType = lua_type(apLua, aIndex);
+    switch (keyType) {
+        case LUA_TSTRING: return std::string(lua_tostring(apLua, aIndex));
+        case LUA_TNUMBER: {
+            char buffer[64];
+            snprintf(buffer, sizeof(buffer), "[%.14g]", lua_tonumber(apLua, aIndex));
+            return buffer;
+        }
+        case LUA_TBOOLEAN: return lua_toboolean(apLua, aIndex) != 0 ? "[true]" : "[false]";
+        default: {
+            char buffer[64];
+            snprintf(buffer, sizeof(buffer), "[%s]", lua_typename(apLua, keyType));
+            return buffer;
+        }
+    }
+}
+
+}  // namespace
+
+Ltg::ScriptingModulePtr Module::create() {
     auto res = std::make_shared<Module>();
-    res->m_settings = vSettings;
     if (!res->init()) {
         res.reset();
     }
@@ -105,12 +170,35 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
 }
 
 void Module::unload() {
+    // the registry-held debug binding (if any) dies with the lua_State
     m_luaPtr.reset();
 }
 
 bool Module::compileScript(const Ltg::ScriptFilePathName& vFilePathName, Ltg::ErrorContainer& vOutErrors) {
     try {
         m_luaPtr->script_file(vFilePathName);
+        bool res = true;
+        sol::function parse = (*m_luaPtr)["parse"];
+        if (!parse.valid()) {
+            LogVarLightError("Lua: %s", "the lua function parse(buffer) is missing");
+            res = false;
+        }
+        res &= callScriptStart(vOutErrors);
+        res &= callScriptEnd(vOutErrors);
+        return res;
+    } catch (const sol::error& ex) {
+        LogVarError("Lua: Error in the Lua script : %s", ex.what());
+    } catch (const std::exception& ex) {
+        LogVarError("Lua: Error in the Lua script : %s", ex.what());
+    } catch (...) {
+        LogVarError("Lua: %s", "Unknown error in the Lua script");
+    }
+    return false;
+}
+
+bool Module::compileScriptCode(const std::string& aCode, Ltg::ErrorContainer& vOutErrors) {
+    try {
+        m_luaPtr->script(aCode);  // compile + run the chunk from memory (defines parse/startFile/endFile)
         bool res = true;
         sol::function parse = (*m_luaPtr)["parse"];
         if (!parse.valid()) {
@@ -176,6 +264,7 @@ bool Module::callScriptEnd(Ltg::ErrorContainer& vOutErrors) {
 }
 
 void Module::setRowIndex(int32_t vRowIndex) {
+    m_currentRowIndex = vRowIndex;  // exposed in DebugState so the user knows the log row
     if (m_luaDatasModelPtr != nullptr) {
         m_luaDatasModelPtr->setRowIndex(vRowIndex);
     }
@@ -184,5 +273,236 @@ void Module::setRowIndex(int32_t vRowIndex) {
 void Module::setRowCount(int32_t vRowCount) {
     if (m_luaDatasModelPtr != nullptr) {
         m_luaDatasModelPtr->setRowCount(vRowCount);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+//// DEBUGGER (IScriptDebugger) /////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+
+void Module::enableDebug(Ltg::IScriptDebugHost* apHost) {
+    if (m_luaPtr == nullptr) {
+        return;
+    }
+    m_debugHostPtr = apHost;
+    m_stepMode = StepMode::None;
+    m_pauseRequested = false;
+    m_stopRequested = false;
+    lua_State* luaStatePtr = m_luaPtr->lua_state();
+    // bind `this` to this lua_State through its registry, so the C line hook can recover the
+    // Module from the lua_State it is handed
+    lua_pushlightuserdata(luaStatePtr, this);
+    lua_setfield(luaStatePtr, LUA_REGISTRYINDEX, kDebugModuleRegistryKey);
+    // disable the JIT so the line hook fires on every line during the debug session
+    m_luaPtr->safe_script("if jit and jit.off then jit.off() end", sol::script_pass_on_error);
+    lua_sethook(luaStatePtr, &Module::sLuaHook, LUA_MASKLINE, 0);
+    m_debugEnabled = true;
+}
+
+void Module::disableDebug() {
+    if (m_luaPtr == nullptr) {
+        return;
+    }
+    lua_State* luaStatePtr = m_luaPtr->lua_state();
+    lua_sethook(luaStatePtr, nullptr, 0, 0);
+    m_releaseDebugRefs(luaStatePtr);  // free any registry refs left from the last pause
+    lua_pushnil(luaStatePtr);  // drop the registry binding (the hook is being removed anyway)
+    lua_setfield(luaStatePtr, LUA_REGISTRYINDEX, kDebugModuleRegistryKey);
+    m_luaPtr->safe_script("if jit and jit.on then jit.on() end", sol::script_pass_on_error);
+    m_debugHostPtr = nullptr;
+    m_debugEnabled = false;
+}
+
+void Module::requestPause() {
+    m_pauseRequested = true;
+}
+
+void Module::requestStop() {
+    m_stopRequested = true;
+}
+
+void Module::sLuaHook(lua_State* apLua, lua_Debug* apDebug) {
+    // recover the Module bound to this lua_State (set in enableDebug) from the state's registry
+    lua_getfield(apLua, LUA_REGISTRYINDEX, kDebugModuleRegistryKey);
+    Module* self = static_cast<Module*>(lua_touserdata(apLua, -1));
+    lua_pop(apLua, 1);
+    if (self != nullptr) {
+        self->m_onHook(apLua, apDebug);
+    }
+}
+
+void Module::m_onHook(lua_State* apLua, lua_Debug* apDebug) {
+    if (m_debugHostPtr == nullptr) {
+        return;
+    }
+    if (apDebug->event != LUA_HOOKLINE) {
+        return;
+    }
+    if (m_stopRequested) {
+        // unconditional abort; do not go through onPause (which would block again)
+        luaL_error(apLua, "execution stopped by the debugger");  // longjmp, never returns
+        return;
+    }
+    lua_getinfo(apLua, "Sl", apDebug);  // fill currentline + short_src
+    const int32_t line = static_cast<int32_t>(apDebug->currentline);
+    if (!m_shouldBreak(apLua, line)) {
+        return;
+    }
+    Ltg::DebugState state = m_buildState(apLua, apDebug);
+    Ltg::DebugAction action = m_debugHostPtr->onPause(state);  // BLOCKS until the first action
+    while (action.kind == Ltg::DebugAction::Kind::Expand) {
+        const std::vector<Ltg::DebugVar> children = m_expandRef(apLua, action.expandRef);
+        m_debugHostPtr->publishExpansion(action.expandRef, children);
+        action = m_debugHostPtr->waitAction();  // BLOCKS until the next action
+    }
+    m_releaseDebugRefs(apLua);
+    m_applyCommand(apLua, action.command);
+}
+
+bool Module::m_shouldBreak(lua_State* apLua, int32_t aLine) {
+    if (m_pauseRequested) {
+        return true;
+    }
+    if (m_debugHostPtr != nullptr && m_debugHostPtr->isBreakpoint(aLine)) {
+        return true;  // live query: add/remove during the session is honoured immediately
+    }
+    switch (m_stepMode) {
+        case StepMode::Into: return true;
+        case StepMode::Over: return luaStackDepth(apLua) <= m_stepBaseDepth;
+        case StepMode::Out: return luaStackDepth(apLua) < m_stepBaseDepth;
+        case StepMode::None:
+        default: return false;
+    }
+}
+
+Ltg::DebugState Module::m_buildState(lua_State* apLua, lua_Debug* apDebug) {
+    Ltg::DebugState state;
+    state.logRowIndex = m_currentRowIndex;
+    state.line = static_cast<int32_t>(apDebug->currentline);
+    state.sourceFile = apDebug->short_src;
+
+    // each call-stack frame carries its own locals and upvalues (roots only; tables are
+    // expanded later on demand through their ref). innermost frame first, capped for safety.
+    lua_Debug frameInfo;
+    for (int32_t level = 0; level < 64 && lua_getstack(apLua, level, &frameInfo) != 0; ++level) {
+        lua_getinfo(apLua, "nSlf", &frameInfo);  // n,S,l + push the frame function (f)
+        const int32_t functionIndex = lua_gettop(apLua);
+
+        Ltg::DebugFrame frame;
+        frame.function = (frameInfo.name != nullptr) ? frameInfo.name : "";
+        frame.source = frameInfo.short_src;
+        frame.line = static_cast<int32_t>(frameInfo.currentline);
+
+        int32_t localIndex = 1;
+        const char* localName = nullptr;
+        while ((localName = lua_getlocal(apLua, &frameInfo, localIndex)) != nullptr) {
+            frame.locals.push_back(m_makeVar(apLua, -1, localName, "none"));
+            lua_pop(apLua, 1);
+            ++localIndex;
+        }
+
+        int32_t upvalueIndex = 1;
+        const char* upvalueName = nullptr;
+        while ((upvalueName = lua_getupvalue(apLua, functionIndex, upvalueIndex)) != nullptr) {
+            if (upvalueName[0] != '\0') {
+                frame.upvalues.push_back(m_makeVar(apLua, -1, upvalueName, "none"));
+            }
+            lua_pop(apLua, 1);  // pop the upvalue
+            ++upvalueIndex;
+        }
+
+        lua_pop(apLua, 1);  // pop the frame function pushed by "f"
+        state.callStack.push_back(frame);
+    }
+
+    // top-level globals (no filter; each table is expandable on demand)
+    lua_pushvalue(apLua, LUA_GLOBALSINDEX);
+    const int32_t globalsIndex = lua_gettop(apLua);
+    lua_pushnil(apLua);
+    while (lua_next(apLua, globalsIndex) != 0) {
+        const std::string keyType = lua_typename(apLua, lua_type(apLua, -2));
+        const std::string keyName = luaKeyToString(apLua, -2);
+        state.globals.push_back(m_makeVar(apLua, -1, keyName, keyType));
+        lua_pop(apLua, 1);  // pop value, keep key for the next lua_next
+    }
+    lua_pop(apLua, 1);  // pop the globals table
+
+    return state;
+}
+
+int32_t Module::m_makeRef(lua_State* apLua, int32_t aIndex) {
+    if (lua_type(apLua, aIndex) != LUA_TTABLE) {
+        return -1;  // only tables are expandable in v1
+    }
+    lua_pushvalue(apLua, aIndex);
+    const int32_t ref = luaL_ref(apLua, LUA_REGISTRYINDEX);  // pops the pushed copy, stores it
+    m_debugRefs.push_back(ref);
+    return ref;
+}
+
+Ltg::DebugVar Module::m_makeVar(lua_State* apLua, int32_t aIndex, const std::string& aName, const std::string& aKeyType) {
+    Ltg::DebugVar var;
+    var.name = aName;
+    var.keyType = aKeyType;
+    var.typeName = lua_typename(apLua, lua_type(apLua, aIndex));
+    var.value = luaValueToString(apLua, aIndex);
+    var.ref = m_makeRef(apLua, aIndex);  // last: m_makeRef is net-neutral on the stack
+    return var;
+}
+
+std::vector<Ltg::DebugVar> Module::m_expandRef(lua_State* apLua, int32_t aRef) {
+    std::vector<Ltg::DebugVar> children;
+    lua_rawgeti(apLua, LUA_REGISTRYINDEX, aRef);  // push the referenced value
+    const int32_t tableIndex = lua_gettop(apLua);
+    if (lua_type(apLua, tableIndex) == LUA_TTABLE) {
+        int32_t childCount = 0;
+        lua_pushnil(apLua);
+        while (lua_next(apLua, tableIndex) != 0) {
+            if (childCount >= kMaxExpandChildren) {
+                Ltg::DebugVar more;
+                more.name = "...";
+                more.keyType = "none";
+                more.value = "(truncated)";
+                children.push_back(more);
+                lua_pop(apLua, 2);  // pop value AND key to stop iterating
+                break;
+            }
+            const std::string keyType = lua_typename(apLua, lua_type(apLua, -2));
+            const std::string keyName = luaKeyToString(apLua, -2);
+            children.push_back(m_makeVar(apLua, -1, keyName, keyType));
+            ++childCount;
+            lua_pop(apLua, 1);  // pop value, keep key for the next lua_next
+        }
+    }
+    lua_pop(apLua, 1);  // pop the referenced value
+    return children;
+}
+
+void Module::m_releaseDebugRefs(lua_State* apLua) {
+    for (const int32_t ref : m_debugRefs) {
+        luaL_unref(apLua, LUA_REGISTRYINDEX, ref);
+    }
+    m_debugRefs.clear();
+}
+
+void Module::m_applyCommand(lua_State* apLua, Ltg::DebugCommand aCommand) {
+    m_pauseRequested = false;
+    switch (aCommand) {
+        case Ltg::DebugCommand::Continue: m_stepMode = StepMode::None; break;
+        case Ltg::DebugCommand::StepInto: m_stepMode = StepMode::Into; break;
+        case Ltg::DebugCommand::StepOver:
+            m_stepMode = StepMode::Over;
+            m_stepBaseDepth = luaStackDepth(apLua);
+            break;
+        case Ltg::DebugCommand::StepOut:
+            m_stepMode = StepMode::Out;
+            m_stepBaseDepth = luaStackDepth(apLua);
+            break;
+        case Ltg::DebugCommand::Stop:
+            m_stepMode = StepMode::None;
+            m_stopRequested = true;
+            lua_sethook(apLua, nullptr, 0, 0);  // stop hooking so callScriptEnd won't re-trigger
+            luaL_error(apLua, "execution stopped by the debugger");  // longjmp, never returns
+            break;
     }
 }

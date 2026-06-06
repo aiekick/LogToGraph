@@ -42,8 +42,14 @@ limitations under the License.
 #include <panes/LogPaneSecondView.h>
 #include <panes/GraphListPane.h>
 #include <panes/AnnotationPane.h>
+#include <panes/StackTreePane.h>
+#include <panes/ScopePane.h>
+#include <panes/CalltracePane.h>
+#include <panes/BreakpointsPane.h>
 
 #include <res/fontIcons.h>
+
+#include <ezlibs/ezFile.hpp>
 
 #include <systems/SettingsDialog.h>
 
@@ -99,6 +105,11 @@ bool MainFrontend::init() {
     ImLayout::ref().addPane(ImLayout::PaneInfos(SignalsHoveredDiff::ref(), ICON_FONT_VECTOR_DIFFERENCE " Signals Hovered Diff", "", ICON_FONT_VECTOR_DIFFERENCE " Signals Hovered Diff", "RIGHT", 0.25f, false, false));
     ImLayout::ref().addPane(ImLayout::PaneInfos(ToolPane::ref(), ICON_FONT_CUBE_SCAN " Tool", "", ICON_FONT_CUBE_SCAN " Tool", "LEFT", 0.25f, true, true));
 
+    ImLayout::ref().addPane(ImLayout::PaneInfos(BreakpointsPane::ref(), ICON_FONT_BUG " Breakpoints", "Debug", ICON_FONT_BUG " Breakpoints", "BOTTOM", 0.3f, false, false));
+    ImLayout::ref().addPane(ImLayout::PaneInfos(CalltracePane::ref(), ICON_FONT_FORMAT_LIST_BULLETED " Call Trace", "Debug", ICON_FONT_FORMAT_LIST_BULLETED " Call Trace", "BOTTOM", 0.3f, false, false));
+    ImLayout::ref().addPane(ImLayout::PaneInfos(StackTreePane::ref(), ICON_FONT_FILE_TREE " Stack Tree", "Debug", ICON_FONT_FILE_TREE " Stack Tree", "BOTTOM", 0.3f, false, false));
+    ImLayout::ref().addPane(ImLayout::PaneInfos(ScopePane::ref(), ICON_FONT_CROSSHAIRS " Scope", "Debug", ICON_FONT_CROSSHAIRS " Scope", "BOTTOM", 0.3f, false, false));
+
     // InitPanes is done in m_InitPanes, because a specific order is needed
 
     return m_build();
@@ -106,12 +117,6 @@ bool MainFrontend::init() {
 
 void MainFrontend::unit() {
     ImLayout::ref().unitPanes();
-    auto pluginPanes = PluginManager::ref().getPluginPanes();
-    for (auto& pluginPane : pluginPanes) {
-        if (!pluginPane.pane.expired()) {
-            ImLayout::ref().removePane(pluginPane.name);
-        }
-    }
 }
 
 bool MainFrontend::isValid() const {
@@ -173,6 +178,7 @@ bool MainFrontend::DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const ImR
     }
     SettingsDialog::ref().Draw();
     m_drawAboutDialog();
+    m_DrawImportScriptDialog();
     return false;
 }
 
@@ -306,6 +312,15 @@ void MainFrontend::m_drawMainMenuBar() {
                 if (ImGui::MenuItem(ICON_FONT_CLOSE" Close")) {
                     Action_Menu_CloseProject();
                 }
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem(ICON_FONT_FILE " Import script")) {
+                    IGFD::FileDialogConfig config;
+                    config.countSelectionMax = 1;
+                    config.flags = ImGuiFileDialogFlags_Modal;
+                    ImGuiFileDialog::ref().OpenDialog("ImportScriptDlg", "Import a Lua script", ".lua,.*", config);
+                }
             }
 
             ImGui::Separator();
@@ -380,6 +395,20 @@ void MainFrontend::m_drawMainStatusBar() {
         // MainFrontend::sAnyWindowsHovered |= ImGui::IsWindowHovered();
 
         ImGui::EndMainStatusBar();
+    }
+}
+
+void MainFrontend::m_DrawImportScriptDialog() {
+    const ImVec2 maxSize = m_DisplaySize;
+    const ImVec2 minSize = maxSize * 0.5f;
+    if (ImGuiFileDialog::ref().Display("ImportScriptDlg", ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, minSize, maxSize)) {
+        if (ImGuiFileDialog::ref().IsOk()) {
+            const auto filePathName = ImGuiFileDialog::ref().GetFilePathName();
+            const auto code = ez::file::loadFileToString(filePathName);
+            CodePane::ref()->OpenScript(code);
+            ProjectFile::ref()->SetProjectChange();
+        }
+        ImGuiFileDialog::ref().Close();
     }
 }
 

@@ -15,6 +15,7 @@
 #include <models/database/DataBase.h>
 #include <models/graphs/GraphView.h>
 #include <models/graphs/GraphAnnotationModel.h>
+#include <models/debug/ScriptDebugger.h>
 
 #include <panes/CodePane.h>
 #include <panes/ConsolePane.h>
@@ -30,6 +31,10 @@
 #include <panes/SignalsHoveredMap.h>
 #include <panes/SignalsPreview.h>
 #include <panes/ToolPane.h>
+#include <panes/StackTreePane.h>
+#include <panes/ScopePane.h>
+#include <panes/CalltracePane.h>
+#include <panes/BreakpointsPane.h>
 
 #include <imguipack.h>
 #include <iagp.h>
@@ -98,6 +103,7 @@ void App::m_InitSingletons() {
     DataBase::initSingleton();
     GraphView::initSingleton();
     GraphAnnotationModel::initSingleton();
+    ScriptDebugger::initSingleton();
     // panes (shared_ptr based)
     CodePane::initSingleton();
     ConsolePane::initSingleton();
@@ -113,10 +119,22 @@ void App::m_InitSingletons() {
     SignalsHoveredMap::initSingleton();
     SignalsPreview::initSingleton();
     ToolPane::initSingleton();
+    StackTreePane::initSingleton();
+    ScopePane::initSingleton();
+    CalltracePane::initSingleton();
+    BreakpointsPane::initSingleton();
 }
 
 void App::m_UnitSingletons() {
+    // stop a possibly running/paused parsing worker BEFORE destroying the singletons it uses:
+    // a worker blocked in ScriptDebugger::onPause would otherwise outlive ScriptDebugger
+    // (use-after-free), and std::thread's dtor would std::terminate on a still-joinable thread.
+    ScriptingEngine::ref()->AbortAndJoinWorker();
     // panes
+    BreakpointsPane::unitSingleton();
+    CalltracePane::unitSingleton();
+    ScopePane::unitSingleton();
+    StackTreePane::unitSingleton();
     ToolPane::unitSingleton();
     SignalsPreview::unitSingleton();
     SignalsHoveredMap::unitSingleton();
@@ -132,6 +150,7 @@ void App::m_UnitSingletons() {
     ConsolePane::unitSingleton();
     CodePane::unitSingleton();
     // models
+    ScriptDebugger::unitSingleton();
     GraphAnnotationModel::unitSingleton();
     GraphView::unitSingleton();
     DataBase::unitSingleton();

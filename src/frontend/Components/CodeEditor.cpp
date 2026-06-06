@@ -14,6 +14,47 @@ bool CodeEditor::init() {
     if (ImGui::GetIO().Fonts->Fonts.size() > 1U) {
         m_CodeFontPtr = ImGui::GetIO().Fonts->Fonts[1];
     }
+    // right-click on the gutter toggles a breakpoint on that line (widget 0-based)
+    m_Editor.SetLineNumberContextMenuCallback([this](int aLine) {
+        const bool hasBreakpoint = (m_BreakpointLines.find(aLine) != m_BreakpointLines.end());
+        ImGui::BeginDisabled(!m_BreakpointInteractionEnabled);
+        if (!hasBreakpoint) {
+            if (ImGui::MenuItem("Set Breakpoint")) {
+                if (m_OnBreakpointToggled) {
+                    m_OnBreakpointToggled(aLine, true);
+                }
+            }
+        } else {
+            if (ImGui::MenuItem("Remove Breakpoint")) {
+                if (m_OnBreakpointToggled) {
+                    m_OnBreakpointToggled(aLine, false);
+                }
+            }
+        }
+        ImGui::EndDisabled();
+    });
+    // a narrow gutter decorator: a red dot marks a breakpoint, double-click toggles it
+    m_Editor.SetLineDecorator(16.0f, [this](TextEditor::Decorator& aDecorator) {
+        const int32_t line0 = aDecorator.line;  // zero-based
+        ImGui::InvisibleButton("##bp", ImVec2(aDecorator.width, aDecorator.height));
+        const bool hovered = ImGui::IsItemHovered();
+        if (m_BreakpointInteractionEnabled && hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+            const bool has = (m_BreakpointLines.find(line0) != m_BreakpointLines.end());
+            if (m_OnBreakpointToggled) {
+                m_OnBreakpointToggled(line0, !has);  // toggle
+            }
+        }
+        const bool isBreakpoint = (m_BreakpointLines.find(line0) != m_BreakpointLines.end());
+        const bool drawHoverHalo = hovered && m_BreakpointInteractionEnabled;  // no false affordance when interaction is off
+        if (isBreakpoint || drawHoverHalo) {
+            const ImVec2 rectMin = ImGui::GetItemRectMin();
+            const float radius = (aDecorator.height - 6.0f) * 0.5f;
+            const uint8_t bpAlpha = m_BreakpointInteractionEnabled ? 255 : 110;  // fade existing dot when toggling is off
+            const ImU32 color = isBreakpoint ? IM_COL32(220, 40, 40, bpAlpha) : IM_COL32(220, 40, 40, 90);
+            ImGui::GetWindowDrawList()->AddCircleFilled(
+                ImVec2(rectMin.x + aDecorator.width * 0.5f, rectMin.y + aDecorator.height * 0.5f), radius, color);
+        }
+    });
     return true;
 }
 
@@ -214,20 +255,31 @@ void CodeEditor::SetCode(const std::string& vCode, CodeEditorLanguage vType) {
     m_Type = vType;
     m_Editor.SetLanguage(m_Type);
     m_Editor.SetText(vCode);
+    m_UndoIndexInDisk = static_cast<int>(m_Editor.GetUndoIndex());  // freshly set text == on-disk state
+}
+
+std::string CodeEditor::GetCode() const {
+    return m_Editor.GetText();
+}
+
+bool CodeEditor::IsModified() const {
+    return m_Editor.GetUndoIndex() != static_cast<size_t>(m_UndoIndexInDisk);
+}
+
+void CodeEditor::MarkSaved() {
+    m_UndoIndexInDisk = static_cast<int>(m_Editor.GetUndoIndex());
 }
 
 void CodeEditor::ClearErrorMarkers() {
     m_ErrorMarkers.clear();
-    // new TextEditor exposes ClearMarkers() instead of SetErrorMarkers(map)
-    m_Editor.ClearMarkers();
+    m_RebuildMarkers();
 }
 
 void CodeEditor::AddErrorMarker(const size_t& vErrorLine, const std::string& vErrorMsg) {
     m_ErrorMarkers[(int32_t)vErrorLine] = vErrorMsg;
-    // new TextEditor: jump to the line via cursor; rich marker rendering is no longer
-    // wired up through SetErrorMarkers(map). this keeps the UX (jump-to-error) intact.
-    (void)vErrorMsg;
-    m_Editor.SelectLine((int32_t)vErrorLine);
+    // AddMarker's textTooltip carries the message again, so the per-line error tooltip
+    // is back (regression #2/#4 fixed); the cursor still jumps to the error line.
+    m_RebuildMarkers();
     m_Editor.SetCursor((int32_t)vErrorLine, 0);
 }
 
@@ -246,4 +298,49 @@ void CodeEditor::OnReloadCommand() {
 
 void CodeEditor::OnLoadFromCommand() {}
 
-void CodeEditor::OnSaveCommand() {}
+void CodeEditor::OnSaveCommand() {
+    if (m_OnSave) {
+        m_OnSave();
+    }
+}
+
+void CodeEditor::SetSaveCallback(std::function<void()> aCallback) {
+    m_OnSave = aCallback;
+}
+
+void CodeEditor::SetBreakpointToggledCallback(std::function<void(int32_t, bool)> aCallback) {
+    m_OnBreakpointToggled = aCallback;
+}
+
+void CodeEditor::SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines) {
+    if (m_BreakpointLines != aZeroBasedLines) {
+        m_BreakpointLines = aZeroBasedLines;
+        m_RebuildMarkers();
+    }
+}
+
+void CodeEditor::SetCurrentExecLine(int32_t aZeroBasedLine) {
+    if (m_CurrentExecLine != aZeroBasedLine) {
+        m_CurrentExecLine = aZeroBasedLine;
+        m_RebuildMarkers();
+        if (m_CurrentExecLine >= 0) {
+            m_Editor.SetCursor(m_CurrentExecLine, 0);  // scroll to the paused line
+        }
+    }
+}
+
+void CodeEditor::SetBreakpointInteractionEnabled(bool aEnabled) {
+    m_BreakpointInteractionEnabled = aEnabled;
+}
+
+void CodeEditor::m_RebuildMarkers() {
+    m_Editor.ClearMarkers();
+    // breakpoints are drawn by the line decorator (a red dot); markers carry errors + current line
+    for (const auto& errorMarker : m_ErrorMarkers) {
+        m_Editor.AddMarker(errorMarker.first, 0, IM_COL32(200, 0, 40, 80), "", errorMarker.second);
+    }
+    // current paused line: amber line number + translucent amber text
+    if (m_CurrentExecLine >= 0) {
+        m_Editor.AddMarker(m_CurrentExecLine, IM_COL32(255, 200, 0, 255), IM_COL32(255, 200, 0, 60), "current line", "");
+    }
+}

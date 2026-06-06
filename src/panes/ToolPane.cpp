@@ -77,16 +77,6 @@ bool ToolPane::drawDialogsAndPopups(const ImRect& aRect, LayoutPaneUserDatas apU
         ImVec2 maxSize = aRect.GetSize();
         ImVec2 minSize = maxSize * 0.5f;
 
-        if (ImGuiFileDialog::ref().Display("OPEN_LUA_SCRIPT_FILE", ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, minSize, maxSize)) {
-            if (ImGuiFileDialog::ref().IsOk()) {
-                ProjectFile::ref()->SetScriptFilePathName(ImGuiFileDialog::ref().GetFilePathName());
-                CodePane::ref()->OpenFile(ImGuiFileDialog::ref().GetFilePathName());
-                ProjectFile::ref()->SetProjectChange();
-            }
-
-            ImGuiFileDialog::ref().Close();
-        }
-
         if (ImGuiFileDialog::ref().Display("OPEN_LOG_FILE", ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking, minSize, maxSize)) {
             if (ImGuiFileDialog::ref().IsOk()) {
                 ProjectFile::ref()->m_LastLogFilePath = ImGuiFileDialog::ref().GetFilePathName();
@@ -126,24 +116,8 @@ void ToolPane::UpdateTree() {
 }
 
 void ToolPane::DrawTable() {
-    if (ImGui::CollapsingHeader("Script Script File")) {
-        if (ImGui::ContrastedButton("Select the Script Script File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
-            IGFD::FileDialogConfig config;
-            config.countSelectionMax = 1;
-            config.filePathName = ProjectFile::ref()->GetScriptFilePathName();
-            config.flags = ImGuiFileDialogFlags_Modal;
-            ImGuiFileDialog::ref().OpenDialog("OPEN_LUA_SCRIPT_FILE", "Open a Script Script File", ".lua,.*", config);
-        }
-        if (ImGui::ContrastedButton(ICON_FONT_PENCIL "##ScriptScriptEdit")) {
-            ez::file::openFile(ProjectFile::ref()->GetScriptFilePathName());
-        }
-        ImGui::SameLine();
-        ImGui::TextWrapped("%s", ProjectFile::ref()->GetScriptFileName().c_str());
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("%s", ProjectFile::ref()->GetScriptFilePathName().c_str());
-        }
-    }
-
+    // the script is no longer an external file: it is imported via the menu bar
+    // (Project > Import script), edited in the Code pane and stored in the .ltg db.
     if (ImGui::CollapsingHeader("Log Files")) {
         if (ImGui::ContrastedButton("Add a Log File", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
             IGFD::FileDialogConfig config;
@@ -231,7 +205,7 @@ void ToolPane::DrawTable() {
             if (!ScriptingEngine::ref()->IsJoinable()) {
                 if (ImGui::ContrastedButton("Start Analyse of file(s)", nullptr, nullptr, -1.0f, ImVec2(-1.0f, 0.0f))) {
                     ScriptingEngine::ref()->Clear();
-                    ScriptingEngine::ref()->SetScriptFilePathName(ProjectFile::ref()->GetScriptFilePathName());
+                    ScriptingEngine::ref()->SetScriptCode(CodePane::ref()->GetScriptCode());
                     const auto& sources = ProjectFile::ref()->GetSourceFilePathNames();
                     for (const auto& source : sources) {
                         ScriptingEngine::ref()->AddSourceFilePathName(source.second);

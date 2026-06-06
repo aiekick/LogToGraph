@@ -92,6 +92,12 @@ bool MainBackend::init(const std::string& vAppPath) {
 
 // todo : to refactor ! i dont like that
 void MainBackend::unit(const std::string& vAppPath) {
+    // Stop & join the parsing worker FIRST — before unloading any plugin DLL or destroying any
+    // model singleton. A worker paused in the script debugger (onPause) sits inside plugin-DLL
+    // code (Module::m_onHook) and keeps the DLL's static s_modulesByState referenced. Unloading
+    // the DLL (m_UnitPlugins -> FreeLibrary) under a still-live worker runs that static map's
+    // destructor on DLL_PROCESS_DETACH while the thread references it -> ITERATOR LIST CORRUPTED.
+    ScriptingEngine::ref()->AbortAndJoinWorker();
     SaveConfigFile(fs::path(vAppPath).append("config.xml").string(), "app", "config");
     m_UnitSystems();
     m_UnitModels();
@@ -433,24 +439,6 @@ bool MainBackend::m_InitImGui() {
 
 void MainBackend::m_InitPlugins(const std::string& vAppPath) {
     PluginManager::ref().loadPlugins(vAppPath);
-    auto pluginPanes = PluginManager::ref().getPluginPanes();
-    for (auto& pluginPane : pluginPanes) {
-        if (!pluginPane.pane.expired()) {
-            ImLayout::ref().addPane(ImLayout::PaneInfos(  //
-                pluginPane.pane,
-                pluginPane.name,
-                pluginPane.category,
-                pluginPane.name,
-                pluginPane.disposal,
-                pluginPane.disposalRatio,
-                pluginPane.openedDefault,
-                pluginPane.focusedDefault));
-            auto plugin_ptr = std::dynamic_pointer_cast<Ltg::PluginPane>(pluginPane.pane.lock());
-            if (plugin_ptr != nullptr) {
-                plugin_ptr->SetProjectInstance(ProjectFile::ref());
-            }
-        }
-    }
 }
 
 void MainBackend::m_InitModels() {

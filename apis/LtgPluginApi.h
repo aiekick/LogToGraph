@@ -24,8 +24,13 @@ limitations under the License.
 #include <array>
 #include <map>
 
-#include "ILayoutPane.h"
-#include <ezlibs/ezXml.hpp>
+// The plugin API is deliberately ImGui-free: plugins are pure modules (scripting + data) and link
+// no imguipack/glad/glfw. The host owns all UI. The only host objects a plugin borrows are
+// forwarded by pointer/interface at instantiation (ez::Log via init(), IDatasModel via load(),
+// IScriptDebugHost via enableDebug()). This is what lets LogToGraph build fully static. The host
+// settings-dialog interface (ISettings) is NOT here anymore — it moved to src/systems/ISettings.h
+// since plugins no longer provide settings.
+#include "IScriptDebugger.h"
 
 namespace ez {
 class Log;
@@ -43,46 +48,6 @@ public:
 };
 typedef std::shared_ptr<IProject> IProjectPtr;
 typedef std::weak_ptr<IProject> IProjectWeak;
-
-struct PluginPane : public virtual ILayoutPane {
-    bool init() override = 0;  // return false if the init was failed
-    void unit() override = 0;
-
-    // the return, is a user side use case here
-    bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override = 0;
-    bool drawWidgets(LayoutPaneUserDatas /*apUserDatas*/) override { return false; }
-    bool drawOverlays(const ImRect& /*aRect*/, LayoutPaneUserDatas /*apUserDatas*/) override { return false; }
-    bool drawDialogsAndPopups(const ImRect& /*aRect*/, LayoutPaneUserDatas /*apUserDatas*/) override { return false; }
-
-    // if for any reason the pane must be hidden temporary, the user can control this here
-    virtual bool canBeDisplayed() override = 0;
-
-    virtual void SetProjectInstance(IProjectWeak vProjectInstance) = 0;
-};
-
-struct PluginPaneConfig {
-    ILayoutPaneWeak pane;
-    std::string name;
-    std::string category;
-    std::string disposal = "CENTRAL";
-    float disposalRatio = 0.0f;
-    bool openedDefault = false;
-    bool focusedDefault = false;
-};
-
-typedef std::string SettingsCategoryPath;
-enum class ISettingsType {
-    NONE = 0,
-    APP,     // common for all users
-    PROJECT  // user specific
-};
-
-struct IXmlSettings {
-    // will be called by the saver
-    virtual ez::xml::Nodes getXmlSettings(const ISettingsType& vType) const = 0;
-    // will be called by the loader
-    virtual void setXmlSettings(const ez::xml::Node& vName, const ez::xml::Node& vParent, const std::string& vValue, const ISettingsType& vType) = 0;
-};
 
 struct PluginParam {
     std::string name;
@@ -117,21 +82,6 @@ struct PluginModuleInfos {
         : path(vPath), label(vLabel), type(vType), color(vColor) {}
 };
 
-struct ISettings : public IXmlSettings {
-    virtual ~ISettings() = default;
-    // get the category path of the settings for the mebnu display. ex: "plugins/apis"
-    virtual SettingsCategoryPath getCategory() const = 0;
-    // will be called by the loader for inform the pluign than he must load somethings if any
-    virtual bool loadSettings() = 0;
-    // will be called by the saver for inform the pluign than he must save somethings if any, by ex: temporary vars
-    virtual bool saveSettings() = 0;
-    // will draw custom settings via imgui
-    virtual bool drawSettings() = 0;
-};
-
-typedef std::shared_ptr<ISettings> ISettingsPtr;
-typedef std::weak_ptr<ISettings> ISettingsWeak;
-
 typedef std::string ScriptFilePathName;
 
 struct ScriptingError {
@@ -163,14 +113,21 @@ struct ScriptingDatas {
     std::string buffer;
 };
 typedef std::string ScriptingModuleName;
-struct ScriptingModule : public PluginModule {
+struct ScriptingModule : public PluginModule, public IScriptDebugger {
     virtual ~ScriptingModule() = default;
     // will load the related scripting engine
     virtual bool load(IDatasModelWeak vDatasModel) = 0;
     // will unload the related scripting engine
     virtual void unload() = 0;
-    // will compile the script and return errors
+    // will compile the script from a file path and return errors
     virtual bool compileScript(const ScriptFilePathName& vFilePathName, ErrorContainer& vOutErrors) = 0;
+    // will compile the script from in-memory code (project script stored in the .ltg db).
+    // default no-op so plugins that only support file-based scripts compile unchanged.
+    virtual bool compileScriptCode(const std::string& aCode, ErrorContainer& aOutErrors) {
+        (void)aCode;
+        (void)aOutErrors;
+        return false;
+    }
     // will call the start function from script and return errors
     virtual bool callScriptStart(ErrorContainer& vOutErrors) = 0;
     // will call the exec function from script with a buffer and return errors
@@ -185,11 +142,6 @@ struct ScriptingModule : public PluginModule {
 
 typedef std::shared_ptr<ScriptingModule> ScriptingModulePtr;
 typedef std::weak_ptr<ScriptingModule> ScriptingModuleWeak;
-
-struct PluginSettingsConfig {
-    ISettingsWeak settings;
-    PluginSettingsConfig(ISettingsWeak vSertings) : settings(vSertings) {}
-};
 
 struct PluginInterface {
     virtual ~PluginInterface() = default;
@@ -206,8 +158,6 @@ struct PluginInterface {
     virtual std::string getDescription() const = 0;
     virtual std::vector<PluginModuleInfos> getModulesInfos() const = 0;
     virtual PluginModulePtr createModule(const std::string& vPluginModuleName, Ltg::PluginBridge* vBridgePtr) = 0;
-    virtual std::vector<PluginPaneConfig> getPanes() const = 0;
-    virtual std::vector<PluginSettingsConfig> getSettings() const = 0;
 };
 
 }  // namespace Ltg

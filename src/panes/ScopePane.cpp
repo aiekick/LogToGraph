@@ -1,0 +1,68 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+
+#include "ScopePane.h"
+#include <imgui_internal.h>
+#include <models/debug/ScriptDebugger.h>
+#include <panes/DebugVarTree.h>
+
+#include <vector>
+
+bool ScopePane::init() {
+    return true;
+}
+
+void ScopePane::unit() {}
+
+///////////////////////////////////////////////////////////////////////////////////
+//// IMGUI PANE ///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+
+bool ScopePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+    bool change = false;
+    if (apOpened != nullptr && *apOpened) {
+        if (ImGui::Begin(getName().c_str(), apOpened, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus)) {
+            const bool isPaused = (ScriptDebugger::ref()->getMode() == ScriptDebugger::Mode::Paused);
+            if (!isPaused) {
+                ImGui::TextDisabled("Not paused");
+            } else {
+                const auto state = ScriptDebugger::ref()->getState();
+                if (state.callStack.empty()) {
+                    ImGui::TextDisabled("No frame");
+                } else {
+                    // the current scope is the innermost frame (where execution is paused).
+                    // keep only NAMED variables: the (*temporary) slots and internal (for ...)
+                    // loop vars are left to the Stack Tree pane.
+                    const auto& frame = state.callStack.front();
+                    std::vector<Ltg::DebugVar> namedLocals;
+                    for (const auto& var : frame.locals) {
+                        if (!var.name.empty() && var.name[0] != '(') {
+                            namedLocals.push_back(var);
+                        }
+                    }
+                    std::vector<Ltg::DebugVar> namedUpvalues;
+                    for (const auto& var : frame.upvalues) {
+                        if (!var.name.empty() && var.name[0] != '(') {
+                            namedUpvalues.push_back(var);
+                        }
+                    }
+                    static ImGuiTableFlags flags =
+                        ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
+                    if (ImGui::BeginTable("##scope", 5, flags)) {
+                        LtgDebugUI::setupTreeColumns();
+                        int32_t uid = 0;
+                        if (!namedLocals.empty()) {
+                            LtgDebugUI::drawVarGroup("Locals", 1, 1, namedLocals, uid);
+                        }
+                        if (!namedUpvalues.empty()) {
+                            LtgDebugUI::drawVarGroup("Upvalues", 1, 2, namedUpvalues, uid);
+                        }
+                        ImGui::EndTable();
+                    }
+                }
+            }
+        }
+        ImGui::End();
+    }
+    return change;
+}
