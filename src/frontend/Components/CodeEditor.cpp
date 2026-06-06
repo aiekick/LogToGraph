@@ -17,6 +17,7 @@ bool CodeEditor::init() {
     // right-click on the gutter toggles a breakpoint on that line (widget 0-based)
     m_Editor.SetLineNumberContextMenuCallback([this](int aLine) {
         const bool hasBreakpoint = (m_BreakpointLines.find(aLine) != m_BreakpointLines.end());
+        ImGui::BeginDisabled(!m_BreakpointInteractionEnabled);
         if (!hasBreakpoint) {
             if (ImGui::MenuItem("Set Breakpoint")) {
                 if (m_OnBreakpointToggled) {
@@ -30,23 +31,26 @@ bool CodeEditor::init() {
                 }
             }
         }
+        ImGui::EndDisabled();
     });
     // a narrow gutter decorator: a red dot marks a breakpoint, double-click toggles it
     m_Editor.SetLineDecorator(16.0f, [this](TextEditor::Decorator& aDecorator) {
         const int32_t line0 = aDecorator.line;  // zero-based
         ImGui::InvisibleButton("##bp", ImVec2(aDecorator.width, aDecorator.height));
         const bool hovered = ImGui::IsItemHovered();
-        if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+        if (m_BreakpointInteractionEnabled && hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
             const bool has = (m_BreakpointLines.find(line0) != m_BreakpointLines.end());
             if (m_OnBreakpointToggled) {
                 m_OnBreakpointToggled(line0, !has);  // toggle
             }
         }
         const bool isBreakpoint = (m_BreakpointLines.find(line0) != m_BreakpointLines.end());
-        if (isBreakpoint || hovered) {
+        const bool drawHoverHalo = hovered && m_BreakpointInteractionEnabled;  // no false affordance when interaction is off
+        if (isBreakpoint || drawHoverHalo) {
             const ImVec2 rectMin = ImGui::GetItemRectMin();
             const float radius = (aDecorator.height - 6.0f) * 0.5f;
-            const ImU32 color = isBreakpoint ? IM_COL32(220, 40, 40, 255) : IM_COL32(220, 40, 40, 90);
+            const uint8_t bpAlpha = m_BreakpointInteractionEnabled ? 255 : 110;  // fade existing dot when toggling is off
+            const ImU32 color = isBreakpoint ? IM_COL32(220, 40, 40, bpAlpha) : IM_COL32(220, 40, 40, 90);
             ImGui::GetWindowDrawList()->AddCircleFilled(
                 ImVec2(rectMin.x + aDecorator.width * 0.5f, rectMin.y + aDecorator.height * 0.5f), radius, color);
         }
@@ -323,6 +327,10 @@ void CodeEditor::SetCurrentExecLine(int32_t aZeroBasedLine) {
             m_Editor.SetCursor(m_CurrentExecLine, 0);  // scroll to the paused line
         }
     }
+}
+
+void CodeEditor::SetBreakpointInteractionEnabled(bool aEnabled) {
+    m_BreakpointInteractionEnabled = aEnabled;
 }
 
 void CodeEditor::m_RebuildMarkers() {

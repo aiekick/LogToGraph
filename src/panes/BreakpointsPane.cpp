@@ -29,7 +29,7 @@ bool BreakpointsPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas)
             if (!scriptFile.empty()) {
                 ImGui::TextWrapped("%s", scriptFile.c_str());
             }
-            if (ImGui::SmallButton("Clear all")) {
+            if (ImGui::ContrastedSmallButton("Clear all")) {
                 ScriptDebugger::ref()->clearBreakpoints();
             }
             ImGui::Separator();
@@ -48,7 +48,7 @@ bool BreakpointsPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas)
                     ImGui::Text("%d", line);
                     ImGui::TableNextColumn();
                     ImGui::PushID(line);
-                    if (ImGui::SmallButton("remove")) {
+                    if (ImGui::ContrastedSmallButton("remove")) {
                         ScriptDebugger::ref()->setBreakpoint(scriptFile, line, false);
                     }
                     ImGui::PopID();

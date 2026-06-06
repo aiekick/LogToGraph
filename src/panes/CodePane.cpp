@@ -62,6 +62,7 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
             const auto debugScriptFile = ScriptDebugger::ref()->getScriptFilePathName();
             const auto breakpoints1Based = ScriptDebugger::ref()->getBreakpoints();
             const bool isPaused = (ScriptDebugger::ref()->getMode() == ScriptDebugger::Mode::Paused);
+            const bool isDebugArmed = ScriptDebugger::ref()->isDebugArmed();
             int32_t currentExecLine0Based = -1;
             if (isPaused) {
                 currentExecLine0Based = ScriptDebugger::ref()->getState().line - 1;
@@ -84,6 +85,7 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
                             sheet.codeEditor.SetBreakpoints(breakpoints0Based);
                             sheet.codeEditor.SetCurrentExecLine(currentExecLine0Based);
                         }
+                        sheet.codeEditor.SetBreakpointInteractionEnabled(isDebugArmed);
                         sheet.codeEditor.OnImGui();
                         ImGui::EndTabItem();
                     }
@@ -103,72 +105,60 @@ void CodePane::m_DrawDebugToolbar() {
     const bool workerBusy = ScriptingEngine::ref()->IsJoinable();
 
     bool armed = ScriptDebugger::ref()->isDebugArmed();
-    if (ImGui::Checkbox(ICON_FONT_BUG " Debug", &armed)) {
+    if (ImGui::ToggleContrastedButton(ICON_FONT_BUG " Debug (on)", ICON_FONT_BUG " Debug (off)", &armed, "Arm the script debugger")) {
         ScriptDebugger::ref()->setDebugArmed(armed);
     }
 
-    if (armed) {
-        // Run (when nothing runs) or Continue (when paused); disabled while running un-paused
-        ImGui::SameLine();
-        
-        ImGui::BeginDisabled(workerBusy && !isPaused);
-        if (ImGui::Button(ICON_FONT_PLAY "##dbg_run")) {
-            if (isPaused) {
-                ScriptDebugger::ref()->doContinue();
-            } else if (!workerBusy) {
-                m_StartAnalyse();
-            }
-        }
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("%s", isPaused ? "Continue" : "Run (analyse the log files)");
-        }
-        ImGui::EndDisabled();
-
-        ImGui::SameLine();
-        
-        ImGui::BeginDisabled(!isPaused);
-        if (ImGui::Button(ICON_FONT_DEBUG_STEP_INTO "##dbg_stepinto")) {
-            ScriptDebugger::ref()->stepInto();
-        }
-        
-        ImGui::SameLine();
-        
-        if (ImGui::Button(ICON_FONT_DEBUG_STEP_OVER "##dbg_stepover")) {
-            ScriptDebugger::ref()->stepOver();
-        }
-        ImGui::SameLine();
-        
-        if (ImGui::Button(ICON_FONT_DEBUG_STEP_OUT "##dbg_stepout")) {
-            ScriptDebugger::ref()->stepOut();
-        }
-        ImGui::EndDisabled();
-
-        ImGui::SameLine();
-        
-        ImGui::BeginDisabled(!workerBusy || isPaused);
-        if (ImGui::Button(ICON_FONT_PAUSE "##dbg_pause")) {
-            ScriptDebugger::ref()->pause();
-        }
-        ImGui::EndDisabled();
-
-        ImGui::SameLine();
-
-        ImGui::BeginDisabled(!workerBusy);
-        if (ImGui::Button(ICON_FONT_STOP "##dbg_stop")) {
-            ScriptingEngine::s_working = false;  // break the parse loop on the worker thread
-            ScriptDebugger::ref()->stop();
-        }
-        ImGui::EndDisabled();
-
-        ImGui::SameLine();
+    // Run / Continue
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!armed || (workerBusy && !isPaused));
+    if (ImGui::ContrastedButton(ICON_FONT_PLAY "##dbg_run", isPaused ? "Continue" : "Run (analyse the log files)")) {
         if (isPaused) {
-            const auto state = ScriptDebugger::ref()->getState();
-            ImGui::Text("Paused | log row %d | line %d", state.logRowIndex, state.line);
-        } else if (workerBusy) {
-            ImGui::TextUnformatted("Running");
-        } else {
-            ImGui::TextUnformatted("Idle");
+            ScriptDebugger::ref()->doContinue();
+        } else if (!workerBusy) {
+            m_StartAnalyse();
         }
+    }
+    ImGui::EndDisabled();
+
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!armed || !isPaused);
+    if (ImGui::ContrastedButton(ICON_FONT_DEBUG_STEP_INTO "##dbg_stepinto", "Step into")) {
+        ScriptDebugger::ref()->stepInto();
+    }
+    ImGui::SameLine();
+    if (ImGui::ContrastedButton(ICON_FONT_DEBUG_STEP_OVER "##dbg_stepover", "Step over")) {
+        ScriptDebugger::ref()->stepOver();
+    }
+    ImGui::SameLine();
+    if (ImGui::ContrastedButton(ICON_FONT_DEBUG_STEP_OUT "##dbg_stepout", "Step out")) {
+        ScriptDebugger::ref()->stepOut();
+    }
+    ImGui::EndDisabled();
+
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!armed || !workerBusy || isPaused);
+    if (ImGui::ContrastedButton(ICON_FONT_PAUSE "##dbg_pause", "Pause")) {
+        ScriptDebugger::ref()->pause();
+    }
+    ImGui::EndDisabled();
+
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!armed || !workerBusy);
+    if (ImGui::ContrastedButton(ICON_FONT_STOP "##dbg_stop", "Stop")) {
+        ScriptingEngine::s_working = false;  // break the parse loop on the worker thread
+        ScriptDebugger::ref()->stop();
+    }
+    ImGui::EndDisabled();
+
+    ImGui::SameLine();
+    if (isPaused) {
+        const auto state = ScriptDebugger::ref()->getState();
+        ImGui::Text("Paused | log row %d | line %d", state.logRowIndex, state.line);
+    } else if (workerBusy) {
+        ImGui::TextUnformatted("Running");
+    } else {
+        ImGui::TextUnformatted("Idle");
     }
 
     ImGui::Separator();
