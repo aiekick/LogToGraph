@@ -20,8 +20,8 @@ limitations under the License.
 #include "ToolPane.h"
 #include <project/ProjectFile.h>
 #include <cinttypes>  // printf zu
-#include <panes/LogPane.h>
-#include <panes/CodePane.h>
+#include <panes/log/LogPane.h>
+#include <panes/misc/CodePane.h>
 
 #include <models/script/ScriptingEngine.h>
 #include <models/log/LogEngine.h>

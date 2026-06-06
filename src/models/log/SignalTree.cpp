@@ -3,7 +3,7 @@
 #include <models/log/SignalSerie.h>
 #include <ezlibs/ezStr.hpp>
 #include <project/ProjectFile.h>
-#include <panes/LogPane.h>
+#include <panes/log/LogPane.h>
 
 void SignalTree::clear() {
     m_RootItem.clear();

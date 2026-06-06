@@ -19,21 +19,25 @@
 #include "ProjectFile.h"
 
 #include <models/log/LogEngine.h>
-#include <panes/CodePane.h>
+#include <panes/misc/CodePane.h>
 #include <models/database/DataBase.h>
 #include <models/graphs/GraphView.h>
 #include <models/graphs/GraphGroup.h>
-#include <panes/LogPane.h>
-#include <panes/ToolPane.h>
-#include <panes/LogPaneSecondView.h>
-#include <panes/GraphListPane.h>
-#include <panes/GraphGroupPane.h>
-#include <panes/SignalsHoveredDiff.h>
-#include <panes/SignalsHoveredList.h>
-#include <panes/SignalsHoveredMap.h>
+#include <panes/log/LogPane.h>
+#include <panes/misc/ToolPane.h>
+#include <panes/log/LogPaneSecondView.h>
+#include <panes/graph/GraphListPane.h>
+#include <panes/graph/GraphGroupPane.h>
+#include <panes/signals/SignalsHoveredDiff.h>
+#include <panes/signals/SignalsHoveredList.h>
+#include <panes/signals/SignalsHoveredMap.h>
+#include <panes/debug/StackTreePane.h>
+#include <panes/debug/ScopePane.h>
+#include <panes/debug/CalltracePane.h>
 #include <models/script/ScriptingEngine.h>
+#include <models/debug/ScriptDebugger.h>
 
-#include <panes/GraphPane.h>
+#include <panes/graph/GraphPane.h>
 
 #include <systems/SettingsDialog.h>
 
@@ -65,6 +69,10 @@ void ProjectFile::Clear() {
 }
 
 void ProjectFile::ClearDatas() {
+    // join any in-progress worker (incl. one paused at a breakpoint) before resetting any state it touches
+    ScriptingEngine::ref()->AbortAndJoinWorker();
+    // debugger state (breakpoints, arm flag, paused snapshot) — wiped before the panes that cache it
+    ScriptDebugger::ref()->Clear();
     ScriptingEngine::ref()->Clear();
     LogEngine::ref()->Clear();
     GraphView::ref()->Clear();
@@ -78,6 +86,13 @@ void ProjectFile::ClearDatas() {
     SignalsHoveredDiff::ref()->Clear();
     SignalsHoveredList::ref()->Clear();
     SignalsHoveredMap::ref()->Clear();
+    // code editor (sheets + debug caches) — wipe last so its caches don't repopulate from stale debugger state
+    CodePane::ref()->Clear();
+    StackTreePane::ref()->Clear();
+    ScopePane::ref()->Clear();
+    CalltracePane::ref()->Clear();
+    // per-project settings (forwarded to every registered ISettings; default no-op for APP-only impls)
+    SettingsDialog::ref().clearProjectSettings();
 }
 
 void ProjectFile::New() {
@@ -260,6 +275,7 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     node.addChilds(ImLayout::ref().getXmlNodes("project"));
     node.addChilds(ScriptingEngine::ref()->getXmlNodes("project"));
     node.addChilds(LogEngine::ref()->getXmlNodes("project"));
+    node.addChilds(SettingsDialog::ref().getXmlNodes("project"));
     node.addChild("graph_bar_colors").setContent(m_GraphColors.graphBarColor);
     node.addChild("graph_bar_colors").setContent(m_GraphColors.graphBarColor);
     node.addChild("graph_current_time_colors").setContent(m_GraphColors.graphHoveredTimeColor);
@@ -394,6 +410,7 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
     ImLayout::ref().setFromXmlNodes(vNode, vParent, "project");
     ScriptingEngine::ref()->setFromXmlNodes(vNode, vParent, "project");
     LogEngine::ref()->setFromXmlNodes(vNode, vParent, "project");
+    SettingsDialog::ref().setFromXmlNodes(vNode, vParent, "project");
 
     return true;
 }

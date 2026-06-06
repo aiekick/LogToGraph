@@ -30,7 +30,7 @@
 
 #include <frontend/MainFrontend.h>
 
-#include <panes/ConsolePane.h>
+#include <panes/misc/ConsolePane.h>
 
 #include <systems/SettingsDialog.h>
 #include <systems/AppSettings.h>

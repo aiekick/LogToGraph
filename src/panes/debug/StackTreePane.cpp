@@ -3,8 +3,9 @@
 
 #include "StackTreePane.h"
 #include <imgui_internal.h>
+#include <project/ProjectFile.h>
 #include <models/debug/ScriptDebugger.h>
-#include <panes/DebugVarTree.h>
+#include <panes/debug/DebugVarTree.h>
 
 #include <string>
 
@@ -13,6 +14,11 @@ bool StackTreePane::init() {
 }
 
 void StackTreePane::unit() {}
+
+void StackTreePane::Clear() {
+    m_LastStateRevision = -1;
+    m_StateCache = Ltg::DebugState{};
+}
 
 ///////////////////////////////////////////////////////////////////////////////////
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
@@ -30,6 +36,7 @@ bool StackTreePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
+            if (ProjectFile::ref()->IsProjectLoaded()) {
             if (ImGui::BeginMenuBar()) {
                 ImGui::EndMenuBar();
             }
@@ -87,6 +94,7 @@ bool StackTreePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
                     ImGui::EndTable();
                 }
             }
+            }  // IsProjectLoaded
         }
         ImGui::End();
     }

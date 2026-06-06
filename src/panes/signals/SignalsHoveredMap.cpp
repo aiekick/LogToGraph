@@ -17,30 +17,28 @@ limitations under the License.
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include "SignalsPreview.h"
-#include <project/ProjectFile.h>
+#include "SignalsHoveredMap.h"
 #include <project/ProjectFile.h>
 #include <cinttypes>  // printf zu
-#include <panes/LogPane.h>
-#include <panes/CodePane.h>
+#include <panes/misc/CodePane.h>
 
 #include <models/log/LogEngine.h>
 #include <models/log/SignalSerie.h>
 #include <models/log/SignalTick.h>
 
-#include <models/graphs/GraphView.h>
-
 ///////////////////////////////////////////////////////////////////////////////////
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-bool SignalsPreview::init()  {
+void SignalsHoveredMap::Clear() {}
+
+bool SignalsHoveredMap::init()  {
     return true;
 }
 
-void SignalsPreview::unit() {}
+void SignalsHoveredMap::unit() {}
 
-bool SignalsPreview::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+bool SignalsHoveredMap::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
     
     bool change = false;
     if (apOpened != nullptr && *apOpened) {
@@ -63,62 +61,14 @@ bool SignalsPreview::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) 
     return change;
 }
 
-void SignalsPreview::Clear() {
-    m_PreviewTicks.clear();
-}
-
-void SignalsPreview::SetHoveredTime(const SignalEpochTime& vHoveredTime) {
-    size_t count_signals = LogEngine::ref()->GetSignalsCount();
-
-    if (m_PreviewTicks.empty()) {
-        m_PreviewTicks.resize(count_signals);
-    }
-
-    size_t idx = 0U;
-    size_t visible_idx = 0U;
-    size_t visible_count = LogEngine::ref()->GetVisibleCount();
-    for (auto& item_cat : LogEngine::ref()->GetSignalSeries()) {
-        for (auto& item_name : item_cat.second) {
-            if (item_name.second) {
-                SignalTickPtr last_ptr = nullptr;
-                for (const auto& tick_weak : item_name.second->datas_values) {
-                    auto ptr = tick_weak.lock();
-                    if (last_ptr && vHoveredTime >= last_ptr->time_epoch && ptr && vHoveredTime <= ptr->time_epoch) {
-                        if (idx < count_signals) {
-                            m_PreviewTicks[idx] = last_ptr;
-                            if (ProjectFile::ref()->m_AutoColorize) {
-                                auto parent_ptr = last_ptr->parent.lock();
-                                if (parent_ptr && parent_ptr->show) {
-                                    parent_ptr->color_u32 = ImGui::GetColorU32(ez::getRainBowColor((int32_t)visible_idx, (int32_t)visible_count));
-                                    parent_ptr->color_v4 = ImGui::ColorConvertU32ToFloat4(parent_ptr->color_u32);
-                                    ++visible_idx;
-                                }
-                            }
-                        } else {
-                            EZ_TOOLS_DEBUG_BREAK;
-                        }
-
-                        break;
-                    }
-
-                    last_ptr = ptr;
-                }
-
-                ++idx;
-            }
-        }
-    }
-}
-
-int SignalsPreview::CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize,   /* cell size						*/
-                                                  ImVec2& vOutButtonSize) /* button size (cell - paddings)	*/
+int SignalsHoveredMap::CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize,   /* cell size						*/
+                                                     ImVec2& vOutButtonSize) /* button size (cell - paddings)	*/
 {
     float aw = ImGui::GetContentRegionAvail().x;
 
-    int count = ProjectFile::ref()->m_SignalPreview_CountX;
     float width = ProjectFile::ref()->m_SignalPreview_SizeX;
 
-    count = (int)(aw / ez::math::maxi(width, 1.0f));
+    int count = (int)(aw / ez::math::maxi(width, 1.0f));
     width = aw / (float)ez::math::maxi(count, 1);
 
     ProjectFile::ref()->m_SignalPreview_CountX = count;
@@ -131,7 +81,7 @@ int SignalsPreview::CalcSignalsButtonCountAndSize(ImVec2& vOutCellSize,   /* cel
     return count;
 }
 
-int SignalsPreview::DrawSignalButton(SignalTickPtr vPtr, ImVec2 vGlyphSize) {
+int SignalsHoveredMap::DrawSignalButton(const SignalTickPtr& vPtr, ImVec2 vGlyphSize) {
     int res = 0;
 
     if (vPtr) {
@@ -186,11 +136,10 @@ int SignalsPreview::DrawSignalButton(SignalTickPtr vPtr, ImVec2 vGlyphSize) {
     return res;
 }
 
-void SignalsPreview::DrawTable() {
+void SignalsHoveredMap::DrawTable() {
     if (ImGui::BeginMenuBar()) {
         float aw = ImGui::GetContentRegionAvail().x;
 
-        // ImGui::SliderUIntDefaultCompact(aw, "Count buttons x", &ProjectFile::ref()->m_SignalPreview_CountX, 1U, 1000U, 20U);
         ImGui::SliderFloat("Button Width", &ProjectFile::ref()->m_SignalPreview_SizeX, 10.0f, 100.0f);
 
         ImGui::EndMenuBar();
@@ -198,7 +147,7 @@ void SignalsPreview::DrawTable() {
 
     auto win = ImGui::GetCurrentWindowRead();
     if (win) {
-        const auto& signals_count = m_PreviewTicks.size();
+        const auto& signals_count = LogEngine::ref()->GetPreviewTicks().size();
         if (signals_count) {
             ImVec2 cell_size, button_size;
             const auto& signals_max_count_x = CalcSignalsButtonCountAndSize(cell_size, button_size);
@@ -215,7 +164,7 @@ void SignalsPreview::DrawTable() {
                         for (uint32_t i = 0; i < (uint32_t)signals_max_count_x; ++i) {
                             uint32_t tick_idx = i + j * signals_max_count_x;
                             if (tick_idx < signals_count) {
-                                auto ptr = m_PreviewTicks[tick_idx].lock();
+                                auto ptr = LogEngine::ref()->GetPreviewTicks().at(tick_idx).lock();
                                 if (ptr) {
                                     uint32_t x = idx % signals_max_count_x;
 

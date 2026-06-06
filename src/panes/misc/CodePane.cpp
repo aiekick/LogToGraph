@@ -1,7 +1,7 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <panes/CodePane.h>
+#include <panes/misc/CodePane.h>
 #include <cinttypes>  // printf zu
 
 #include <ezlibs/ezLog.hpp>
@@ -25,6 +25,15 @@ void CodePane::unit() {
     m_CodeSheets.clear();
 }
 
+void CodePane::Clear() {
+    m_CodeSheets.clear();
+    m_BreakpointsRevisionSeen = -1;
+    m_DebugScriptFileCache.clear();
+    m_Breakpoints0BasedCache.clear();
+    m_LastStateRevision = -1;
+    m_StateCache = Ltg::DebugState{};
+}
+
 ///////////////////////////////////////////////////////////////////////////////////
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -42,6 +51,7 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
+            if (ProjectFile::ref()->IsProjectLoaded()) {
             m_DrawDebugToolbar();
 
             // refresh the breakpoint render cache ONLY when the debugger's revision has advanced.
@@ -49,7 +59,7 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
             const int64_t breakpointsRevision = ScriptDebugger::ref()->getBreakpointsRevision();
             if (breakpointsRevision != m_BreakpointsRevisionSeen) {
                 m_DebugScriptFileCache = ScriptDebugger::ref()->getScriptFilePathName();
-                const auto breakpoints1Based = ScriptDebugger::ref()->getBreakpoints();
+                const auto& breakpoints1Based = ScriptDebugger::ref()->getBreakpoints();
                 m_Breakpoints0BasedCache.clear();
                 for (const auto& breakpointLine : breakpoints1Based) {
                     m_Breakpoints0BasedCache.insert(breakpointLine - 1);
@@ -92,6 +102,7 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
                 }
                 ImGui::EndTabBar();
             }
+            }  // IsProjectLoaded
         }
 
         ImGui::End();

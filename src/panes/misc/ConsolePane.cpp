@@ -28,9 +28,6 @@ bool ConsolePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
-            if (ImGui::BeginMenuBar()) {
-                ImGui::EndMenuBar();
-            }
             Messaging::ref().DrawConsolePane();
         }
         ImGui::End();

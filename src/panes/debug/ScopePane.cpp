@@ -3,8 +3,9 @@
 
 #include "ScopePane.h"
 #include <imgui_internal.h>
+#include <project/ProjectFile.h>
 #include <models/debug/ScriptDebugger.h>
-#include <panes/DebugVarTree.h>
+#include <panes/debug/DebugVarTree.h>
 
 #include <vector>
 
@@ -13,6 +14,11 @@ bool ScopePane::init() {
 }
 
 void ScopePane::unit() {}
+
+void ScopePane::Clear() {
+    m_LastStateRevision = -1;
+    m_StateCache = Ltg::DebugState{};
+}
 
 ///////////////////////////////////////////////////////////////////////////////////
 //// IMGUI PANE ///////////////////////////////////////////////////////////////////
@@ -30,6 +36,7 @@ bool ScopePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
+            if (ProjectFile::ref()->IsProjectLoaded()) {
             if (ImGui::BeginMenuBar()) {
                 ImGui::EndMenuBar();
             }
@@ -77,6 +84,7 @@ bool ScopePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
                     }
                 }
             }
+            }  // IsProjectLoaded
         }
         ImGui::End();
     }

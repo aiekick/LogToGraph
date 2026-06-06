@@ -71,8 +71,7 @@ bool ScriptDebugger::shouldArmDebug() const {
     return m_DebugArmed.load(std::memory_order_relaxed) || !m_Breakpoints.empty();
 }
 
-Ltg::BreakpointLines ScriptDebugger::getBreakpoints() const {
-    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+const Ltg::BreakpointLines& ScriptDebugger::getBreakpoints() const {
     return m_Breakpoints;
 }
 
@@ -117,8 +116,23 @@ void ScriptDebugger::clearBreakpoints() {
     m_BreakpointsRevision.fetch_add(1, std::memory_order_release);
 }
 
-std::string ScriptDebugger::getScriptFilePathName() const {
-    std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+void ScriptDebugger::Clear() {
+    // disarm first (lock-free atomic), then wipe breakpoints+path + paused snapshot under their own locks
+    m_DebugArmed.store(false, std::memory_order_release);
+    {
+        std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
+        m_Breakpoints.clear();
+        m_ScriptFilePathName.clear();
+        m_BreakpointsRevision.fetch_add(1, std::memory_order_release);
+    }
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        m_State = Ltg::DebugState{};
+        m_StateRevision.fetch_add(1, std::memory_order_release);
+    }
+}
+
+const std::string& ScriptDebugger::getScriptFilePathName() const {
     return m_ScriptFilePathName;
 }
 

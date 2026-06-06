@@ -3,6 +3,7 @@
 
 #include "BreakpointsPane.h"
 #include <imgui_internal.h>
+#include <project/ProjectFile.h>
 #include <models/debug/ScriptDebugger.h>
 
 #include <vector>
@@ -31,11 +32,12 @@ bool BreakpointsPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas)
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
+            if (ProjectFile::ref()->IsProjectLoaded()) {
             if (ImGui::BeginMenuBar()) {
                 ImGui::EndMenuBar();
             }
-            const auto scriptFile = ScriptDebugger::ref()->getScriptFilePathName();
-            const auto breakpoints = ScriptDebugger::ref()->getBreakpoints();
+            const auto& scriptFile = ScriptDebugger::ref()->getScriptFilePathName();
+            const auto& breakpoints = ScriptDebugger::ref()->getBreakpoints();
 
             if (!scriptFile.empty()) {
                 ImGui::TextWrapped("%s", scriptFile.c_str());
@@ -66,6 +68,7 @@ bool BreakpointsPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas)
                 }
                 ImGui::EndTable();
             }
+            }  // IsProjectLoaded
         }
         ImGui::End();
     }

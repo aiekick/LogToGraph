@@ -28,7 +28,7 @@ limitations under the License.
 
 #include <models/graphs/GraphGroup.h>
 
-#include <panes/LogPane.h>
+#include <panes/log/LogPane.h>
 
 #include <models/graphs/GraphAnnotation.h>
 #include <models/graphs/GraphAnnotationModel.h>

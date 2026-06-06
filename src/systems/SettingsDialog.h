@@ -24,6 +24,9 @@ public:
 
     bool Draw();
 
+    // forwards to every registered ISettings — called by ProjectFile::ClearDatas on New/Open/Close
+    void clearProjectSettings();
+
     ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") final;
     bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) final;
 

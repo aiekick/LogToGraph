@@ -50,6 +50,9 @@ struct ISettings : public IXmlSettings {
     virtual bool saveSettings() = 0;
     // will draw custom settings via imgui
     virtual bool drawSettings() = 0;
+    // called by SettingsDialog::clearProjectSettings on New/Open/Close so per-project values get reset.
+    // default no-op so APP-only implementers (e.g. AppSettings) need not override.
+    virtual void clearProjectSettings() {}
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;

@@ -86,9 +86,6 @@ add_definitions(-DIMGUI_DEFINE_MATH_OPERATORS)
 add_definitions(-DUSE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS)
 add_definitions(-DNEW_SINGLETON) ## align consumer code with imguipack's USE_NEW_SINGLETON
 add_definitions(-DILAYOUT_PANE_INCLUDE="${CMAKE_SOURCE_DIR}/apis/ILayoutPane.h")
-## IMGUI_INCLUDE must NOT point to imguipack.h (that file pulls every imgui_tools header,
-## which creates a circular include with TextEditor.h/ImCodeEditor.h). Point it at the
-## raw imgui_internal.h instead — the custom config is still picked up via IMGUI_USER_CONFIG.
 add_definitions(-DIMGUI_INCLUDE="${CMAKE_SOURCE_DIR}/3rdparty/imguipack/3rdparty/imgui_docking/imgui_internal.h")
 add_definitions(-DIMGUI_USER_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImGuiConfig.h")
 add_definitions(-DCUSTOM_IMWIDGETS_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImWidgetsConfig.h")
@@ -96,6 +93,7 @@ add_definitions(-DCUSTOM_IN_APP_GPU_PROFILER_CONFIG="${CMAKE_SOURCE_DIR}/src/hea
 add_definitions(-DCUSTOM_IMGUIFILEDIALOG_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomImGuiFileDialogConfig.h")
 add_definitions(-DCUSTOM_LOG_TO_GRAPH_BACKEND_CONFIG="${CMAKE_SOURCE_DIR}/src/headers/CustomLtgBackendConfig.h")
 add_definitions(-DCUSTOM_THEME_HELPER_CONFIG_HEADER="${CMAKE_SOURCE_DIR}/src/headers/CustomImGuiThemeHelperConfigHeader.h")
+add_definitions(-DCUSTOM_MESSAGING_CONFIG_HEADER="${CMAKE_SOURCE_DIR}/src/headers/CustomMessagingConfigHeader.h")
 
 if(USE_BUILDING_OF_TESTS)
 	enable_testing()

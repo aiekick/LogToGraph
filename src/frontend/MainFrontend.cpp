@@ -27,25 +27,25 @@ limitations under the License.
 
 #include <systems/PluginManager.h>
 
-#include <panes/ConsolePane.h>
-#include <panes/ProfilerPane.h>
-#include <panes/CodePane.h>
-#include <panes/LogPane.h>
-#include <panes/CodePane.h>
-#include <panes/ToolPane.h>
-#include <panes/GraphPane.h>
-#include <panes/ConsolePane.h>
-#include <panes/GraphGroupPane.h>
-#include <panes/SignalsHoveredDiff.h>
-#include <panes/SignalsHoveredList.h>
-#include <panes/SignalsHoveredMap.h>
-#include <panes/LogPaneSecondView.h>
-#include <panes/GraphListPane.h>
-#include <panes/AnnotationPane.h>
-#include <panes/StackTreePane.h>
-#include <panes/ScopePane.h>
-#include <panes/CalltracePane.h>
-#include <panes/BreakpointsPane.h>
+#include <panes/misc/ConsolePane.h>
+#include <panes/misc/ProfilerPane.h>
+#include <panes/misc/CodePane.h>
+#include <panes/log/LogPane.h>
+#include <panes/misc/CodePane.h>
+#include <panes/misc/ToolPane.h>
+#include <panes/graph/GraphPane.h>
+#include <panes/misc/ConsolePane.h>
+#include <panes/graph/GraphGroupPane.h>
+#include <panes/signals/SignalsHoveredDiff.h>
+#include <panes/signals/SignalsHoveredList.h>
+#include <panes/signals/SignalsHoveredMap.h>
+#include <panes/log/LogPaneSecondView.h>
+#include <panes/graph/GraphListPane.h>
+#include <panes/graph/AnnotationPane.h>
+#include <panes/debug/StackTreePane.h>
+#include <panes/debug/ScopePane.h>
+#include <panes/debug/CalltracePane.h>
+#include <panes/debug/BreakpointsPane.h>
 
 #include <res/fontIcons.h>
 
@@ -58,16 +58,16 @@ limitations under the License.
 #include <headers/LogToGraphBuild.h>
 
 // panes
-#define DEBUG_PANE_ICON ICON_SDFM_BUG
-#define SCENE_PANE_ICON ICON_SDFM_FORMAT_LIST_BULLETED_TYPE
-#define TUNING_PANE_ICON ICON_SDFM_TUNE
-#define CONSOLE_PANE_ICON ICON_SDFMT_COMMENT_TEXT_MULTIPLE
+#define DEBUG_PANE_ICON ICON_FONT_BUG
+#define SCENE_PANE_ICON ICON_FONT_FORMAT_LIST_BULLETED_TYPE
+#define TUNING_PANE_ICON ICON_FONT_TUNE
+#define CONSOLE_PANE_ICON ICON_FONTT_COMMENT_TEXT_MULTIPLE
 
 // features
-#define GRID_ICON ICON_SDFMT_GRID
-#define MOUSE_ICON ICON_SDFMT_MOUSE
-#define CAMERA_ICON ICON_SDFMT_CAMCORDER
-#define GIZMO_ICON ICON_SDFMT_AXIS_ARROW
+#define GRID_ICON ICON_FONTT_GRID
+#define MOUSE_ICON ICON_FONTT_MOUSE
+#define CAMERA_ICON ICON_FONTT_CAMCORDER
+#define GIZMO_ICON ICON_FONTT_AXIS_ARROW
 
 using namespace std::placeholders;
 
@@ -137,6 +137,12 @@ void MainFrontend::Display(const uint32_t& vCurrentFrame, const ImVec2& vPos, co
 
         MainFrontend::sCentralWindowHovered = (ImGui::GetCurrentContext()->HoveredWindow == nullptr);
         ImGui::CustomStyle::ResetCustomId();
+
+        // global Ctrl+S — save the project (works regardless of focus; the editor's own Ctrl+S
+        // also fires when focused, both converge on a Save which is idempotent).
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false)) {
+            Action_Menu_SaveProject();
+        }
 
         // m_drawLeftButtonBar();
         m_drawMainMenuBar();
@@ -299,7 +305,7 @@ void MainFrontend::m_drawMainMenuBar() {
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem(ICON_FONT_FLOPPY " Save")) {
+                if (ImGui::MenuItem(ICON_FONT_FLOPPY " Save", "Ctrl+S")) {
                     Action_Menu_SaveProject();
                 }
 

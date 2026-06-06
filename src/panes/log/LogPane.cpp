@@ -17,28 +17,31 @@ limitations under the License.
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include "LogPaneSecondView.h"
-#include <panes/ToolPane.h>
-#include <panes/GraphListPane.h>
+#include "LogPane.h"
+#include <panes/misc/ToolPane.h>
+#include <panes/signals/SignalsHoveredMap.h>
+#include <panes/graph/GraphGroupPane.h>
 #include <project/ProjectFile.h>
 #include <cinttypes>  // printf zu
 
 #include <models/log/LogEngine.h>
 #include <models/log/SignalSerie.h>
 #include <models/log/SignalTick.h>
+#include <panes/graph/GraphListPane.h>
+#include <models/graphs/GraphView.h>
 #include <models/script/ScriptingEngine.h>
 
 ///////////////////////////////////////////////////////////////////////////////////
 //// OVERRIDES ////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-bool LogPaneSecondView::init()  {
+bool LogPane::init() {
     return true;
 }
 
-void LogPaneSecondView::unit() {}
+void LogPane::unit() {}
 
-bool LogPaneSecondView::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
+bool LogPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
     
     bool change = false;
     if (apOpened != nullptr && *apOpened) {
@@ -60,18 +63,16 @@ bool LogPaneSecondView::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserData
             }
         }
 
-        // MainFrame::sAnyWindowsHovered |= ImGui::IsWindowHovered();
-
         ImGui::End();
     }
     return change;
 }
 
-void LogPaneSecondView::Clear() {
+void LogPane::Clear() {
     m_LogDatas.clear();
 }
 
-void LogPaneSecondView::CheckItem(const SignalTickPtr& vSignalTick) {
+void LogPane::CheckItem(SignalTickPtr vSignalTick) {
     if (vSignalTick && ImGui::IsItemHovered()) {
         LogEngine::ref()->SetHoveredTime(vSignalTick->time_epoch);
 
@@ -102,20 +103,20 @@ void LogPaneSecondView::CheckItem(const SignalTickPtr& vSignalTick) {
     }
 }
 
-void LogPaneSecondView::DrawMenuBar() {
+void LogPane::DrawMenuBar() {
     bool need_update = false;
     if (ImGui::BeginMenu("Settings")) {
-        if (ImGui::MenuItem("Collapse Selection", nullptr, &ProjectFile::ref()->m_CollapseLog2ndSelection)) {
+        if (ImGui::MenuItem("Collapse Selection", nullptr, &ProjectFile::ref()->m_CollapseLogSelection)) {
             need_update = true;
         }
-        if (ImGui::MenuItem("Auto resize columns", nullptr, &ProjectFile::ref()->m_AutoResizeLog2ndColumns)) {
+        if (ImGui::MenuItem("Auto resize columns", nullptr, &ProjectFile::ref()->m_AutoResizeLogColumns)) {
             need_update = true;
         }
-        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::ref()->m_ShowVariableSignalsInLog2ndView)) {
+        if (ImGui::MenuItem("Show variable signals only", nullptr, &ProjectFile::ref()->m_ShowVariableSignalsInLogView)) {
             LogEngine::ref()->SetHoveredTime(LogEngine::ref()->GetHoveredTime());
             need_update = true;
         }
-        if (ImGui::MenuItem("Hide some values", nullptr, &ProjectFile::ref()->m_HideSomeLog2ndValues)) {
+        if (ImGui::MenuItem("Hide some values", nullptr, &ProjectFile::ref()->m_HideSomeLogValues)) {
             need_update = true;
         }
         ImGui::EndMenu();
@@ -136,22 +137,22 @@ void LogPaneSecondView::DrawMenuBar() {
         }
     }
 
-    if (ProjectFile::ref()->m_HideSomeLog2ndValues) {
+    if (ProjectFile::ref()->m_HideSomeLogValues) {
         ImGui::Text("(?)");
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("%s", "you can define many values, ex : 1,2,3.2,5.8");
         }
 
         if (ImGui::ContrastedButton("R##ResetLogPaneTable")) {
-            ProjectFile::ref()->m_Log2ndValuesToHide.clear();
+            ProjectFile::ref()->m_LogValuesToHide.clear();
             need_update = true;
         }
 
         static char _values_hide_buffer[1024 + 1] = "";
-        snprintf(_values_hide_buffer, 1024, "%s", ProjectFile::ref()->m_Log2ndValuesToHide.c_str());
+        snprintf(_values_hide_buffer, 1024, "%s", ProjectFile::ref()->m_LogValuesToHide.c_str());
         if (ImGui::InputText("##Valuestohide", _values_hide_buffer, 1024)) {
             need_update = true;
-            ProjectFile::ref()->m_Log2ndValuesToHide = _values_hide_buffer;
+            ProjectFile::ref()->m_LogValuesToHide = _values_hide_buffer;
         }
     }
 
@@ -161,7 +162,7 @@ void LogPaneSecondView::DrawMenuBar() {
     }
 }
 
-void LogPaneSecondView::goOnNextSelection() {
+void LogPane::goOnNextSelection() {
     int32_t max_idx = m_LogDatas.size();
     for (int32_t idx = m_LogListClipper.DisplayStart + 1; idx < max_idx; ++idx) {
         const auto infos_ptr = m_LogDatas.at(idx).lock();
@@ -174,7 +175,7 @@ void LogPaneSecondView::goOnNextSelection() {
     }
 }
 
-void LogPaneSecondView::goOnBackSelection() {
+void LogPane::goOnBackSelection() {
     int32_t max_idx = m_LogDatas.size();
     for (int32_t idx = m_LogListClipper.DisplayStart - 1; idx >= 0; --idx) {
         const auto infos_ptr = m_LogDatas.at(idx).lock();
@@ -187,14 +188,13 @@ void LogPaneSecondView::goOnBackSelection() {
     }
 }
 
-void LogPaneSecondView::DrawTable() {
-    ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
-        ImGuiTableFlags_NoHostExtendY;
+void LogPane::DrawTable() {
+    ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_NoHostExtendY;
 
-    if (!ProjectFile::ref()->m_AutoResizeLog2ndColumns) {
+    if (!ProjectFile::ref()->m_AutoResizeLogColumns) {
         flags |= ImGuiTableFlags_Resizable;
     }
-    
+
     // first display
     if (m_LogDatas.empty()) {
         PrepareLog();
@@ -204,10 +204,9 @@ void LogPaneSecondView::DrawTable() {
 
     m_need_re_preparation = false;
 
-    auto listViewID = ImGui::GetID("##LogPaneSecondView_DrawTable");
-    if (ImGui::BeginTableEx("##LogPaneSecondView_DrawTable", listViewID, 5, flags))  //-V112
-    {
-        ImGui::TableSetupScrollFreeze(0, 1);  // Make header always visible
+    auto listViewID = ImGui::GetID("##LogPane_DrawTable");
+    if (ImGui::BeginTableEx("##LogPane_DrawTable", listViewID, 5, flags)) {  //-V112
+        ImGui::TableSetupScrollFreeze(0, 1);                                 // Make header always visible
         ImGui::TableSetupColumn("Epoch", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultHide);
         ImGui::TableSetupColumn("Date", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Cat", ImGuiTableColumnFlags_WidthFixed);
@@ -216,8 +215,7 @@ void LogPaneSecondView::DrawTable() {
 
         ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 
-        for (int column = 0; column < 5; column++)  //-V112
-        {
+        for (int column = 0; column < 5; column++) {  //-V112
             ImGui::TableSetColumnIndex(column);
             const char* column_name = ImGui::TableGetColumnName(column);  // Retrieve name passed to TableSetupColumn()
             ImGui::PushID(column);
@@ -225,12 +223,12 @@ void LogPaneSecondView::DrawTable() {
             ImGui::PopID();
         }
 
-        int32_t count_color_push = 0U;
+        uint32_t count_color_push = 0U;
         ImU32 color = 0U;
         bool selected = false;
         m_LogListClipper.Begin((int)_count_logs, ImGui::GetTextLineHeightWithSpacing());
         while (m_LogListClipper.Step()) {
-            for (int i = m_LogListClipper.DisplayStart; i < m_LogListClipper.DisplayEnd; ++i) {
+            for (int32_t i = m_LogListClipper.DisplayStart; i < m_LogListClipper.DisplayEnd; ++i) {
                 if (i < 0)
                     continue;
 
@@ -243,10 +241,10 @@ void LogPaneSecondView::DrawTable() {
                         ImGui::PushStyleColor(ImGuiCol_Header, (ImU32)color);
                         ImGui::PushStyleColor(ImGuiCol_HeaderActive, (ImU32)color);
                         ImGui::PushStyleColor(ImGuiCol_HeaderHovered, (ImU32)color);
-                        count_color_push = 3;
+                        count_color_push = 3U;
                         if (ImGui::PushStyleColorWithContrast1(
                                 ImGuiCol_Header, ImGuiCol_Text, ImGui::CustomStyle::puContrastedTextColor, ImGui::CustomStyle::puContrastRatio)) {
-                            count_color_push = 4;
+                            count_color_push = 4U;
                         }
                     } else {
                         color = 0U;
@@ -314,38 +312,39 @@ void LogPaneSecondView::DrawTable() {
     }
 }
 
-void LogPaneSecondView::PrepareLog() {
+void LogPane::PrepareLog() {
     if (ScriptingEngine::ref()->IsJoinable())
         return;
 
     m_LogDatas.clear();
 
-    if (ProjectFile::ref()->m_HideSomeLog2ndValues) {
+    if (ProjectFile::ref()->m_HideSomeLogValues) {
         m_ValuesToHide.clear();
-        auto arr = ez::str::splitStringToVector(ProjectFile::ref()->m_Log2ndValuesToHide, ",");
+        auto arr = ez::str::splitStringToVector(ProjectFile::ref()->m_LogValuesToHide, ",");
         for (const auto& a : arr) {
             m_ValuesToHide.push_back(ez::dvariant(a).GetD());
         }
     }
 
     const auto _count_logs = LogEngine::ref()->GetSignalTicks().size();
-    const auto _collapseSelection = ProjectFile::ref()->m_CollapseLog2ndSelection;
+    const auto _collapseSelection = ProjectFile::ref()->m_CollapseLogSelection;
 
     for (size_t idx = 0U; idx < _count_logs; ++idx) {
         const auto& infos_ptr = LogEngine::ref()->GetSignalTicks().at(idx);
         if (infos_ptr) {
             auto parent_ptr = infos_ptr->parent.lock();
             if (parent_ptr != nullptr) {
-                if (ProjectFile::ref()->m_ShowVariableSignalsInLog2ndView && parent_ptr->isConstant()) {
+                if (ProjectFile::ref()->m_ShowVariableSignalsInLogView && parent_ptr->isConstant()) {
                     continue;
                 }
             }
 
             auto selected = LogEngine::ref()->isSignalShown(infos_ptr->category, infos_ptr->name);
-            if (_collapseSelection && !selected)
+            if (_collapseSelection && !selected) {
                 continue;
+            }
 
-            if (ProjectFile::ref()->m_HideSomeLog2ndValues) {
+            if (ProjectFile::ref()->m_HideSomeLogValues) {
                 bool found = false;
 
                 for (const auto& a : m_ValuesToHide) {

@@ -46,6 +46,15 @@ void SettingsDialog::CloseDialog() {
     m_ShowDialog = false;
 }
 
+void SettingsDialog::clearProjectSettings() {
+    for (const auto& cat : m_SettingsPerCategoryPath) {
+        auto ptr = cat.second.lock();
+        if (ptr != nullptr) {
+            ptr->clearProjectSettings();
+        }
+    }
+}
+
 bool SettingsDialog::Draw() {
     if (m_ShowDialog) {
         ImGui::Begin("Settings");

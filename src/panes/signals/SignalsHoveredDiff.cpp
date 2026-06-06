@@ -20,7 +20,7 @@ limitations under the License.
 #include "SignalsHoveredDiff.h"
 #include <project/ProjectFile.h>
 #include <cinttypes>  // printf zu
-#include <panes/CodePane.h>
+#include <panes/misc/CodePane.h>
 
 #include <models/log/LogEngine.h>
 #include <models/log/SignalSerie.h>

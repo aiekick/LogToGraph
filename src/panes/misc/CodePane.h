@@ -39,6 +39,8 @@ public:
     void unit() final;
     bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) final;
 
+    void Clear();  // called by ProjectFile::ClearDatas on New/Open/Close
+
     void OpenFile(const std::string& vFilePathName, size_t vErrorLine = 0, std::string vErrorMsg = {});
 
     // the single in-app project script (stored in the .ltg db, not an external file)

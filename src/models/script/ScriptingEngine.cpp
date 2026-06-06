@@ -24,14 +24,14 @@ limitations under the License.
 
 #include <models/log/LogEngine.h>
 #include <models/graphs/GraphView.h>
-#include <panes/GraphListPane.h>
-#include <panes/LogPaneSecondView.h>
+#include <panes/graph/GraphListPane.h>
+#include <panes/log/LogPaneSecondView.h>
 
 #include <models/database/DataBase.h>
 #include <project/ProjectFile.h>
 
-#include <panes/ToolPane.h>
-#include <panes/LogPane.h>
+#include <panes/misc/ToolPane.h>
+#include <panes/log/LogPane.h>
 
 #include <ezlibs/ezFile.hpp>
 

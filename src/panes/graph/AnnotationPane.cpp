@@ -26,8 +26,8 @@ limitations under the License.
 #include <models/graphs/GraphAnnotation.h>
 #include <models/log/SignalSerie.h>
 #include <models/log/LogEngine.h>
-#include <panes/ToolPane.h>
-#include <panes/GraphListPane.h>
+#include <panes/misc/ToolPane.h>
+#include <panes/graph/GraphListPane.h>
 #include <res/fontIcons.h>
 
 ///////////////////////////////////////////////////////////////////////////////////

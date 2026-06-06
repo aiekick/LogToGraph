@@ -25,4 +25,5 @@ public:
     bool init() override;
     void unit() override;
     bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
+    void Clear();  // called by ProjectFile::ClearDatas
 };

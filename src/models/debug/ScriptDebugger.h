@@ -81,14 +81,20 @@ public:
     void bindPlugin(Ltg::IScriptDebugger* apPluginDebugger);
     void unbindPlugin();
     bool shouldArmDebug() const;
-    Ltg::BreakpointLines getBreakpoints() const;
+    // const& return — UI-thread writers only, the worker reads via isBreakpoint() under mutex. Caller
+    // must not call setBreakpoint/toggleBreakpoint/clearBreakpoints while iterating the returned ref.
+    const Ltg::BreakpointLines& getBreakpoints() const;
     int64_t getBreakpointsRevision() const;  // atomic acquire load; no mutex
 
     // breakpoints — UI thread, lines are 1-based
     void setBreakpoint(const std::string& aScriptFilePathName, int32_t aLine, bool aAdd);
     void toggleBreakpoint(const std::string& aScriptFilePathName, int32_t aLine);
     void clearBreakpoints();
-    std::string getScriptFilePathName() const;
+
+    // full reset — disarm, clear breakpoints + script path + paused snapshot. called by
+    // ProjectFile::ClearDatas on New/Open/Close (worker must already be joined by then).
+    void Clear();
+    const std::string& getScriptFilePathName() const;  // const& — same UI-thread invariant as getBreakpoints()
 
     // debug arming — UI thread
     void setDebugArmed(bool aArmed);

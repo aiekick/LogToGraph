@@ -51,8 +51,7 @@ bool CodeEditor::init() {
             const float radius = (aDecorator.height - 6.0f) * 0.5f;
             const uint8_t bpAlpha = m_BreakpointInteractionEnabled ? 255 : 110;  // fade existing dot when toggling is off
             const ImU32 color = isBreakpoint ? IM_COL32(220, 40, 40, bpAlpha) : IM_COL32(220, 40, 40, 90);
-            ImGui::GetWindowDrawList()->AddCircleFilled(
-                ImVec2(rectMin.x + aDecorator.width * 0.5f, rectMin.y + aDecorator.height * 0.5f), radius, color);
+            ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(rectMin.x + aDecorator.width * 0.5f, rectMin.y + aDecorator.height * 0.5f), radius, color);
         }
     });
     return true;
@@ -65,27 +64,11 @@ void CodeEditor::OnImGui() {
     bool requestingGoToLinePopup = false;
     bool requestingFindPopup = false;
     if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Save", "Ctrl+S")) {
-                OnSaveCommand();
-            }
-            ImGui::EndMenu();
-        }
         if (ImGui::BeginMenu("Edit")) {
-            bool ro = m_Editor.IsReadOnlyEnabled();
-            if (ImGui::MenuItem("Read only mode enabled", nullptr, &ro)) {
-                m_Editor.SetReadOnlyEnabled(ro);
-            }
-            bool ai = m_Editor.IsAutoIndentEnabled();
-            if (ImGui::MenuItem("Auto indent on enter enabled", nullptr, &ai)) {
-                m_Editor.SetAutoIndentEnabled(ai);
-            }
-            ImGui::Separator();
-
-            if (ImGui::MenuItem("Undo", "ALT-Backspace", nullptr, !ro && m_Editor.CanUndo())) {
+            if (ImGui::MenuItem("Undo", "ALT-Backspace", nullptr, m_Editor.CanUndo())) {
                 m_Editor.Undo();
             }
-            if (ImGui::MenuItem("Redo", "Ctrl+Y", nullptr, !ro && m_Editor.CanRedo())) {
+            if (ImGui::MenuItem("Redo", "Ctrl+Y", nullptr, m_Editor.CanRedo())) {
                 m_Editor.Redo();
             }
 
@@ -94,10 +77,10 @@ void CodeEditor::OnImGui() {
             if (ImGui::MenuItem("Copy", "Ctrl+C", nullptr, m_Editor.AnyCursorHasSelection())) {
                 m_Editor.Copy();
             }
-            if (ImGui::MenuItem("Cut", "Ctrl+X", nullptr, !ro && m_Editor.AnyCursorHasSelection())) {
+            if (ImGui::MenuItem("Cut", "Ctrl+X", nullptr, m_Editor.AnyCursorHasSelection())) {
                 m_Editor.Cut();
             }
-            if (ImGui::MenuItem("Paste", "Ctrl+V", nullptr, !ro && ImGui::GetClipboardText() != nullptr)) {
+            if (ImGui::MenuItem("Paste", "Ctrl+V", nullptr, ImGui::GetClipboardText() != nullptr)) {
                 m_Editor.Paste();
             }
 
@@ -107,23 +90,6 @@ void CodeEditor::OnImGui() {
                 m_Editor.SelectAll();
             }
 
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("View")) {
-            ImGui::SliderInt("Tab size", &m_TabSize, 1, 8);
-            ImGui::SliderFloat("Line spacing", &m_LineSpacing, 1.0f, 2.0f);
-            m_Editor.SetTabSize(m_TabSize);
-            m_Editor.SetLineSpacing(m_LineSpacing);
-            static bool showSpaces = m_Editor.IsShowWhitespacesEnabled();
-            if (ImGui::MenuItem("Show spaces", nullptr, &showSpaces)) {
-                m_Editor.SetShowWhitespacesEnabled(!(m_Editor.IsShowWhitespacesEnabled()));
-            }
-            static bool showLineNumbers = m_Editor.IsShowLineNumbersEnabled();
-            if (ImGui::MenuItem("Show line numbers", nullptr, &showLineNumbers)) {
-                m_Editor.SetShowLineNumbersEnabled(!(m_Editor.IsShowLineNumbersEnabled()));
-            }
-            // short tabs option dropped from new TextEditor
             ImGui::EndMenu();
         }
 
@@ -147,12 +113,6 @@ void CodeEditor::OnImGui() {
             }
             ImGui::EndMenu();
         }
-
-        const auto* lang = m_Editor.GetLanguage();
-        ImGui::Text("%6d lines | %s | %s",
-                    m_Editor.GetLineCount(),
-                    m_Editor.IsOverwriteEnabled() ? "Ovr" : "Ins",
-                    lang ? "lang" : "plain");
 
         ImGui::EndMenuBar();
     }
