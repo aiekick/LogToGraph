@@ -17,11 +17,14 @@
 #include <lua.hpp>
 #include <sol/sol.hpp>
 
-// recover the Module owning a lua_State from inside the C hook; only the single
-// parsing worker thread touches this map (enableDebug / hook / unload all run there)
-std::unordered_map<lua_State*, Module*> Module::s_modulesByState;
-
 namespace {
+
+// Registry key binding a lua_State to its owning Module, so the C line hook can recover the
+// Module from the lua_State it is handed (lua_sethook carries no user data). The binding lives
+// in the state's own registry: it works for several states at once and for coroutines, and is
+// freed with the state — so there is no process-wide static to be destroyed (and crash) at the
+// plugin DLL's unload.
+const char* const kDebugModuleRegistryKey = "ltg_debug_module";
 
 // Stringify a value on the Lua stack WITHOUT luaL_tolstring (absent from LuaJIT 5.1).
 // The type is checked first so lua_tostring is only called on real strings (it would
@@ -170,10 +173,7 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
 }
 
 void Module::unload() {
-    if (m_luaPtr != nullptr) {
-        // drop any debug hook binding before the lua_State is destroyed
-        s_modulesByState.erase(m_luaPtr->lua_state());
-    }
+    // the registry-held debug binding (if any) dies with the lua_State
     m_luaPtr.reset();
 }
 
@@ -292,7 +292,10 @@ void Module::enableDebug(Ltg::IScriptDebugHost* apHost) {
     m_pauseRequested = false;
     m_stopRequested = false;
     lua_State* luaStatePtr = m_luaPtr->lua_state();
-    s_modulesByState[luaStatePtr] = this;
+    // bind `this` to this lua_State through its registry, so the C line hook can recover the
+    // Module from the lua_State it is handed
+    lua_pushlightuserdata(luaStatePtr, this);
+    lua_setfield(luaStatePtr, LUA_REGISTRYINDEX, kDebugModuleRegistryKey);
     // disable the JIT so the line hook fires on every line during the debug session
     m_luaPtr->safe_script("if jit and jit.off then jit.off() end", sol::script_pass_on_error);
     lua_sethook(luaStatePtr, &Module::sLuaHook, LUA_MASKLINE, 0);
@@ -306,7 +309,8 @@ void Module::disableDebug() {
     lua_State* luaStatePtr = m_luaPtr->lua_state();
     lua_sethook(luaStatePtr, nullptr, 0, 0);
     m_releaseDebugRefs(luaStatePtr);  // free any registry refs left from the last pause
-    s_modulesByState.erase(luaStatePtr);
+    lua_pushnil(luaStatePtr);  // drop the registry binding (the hook is being removed anyway)
+    lua_setfield(luaStatePtr, LUA_REGISTRYINDEX, kDebugModuleRegistryKey);
     m_luaPtr->safe_script("if jit and jit.on then jit.on() end", sol::script_pass_on_error);
     m_debugHostPtr = nullptr;
     m_debugEnabled = false;
@@ -321,9 +325,12 @@ void Module::requestStop() {
 }
 
 void Module::sLuaHook(lua_State* apLua, lua_Debug* apDebug) {
-    const auto moduleIt = s_modulesByState.find(apLua);
-    if (moduleIt != s_modulesByState.end() && moduleIt->second != nullptr) {
-        moduleIt->second->m_onHook(apLua, apDebug);
+    // recover the Module bound to this lua_State (set in enableDebug) from the state's registry
+    lua_getfield(apLua, LUA_REGISTRYINDEX, kDebugModuleRegistryKey);
+    Module* self = static_cast<Module*>(lua_touserdata(apLua, -1));
+    lua_pop(apLua, 1);
+    if (self != nullptr) {
+        self->m_onHook(apLua, apDebug);
     }
 }
 

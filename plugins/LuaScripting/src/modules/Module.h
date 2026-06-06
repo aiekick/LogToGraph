@@ -22,11 +22,6 @@ public:
     static Ltg::ScriptingModulePtr create(const SettingsWeak& vSettings);
 
 private:
-    // maps a lua_State to its owning Module so the C hook can recover `this`.
-    // only touched from the single parsing worker thread.
-    static std::unordered_map<lua_State*, Module*> s_modulesByState;
-
-private:
     enum class StepMode { None, Into, Over, Out };
 
 private:
