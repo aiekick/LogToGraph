@@ -49,6 +49,7 @@ private:                                       // script objects
 
 private:  // Misc
     SourceFilePathName m_scriptFilePathName;
+    std::string m_scriptCode;  // in-memory project script (its source of truth is the Code pane / db)
     std::vector<SourceFilePathName> m_sourceFilePathNames;
     std::map<Ltg::ScriptingModuleName, Ltg::ScriptingModulePtr> m_scriptingModules;
     ImWidgets::QuickStringCombo m_scriptingModuleCombo;
@@ -80,6 +81,7 @@ public:
     int32_t GetRowCount() const;
 
     void SetScriptFilePathName(const SourceFilePathName& vFilePathName);
+    void SetScriptCode(const std::string& vCode);
 
     void AddSourceFilePathName(const SourceFilePathName& vFilePathName);
 
@@ -99,6 +101,7 @@ public:
 
     void StartWorkerThread(const bool vFirstLoad);
     bool StopWorkerThread();
+    void AbortAndJoinWorker();  // unblock (incl. a debug pause) + join — used at app shutdown
     bool IsJoinable();
     void Join();
     bool FinishIfRequired();

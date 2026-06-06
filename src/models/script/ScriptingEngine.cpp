@@ -78,7 +78,7 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
     if (m_scriptingModules.find(selectedScripting) != m_scriptingModules.end()) {
         scriptingPtr = m_scriptingModules.at(selectedScripting);
     }
-    const auto scriptFilePathName = m_scriptFilePathName;
+    const auto scriptCode = m_scriptCode;
     const auto sourceFilePathNames = m_sourceFilePathNames;
 
     s_workerThread_Mutex.unlock();
@@ -86,12 +86,12 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
     int32_t rowIndex = 0;  // the current line pos read from file
     int32_t rowCount = 0;  // the current line pos read from file
 
-    if (!scriptFilePathName.empty()) {
-        if (ez::file::isFileExist(scriptFilePathName)) {
+    if (!scriptCode.empty()) {
+        if (scriptingPtr != nullptr) {
             if (scriptingPtr->load(ScriptingEngine::ref())) {
                 Ltg::ErrorContainer errorContainer;
-                if (!scriptingPtr->compileScript(scriptFilePathName, errorContainer)) {
-                    LogVarLightError("Fail to compile script \"%s\"", scriptFilePathName.c_str());
+                if (!scriptingPtr->compileScriptCode(scriptCode, errorContainer)) {
+                    LogVarLightError("%s", "Fail to compile the project script");
                 } else {
                     // arm the shared debugger only when a session is wanted (breakpoints set or debug
                     // toggle on); otherwise no hook is installed and LuaJIT keeps its full speed
@@ -100,7 +100,6 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                     if (debugArmed) {
                         ScriptDebugger::ref()->bindPlugin(scriptingPtr.get());
                         scriptingPtr->enableDebug(debugHostPtr);
-                        scriptingPtr->setBreakpoints(ScriptDebugger::ref()->getBreakpoints());
                     }
                     LogEngine::ref()->Clear();
                     GraphView::ref()->Clear();
@@ -231,6 +230,11 @@ void ScriptingEngine::SetScriptFilePathName(const SourceFilePathName& vFilePathN
     m_scriptFilePathName = vFilePathName;
 }
 
+void ScriptingEngine::SetScriptCode(const std::string& vCode) {
+    std::lock_guard<std::mutex> guard(s_workerThread_Mutex);
+    m_scriptCode = vCode;
+}
+
 void ScriptingEngine::AddSourceFilePathName(const SourceFilePathName& vFilePathName) {
     m_sourceFilePathNames.push_back(vFilePathName);
 }
@@ -281,6 +285,17 @@ bool ScriptingEngine::StopWorkerThread() {
         Join();
     }
     return res;
+}
+
+void ScriptingEngine::AbortAndJoinWorker() {
+    // abort a running or breakpoint-paused worker and join it. called at shutdown BEFORE the
+    // singletons it relies on (ScriptDebugger) are destroyed, so a worker blocked in
+    // ScriptDebugger::onPause cannot outlive them.
+    ScriptingEngine::s_working = false;  // ask the parse loop to break
+    ScriptDebugger::ref()->stop();       // unblock a worker paused in onPause
+    if (IsJoinable()) {
+        Join();
+    }
 }
 
 bool ScriptingEngine::IsJoinable() {

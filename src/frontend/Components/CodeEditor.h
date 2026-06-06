@@ -26,6 +26,7 @@ private:
     std::unordered_set<int32_t> m_BreakpointLines;  // widget 0-based lines
     int32_t m_CurrentExecLine = -1;                 // widget 0-based, -1 = none
     std::function<void(int32_t aLine, bool aAdd)> m_OnBreakpointToggled;
+    std::function<void()> m_OnSave;
     ImFont* m_CodeFontPtr = nullptr;
     int m_Id = -1;
     int m_CreatedFromFolderView = -1;
@@ -53,12 +54,16 @@ public:
     void SetShowDebugPanel(bool value);
 
     void SetCode(const std::string& vCode, CodeEditorLanguage vType);
+    std::string GetCode() const;
+    bool IsModified() const;  // true if edited since the last SetCode / MarkSaved
+    void MarkSaved();
 
     void ClearErrorMarkers();
     void AddErrorMarker(const size_t& vErrorLine, const std::string& vErrorMsg);
 
     // debugger integration — lines are the widget's 0-based numbers
     void SetBreakpointToggledCallback(std::function<void(int32_t aLine, bool aAdd)> aCallback);
+    void SetSaveCallback(std::function<void()> aCallback);
     void SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines);
     void SetCurrentExecLine(int32_t aZeroBasedLine);
 

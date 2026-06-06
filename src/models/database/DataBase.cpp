@@ -154,6 +154,55 @@ std::string DataBase::GetSettingsXMLDatas() {
     return res;
 }
 
+bool DataBase::SetScriptCode(const std::string& vCode) {
+    // ensure the table exists (projects created before this table was added)
+    sqlite3_exec(m_SqliteDB, "create table if not exists script_code (code TEXT);", nullptr, nullptr, &m_LastErrorMsg);
+
+    // does a row already exist ?
+    bool hasRow = false;
+    sqlite3_stmt* count_stmt = nullptr;
+    if (sqlite3_prepare_v2(m_SqliteDB, "select count(*) from script_code;", -1, &count_stmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_step(count_stmt) == SQLITE_ROW) {
+            hasRow = sqlite3_column_int(count_stmt, 0) > 0;
+        }
+    }
+    sqlite3_finalize(count_stmt);
+
+    const char* insert_or_update_query = hasRow ? "update script_code set code = ?1 where rowid = 1;" : "insert into script_code(code) values(?1);";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(m_SqliteDB, insert_or_update_query, -1, &stmt, nullptr) != SQLITE_OK) {
+        LogVarError("Fail to prepare script_code query : %s", sqlite3_errmsg(m_SqliteDB));
+        return false;
+    }
+    // SQLITE_TRANSIENT: sqlite copies the buffer, so vCode can be destroyed right after
+    sqlite3_bind_text(stmt, 1, vCode.c_str(), (int)vCode.size(), SQLITE_TRANSIENT);
+    const bool res = (sqlite3_step(stmt) == SQLITE_DONE);
+    if (!res) {
+        LogVarError("Fail to write script_code in database : %s", sqlite3_errmsg(m_SqliteDB));
+    }
+    sqlite3_finalize(stmt);
+    return res;
+}
+
+std::string DataBase::GetScriptCode() {
+    sqlite3_exec(m_SqliteDB, "create table if not exists script_code (code TEXT);", nullptr, nullptr, &m_LastErrorMsg);
+
+    std::string res;
+    const char* select_query = "select code from script_code where rowid = 1;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(m_SqliteDB, select_query, (int)strlen(select_query), &stmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            auto len = sqlite3_column_bytes(stmt, 0);
+            auto txt = (const char*)sqlite3_column_text(stmt, 0);
+            if (txt && len) {
+                res = std::string(txt, len);
+            }
+        }
+    }
+    sqlite3_finalize(stmt);
+    return res;
+}
+
 DBRowID DataBase::AddSourceFile(const SourceFileName& vSourceFile) {
     auto insert_query = ez::str::toStr(u8R"(insert or ignore into signal_sources (source) values("%s");)", vSourceFile.c_str());
     if (sqlite3_exec(m_SqliteDB, insert_query.c_str(), nullptr, nullptr, &m_LastErrorMsg) != SQLITE_OK) {
@@ -591,6 +640,10 @@ create table signal_tags (
 
 create table app_settings (
 	xml_datas TEXT
+);
+
+create table script_code (
+	code TEXT
 );
 )";
 

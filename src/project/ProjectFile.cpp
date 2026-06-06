@@ -122,7 +122,12 @@ bool ProjectFile::LoadAs(const std::string& vFilePathName) {
                     if (ps.isOk) {
                         m_ProjectFileName = ps.name;
                         m_ProjectFilePath = ps.path;
-                        CodePane::ref()->OpenFile(m_CodeFilePathName);
+                        auto scriptCode = DataBase::ref()->GetScriptCode();
+                        if (scriptCode.empty() && !m_ScriptFilePathName.empty() && ez::file::isFileExist(m_ScriptFilePathName)) {
+                            // retrocompat: import the old external script once, then it lives in the db
+                            scriptCode = ez::file::loadFileToString(m_ScriptFilePathName);
+                        }
+                        CodePane::ref()->OpenScript(scriptCode);
                     }
                     m_IsLoaded = true;
                     SetProjectChange(false);
@@ -152,6 +157,8 @@ bool ProjectFile::Save() {
     if (DataBase::ref()->OpenDBFile(m_ProjectFilePathName)) {
         auto xml_settings = ez::xml::Node::escapeXml(SaveConfigString("", "config"));
         if (DataBase::ref()->SetSettingsXMLDatas(xml_settings)) {
+            DataBase::ref()->SetScriptCode(CodePane::ref()->GetScriptCode());
+            CodePane::ref()->MarkScriptSaved();  // the editor is now in sync with the db
             SetProjectChange(false);
             DataBase::ref()->CloseDBFile();
             return true;

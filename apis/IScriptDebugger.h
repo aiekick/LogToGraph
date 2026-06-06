@@ -32,7 +32,7 @@ namespace Ltg {
 // the editor gutter. The 0-based <-> 1-based conversion to the TextEditor
 // widget happens in the CodeEditor, not here.
 
-// The command the host hands back to the paused plugin to drive execution.
+// The control command the host hands back to the paused plugin.
 enum class DebugCommand {
     Continue,  // resume until the next breakpoint
     StepInto,  // stop on the next executed line, entering called functions
@@ -41,61 +41,77 @@ enum class DebugCommand {
     Stop       // abort the current script execution
 };
 
-// One entry of the paused call stack.
-struct DebugFrame {
-    std::string function;  // function name, empty if anonymous
-    std::string source;    // source chunk name as reported by the runtime
-    int32_t line = 0;      // current line in this frame (1-based)
-};
-
-// One inspected variable (local or upvalue). The value is stringified by the
-// plugin because the host cannot read a runtime-native value (e.g. a Lua TValue).
+// One inspected value: a stack local/upvalue, a global, or a table entry.
+// Values are stringified by the plugin (the host cannot read a Lua TValue). A
+// table exposes a non-negative `ref` (a Lua registry reference) so the UI can
+// expand it lazily; scalars/functions/userdata stay leaves with ref == -1.
 struct DebugVar {
     std::string name;
-    std::string value;     // already stringified by the plugin
-    std::string typeName;  // runtime type name, for display
+    std::string keyType;   // type of the key ("none" for stack locals/upvalues)
+    std::string typeName;  // type of the value
+    std::string value;     // stringified value (address for table/function)
+    int32_t ref = -1;      // Lua registry ref when expandable, else -1
 };
 
-// Immutable snapshot of the paused state, built by the plugin in the worker
-// thread and copied to the host. It holds no pointer into the runtime, so it is
-// safe to read from the UI thread.
+// One call-stack frame; carries its own locals and upvalues (roots only, lazy).
+struct DebugFrame {
+    std::string function;
+    std::string source;
+    int32_t line = 0;
+    std::vector<DebugVar> locals;
+    std::vector<DebugVar> upvalues;
+};
+
+// Immutable snapshot of the paused state. Only roots are captured up front;
+// tables are expanded on demand through their `ref`. It holds no pointer into
+// the runtime, so it is safe to read from the UI thread.
 struct DebugState {
-    std::string sourceFile;             // script file being executed
-    int32_t line = 0;                   // current execution line (1-based)
-    int32_t logRowIndex = 0;            // index of the log row currently parsed
-    std::vector<DebugFrame> callStack;  // innermost frame first
-    std::vector<DebugVar> locals;       // locals of the current frame
-    std::vector<DebugVar> upvalues;     // upvalues of the current frame
+    std::string sourceFile;
+    int32_t line = 0;
+    int32_t logRowIndex = 0;
+    std::vector<DebugFrame> callStack;  // innermost frame first; each frame holds its vars
+    std::vector<DebugVar> globals;      // top-level _G entries (no filter)
 };
 
 // Set of breakpoint lines (1-based) for the active script.
 using BreakpointLines = std::unordered_set<int32_t>;
 
-// Implemented by the host (ScriptDebugger), called by the plugin from the
-// worker thread. onPause blocks the worker until the user issues a command from
-// the UI thread, then returns that command.
-struct IScriptDebugHost {
-    virtual ~IScriptDebugHost() = default;
-    virtual DebugCommand onPause(const DebugState& aState) = 0;
+// What the paused plugin should do next: resume with a command, or read the
+// children of an expandable node before resuming.
+struct DebugAction {
+    enum class Kind { Command, Expand };
+    Kind kind = Kind::Command;
+    DebugCommand command = DebugCommand::Continue;  // when kind == Command
+    int32_t expandRef = -1;                         // when kind == Expand (a registry ref)
 };
 
-// Implemented by the plugin (extended by ScriptingModule), called by the host
-// from the UI thread to arm/drive the debug session. The control commands
-// (continue/step/stop) are NOT pushed through here: they are the return value of
-// IScriptDebugHost::onPause. Only the asynchronous requests live here.
+// Implemented by the host (ScriptDebugger), called by the plugin from the worker
+// thread. The plugin loops:
+//   action = onPause(state)
+//   while action is Expand: publishExpansion(ref, children); action = waitAction()
+//   apply action.command
+struct IScriptDebugHost {
+    virtual ~IScriptDebugHost() = default;
+    // publish the paused snapshot (roots) and block until the first action
+    virtual DebugAction onPause(const DebugState& aState) = 0;
+    // block until the next action (after an expansion has been handled)
+    virtual DebugAction waitAction() = 0;
+    // publish the lazily-read children of an expandable node (non-blocking)
+    virtual void publishExpansion(int32_t aRef, const std::vector<DebugVar>& aChildren) = 0;
+    // queried by the plugin hook on each line: is there a breakpoint on this line ?
+    // live + thread-safe, so add/remove during a session takes effect immediately
+    virtual bool isBreakpoint(int32_t aLine) = 0;
+};
+
+// Implemented by the plugin (extended by ScriptingModule), called by the host from
+// the UI thread. Default no-ops so a scripting plugin that does not support
+// debugging compiles unchanged (e.g. PythonScripting); the Lua plugin overrides them.
 struct IScriptDebugger {
     virtual ~IScriptDebugger() = default;
-    // Default no-ops so a scripting plugin that does not support debugging compiles
-    // unchanged (e.g. PythonScripting); the Lua plugin overrides them all.
-    // give the plugin the host rendezvous interface, enabling the native hook
     virtual void enableDebug(IScriptDebugHost* /*apHost*/) {}
-    // remove the native hook and resume full-speed execution
     virtual void disableDebug() {}
-    // replace the breakpoint set the hook tests against
     virtual void setBreakpoints(const BreakpointLines& /*aLines*/) {}
-    // ask to pause at the next executed line (asynchronous)
     virtual void requestPause() {}
-    // ask to abort the current execution (asynchronous)
     virtual void requestStop() {}
 };
 

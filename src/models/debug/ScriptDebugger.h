@@ -18,17 +18,19 @@ limitations under the License.
 
 #include <mutex>
 #include <string>
+#include <vector>
 #include <cstdint>
+#include <unordered_map>
+#include <unordered_set>
 #include <condition_variable>
 
 #include <apis/IScriptDebugger.h>
 #include <ezlibs/ezClass.hpp>
 #include <ezlibs/ezSingleton.hpp>
 
-// Host side of the common debugger. It is the single source of truth for the
-// breakpoint set and the last paused snapshot, and it implements the rendezvous
-// the plugin blocks on (IScriptDebugHost::onPause). All scripting plugins drive
-// the same instance.
+// Host side of the common debugger: single source of truth for breakpoints, the
+// paused snapshot and the lazy-expansion cache, and the rendezvous the plugin
+// blocks on (IScriptDebugHost). All scripting plugins drive the same instance.
 class ScriptDebugger : public Ltg::IScriptDebugHost {
     DISABLE_CONSTRUCTORS(ScriptDebugger)
     DISABLE_DESTRUCTORS(ScriptDebugger)
@@ -37,15 +39,20 @@ class ScriptDebugger : public Ltg::IScriptDebugHost {
 public:
     enum class Mode { Idle, Running, Paused };
 
-private:  // rendezvous between the worker thread (onPause) and the UI thread (commands)
+private:  // rendezvous between the worker thread (onPause/waitAction) and the UI thread
     mutable std::mutex m_Mutex;
     std::condition_variable m_Cond;
     Mode m_Mode{Mode::Idle};
-    bool m_HasCommand{false};
+    bool m_HasCommand{false};  // control command (continue/step/stop) — has priority
     Ltg::DebugCommand m_Command{Ltg::DebugCommand::Continue};
+    bool m_HasExpand{false};  // pending lazy-expansion request
+    int32_t m_ExpandRef{-1};
     Ltg::DebugState m_State;
-    // active plugin debugger during a session, non-owning weak handle
     Ltg::IScriptDebugger* m_PluginDebuggerPtr{nullptr};
+
+private:  // lazy expansion cache (children read by the worker, displayed by the UI)
+    mutable std::mutex m_TreeMutex;
+    std::unordered_map<int32_t, std::vector<Ltg::DebugVar>> m_Expansions;
 
 private:  // breakpoints, source of truth, lines are 1-based
     mutable std::mutex m_BreakpointsMutex;
@@ -54,8 +61,11 @@ private:  // breakpoints, source of truth, lines are 1-based
     bool m_DebugArmed{false};
 
 public:
-    // IScriptDebugHost — called by the plugin from the worker thread, blocks until a command
-    Ltg::DebugCommand onPause(const Ltg::DebugState& aState) final;
+    // IScriptDebugHost — called by the plugin from the worker thread
+    Ltg::DebugAction onPause(const Ltg::DebugState& aState) final;
+    Ltg::DebugAction waitAction() final;
+    void publishExpansion(int32_t aRef, const std::vector<Ltg::DebugVar>& aChildren) final;
+    bool isBreakpoint(int32_t aLine) final;
 
     // session binding — called by ScriptingEngine around the parse run
     void bindPlugin(Ltg::IScriptDebugger* apPluginDebugger);
@@ -83,6 +93,11 @@ public:
     void pause();
     void stop();
 
+    // lazy node expansion — UI thread
+    void requestExpand(int32_t aRef);
+    bool getChildren(int32_t aRef, std::vector<Ltg::DebugVar>& aoChildren) const;
+
 private:
-    void m_pushCommand(Ltg::DebugCommand aCommand);
+    void m_setCommand(Ltg::DebugCommand aCommand);
+    Ltg::DebugAction m_waitNextAction();
 };
