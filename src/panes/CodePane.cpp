@@ -19,20 +19,6 @@ bool CodePane::init() {
     // because passed by ref
     // 1000 editor is sufficient for our need
     m_CodeSheets.reserve(1000U);
-
-#ifdef _DEBUG
-/*
-    auto& sheet = m_CodeSheets.emplace_back();
-    sheet.codeEditor.init();
-    sheet.filepathName = "C:/Gamedev/gitea/CuiCuiTools/samples/datas/ReportTests/Result_VALGRIND_TOTO.xml";
-    sheet.opened = true;
-    sheet.wasModified = false;
-    sheet.title = "Result_VALGRIND_TOTO.xml";
-    auto code = FileHelper::Instance()->LoadFileToString(sheet.filepathName);
-    sheet.codeEditor.SetCode(code, TextEditor::LanguageDefinition::Xml());
-*/
-#endif
-
     return true;
 }
 

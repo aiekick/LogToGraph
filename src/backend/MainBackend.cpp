@@ -22,11 +22,8 @@
 #include <algorithm>  // std::min, std::max
 #include <stdexcept>  // std::exception
 
-#include <backend/MainBackend.h>
 #include <systems/PluginManager.h>
 #include <project/ProjectFile.h>
-
-
 
 #include <imguipack.h>
 #include <iagp.h>
@@ -76,7 +73,7 @@ bool MainBackend::init(const std::string& vAppPath) {
 #ifdef _DEBUG
     SetConsoleVisibility(true);
 #else
-    SetConsoleVisibility(true);
+    SetConsoleVisibility(false);
 #endif
     if (m_InitWindow() && m_InitImGui()) {
         m_InitPlugins(vAppPath);

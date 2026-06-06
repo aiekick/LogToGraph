@@ -18,7 +18,18 @@ void CalltracePane::unit() {}
 bool CalltracePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
     bool change = false;
     if (apOpened != nullptr && *apOpened) {
-        if (ImGui::Begin(getName().c_str(), apOpened, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus)) {
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
+        if (ImGui::Begin(getName().c_str(), apOpened, flags)) {
+#ifdef USE_DECORATIONS_FOR_RESIZE_CHILD_WINDOWS
+            auto win = ImGui::GetCurrentWindowRead();
+            if (win->Viewport->Idx != 0)
+                flags |= ImGuiWindowFlags_NoResize;  // | ImGuiWindowFlags_NoTitleBar;
+            else
+                flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
+#endif
+            if (ImGui::BeginMenuBar()) {
+                ImGui::EndMenuBar();
+            }
             const bool isPaused = (ScriptDebugger::ref()->getMode() == ScriptDebugger::Mode::Paused);
             if (!isPaused) {
                 ImGui::TextDisabled("Not paused");
