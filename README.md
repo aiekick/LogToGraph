@@ -1,8 +1,8 @@
 # LogToGraph
 
-| Backend | Win64 | Linux |
-| ------- | --- | ----- |
-| Opengl 3 | [<img src="https://github.com/aiekick/LogToGraph/workflows/Win64/badge.svg" width="150"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3AWin64) | [<img src="https://github.com/aiekick/LogToGraph/workflows/Linux/badge.svg" width="165"/>](https://github.com/aiekick/LogToGraph/actions?query=workflow%3ALinux) |
+| Win64 | Linux |
+| ---- | ----- |
+| [![win](https://github.com/aiekick/LogToGraph/actions/workflows/win.yml/badge.svg)](https://github.com/aiekick/LogToGraph/actions/workflows/win.yml) | [![linux](https://github.com/aiekick/LogToGraph/actions/workflows/Linux.yml/badge.svg)](https://github.com/aiekick/LogToGraph/actions/workflows/Linux.yml) |
 
 MacOs is not officially maintained but i think he can compile on it.
 So i let the cmake infos about MacOs in bottom of this ReadMe.
