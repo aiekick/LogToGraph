@@ -383,6 +383,8 @@ bool MainBackend::m_InitWindow() {
 
     glfwSetWindowCloseCallback(m_MainWindowPtr, glfw_window_close_callback);
 
+    setAppTitle();
+
     return true;
 }
 

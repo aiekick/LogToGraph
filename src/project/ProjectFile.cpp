@@ -123,16 +123,16 @@ R"lua(-- UserDatas ltg (LogToGraph valid only from LogToGraph)
 -- re:gsub(input, repl)      -> result, count (mirrors string.gsub)
 -- re:gmatch(input)          -> iterator (for use in `for cap in re:gmatch(s) do ... end`)
 
-function startFile(filename, filepath)
-	ltg:logInfo(" --- Start paring of file '" .. filepath .. "'");
+function startFile(filepath)
+	ltg:logInfo(" --- Start parsing of file '" .. filepath .. "'");
 end
 
 function parse(buffer)
 
 end
 
-function endFile(filename, filepath)
-	ltg:logInfo(" --- End paring of file '" .. filepath .. "'");
+function endFile(filepath)
+	ltg:logInfo(" --- End parsing of file '" .. filepath .. "'");
 end
 )lua";
 
