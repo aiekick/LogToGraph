@@ -167,18 +167,26 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
                 return sol::stack::push(L, errorMessage);
             });
 
-        m_luaPtr->open_libraries(sol::lib::base);
-        m_luaPtr->open_libraries(sol::lib::package);
-        m_luaPtr->open_libraries(sol::lib::coroutine);
-        m_luaPtr->open_libraries(sol::lib::string);
-        m_luaPtr->open_libraries(sol::lib::os);
-        m_luaPtr->open_libraries(sol::lib::math);
-        m_luaPtr->open_libraries(sol::lib::table);
-        m_luaPtr->open_libraries(sol::lib::debug);
-        m_luaPtr->open_libraries(sol::lib::bit32);
-        m_luaPtr->open_libraries(sol::lib::io);
-        m_luaPtr->open_libraries(sol::lib::ffi);
-        m_luaPtr->open_libraries(sol::lib::jit);
+        // Curated Lua stdlib for a log-parsing context. The set below covers everything a parsing
+        // script realistically needs while closing off escape routes that don't belong in the
+        // sandbox:
+        //   - `io` / `ffi` removed: file I/O and raw C call-out are full sandbox escapes — a
+        //     malicious or buggy script could trash arbitrary files (io) or corrupt memory (ffi).
+        //     The canonical signal sink is `ltg:addSignal*`, not file write.
+        //   - `debug` removed: a user `debug.sethook(...)` would silently override our line hook
+        //     and break the debugger. We use lua_sethook from C directly, no need to expose it.
+        //   - `package` removed: not needed for self-contained parsing scripts; will come back
+        //     when multi-script support + a local-lib folder next to the binary lands (the user
+        //     explicitly flagged this in advance, do not remove this comment when re-adding it).
+        //   - `bit32` removed: Lua 5.2 backport; LuaJIT ships `bit` natively (auto-loaded via
+        //     `jit`), so bit32 is redundant.
+        //   - `coroutine` removed: exotic in a parsing loop, never seen in practice on logs.
+        m_luaPtr->open_libraries(sol::lib::base);    // globals: tostring/tonumber/pairs/pcall/setmetatable/...
+        m_luaPtr->open_libraries(sol::lib::string);  // pattern matching, format — core for parsing
+        m_luaPtr->open_libraries(sol::lib::math);    // numeric ops
+        m_luaPtr->open_libraries(sol::lib::table);   // insert/concat/sort/remove
+        m_luaPtr->open_libraries(sol::lib::os);      // date/time/clock — log timestamps
+        m_luaPtr->open_libraries(sol::lib::jit);     // we drive jit.off/on around debug sessions
 
         m_luaPtr->set_function("print", [](sol::variadic_args args) {
             std::string res;
@@ -327,17 +335,15 @@ void Module::m_ensureCompletionState() {
     // when no IDatasModel is bound) because we only need the usertype methods to be REGISTERED in the
     // metatable for introspection — none of them is ever actually called from the completion state.
     m_completionLuaPtr = std::unique_ptr<sol::state>(new sol::state());
+    // mirror the main VM's stdlib set so completion shows the same `math.*` / `string.*` / `table.*`
+    // / `os.*` keys the user can actually call at runtime. The sandbox exec for setProjectScriptCode
+    // has its own narrower allowlist (kSafeStdlib) — that's a separate concern, the completion
+    // state itself doesn't run user code.
     m_completionLuaPtr->open_libraries(sol::lib::base);
-    m_completionLuaPtr->open_libraries(sol::lib::package);
-    m_completionLuaPtr->open_libraries(sol::lib::coroutine);
     m_completionLuaPtr->open_libraries(sol::lib::string);
-    m_completionLuaPtr->open_libraries(sol::lib::os);
     m_completionLuaPtr->open_libraries(sol::lib::math);
     m_completionLuaPtr->open_libraries(sol::lib::table);
-    m_completionLuaPtr->open_libraries(sol::lib::debug);
-    m_completionLuaPtr->open_libraries(sol::lib::bit32);
-    m_completionLuaPtr->open_libraries(sol::lib::io);
-    m_completionLuaPtr->open_libraries(sol::lib::ffi);
+    m_completionLuaPtr->open_libraries(sol::lib::os);
     m_completionLuaPtr->open_libraries(sol::lib::jit);
 
     // clang-format off
@@ -596,8 +602,9 @@ struct SignatureEntry {
 };
 
 const std::vector<SignatureEntry>& s_signatureCatalog() {
+    // clang-format off
     static const std::vector<SignatureEntry> catalog = {
-        // ltg: usertype methods (cf. new_usertype<LuaDatasModel> in Module::load)
+        // -------- ltg: usertype methods (cf. new_usertype<LuaDatasModel> in Module::load) --------
         {"ltg", "stringToEpoch",      {{"dateTime","string"}, {"hourOffset","number"}}},
         {"ltg", "epochToString",      {{"epochTime","number"}, {"hourOffset","number"}}},
         {"ltg", "addSignalTag",       {{"epoch","number"}, {"r","number"}, {"g","number"}, {"b","number"}, {"a","number"}, {"name","string"}, {"help","string"}}},
@@ -611,7 +618,98 @@ const std::vector<SignatureEntry>& s_signatureCatalog() {
         {"ltg", "logDebug",           {{"message","string"}}},
         {"ltg", "getRowIndex",        {}},
         {"ltg", "getRowCount",        {}},
+
+        // -------- math.* (LuaJIT 5.1 stdlib) --------
+        // Overloaded variants (max/min/random with varying arity) are listed with their canonical
+        // form; the host shows one signature line, no overload picker yet.
+        {"math", "abs",        {{"x","number"}}},
+        {"math", "ceil",       {{"x","number"}}},
+        {"math", "floor",      {{"x","number"}}},
+        {"math", "fmod",       {{"x","number"}, {"y","number"}}},
+        {"math", "modf",       {{"x","number"}}},
+        {"math", "max",        {{"x","number"}, {"...","number"}}},
+        {"math", "min",        {{"x","number"}, {"...","number"}}},
+        {"math", "exp",        {{"x","number"}}},
+        {"math", "log",        {{"x","number"}}},
+        {"math", "log10",      {{"x","number"}}},
+        {"math", "pow",        {{"x","number"}, {"y","number"}}},
+        {"math", "sqrt",       {{"x","number"}}},
+        {"math", "sin",        {{"x","number"}}},
+        {"math", "cos",        {{"x","number"}}},
+        {"math", "tan",        {{"x","number"}}},
+        {"math", "asin",       {{"x","number"}}},
+        {"math", "acos",       {{"x","number"}}},
+        {"math", "atan",       {{"x","number"}}},
+        {"math", "atan2",      {{"y","number"}, {"x","number"}}},
+        {"math", "sinh",       {{"x","number"}}},
+        {"math", "cosh",       {{"x","number"}}},
+        {"math", "tanh",       {{"x","number"}}},
+        {"math", "deg",        {{"x","number"}}},
+        {"math", "rad",        {{"x","number"}}},
+        {"math", "frexp",      {{"x","number"}}},
+        {"math", "ldexp",      {{"x","number"}, {"e","number"}}},
+        {"math", "random",     {{"m","number?"}, {"n","number?"}}},
+        {"math", "randomseed", {{"seed","number"}}},
+
+        // -------- string.* (LuaJIT 5.1 stdlib) --------
+        // All also callable as method on a string via metatable (`s:match(...)`); the signature
+        // catalog matches the `string.fn(s, ...)` namespace form — the trigger doesn't try to
+        // resolve `s:match(...)` to the string lib (would need type inference).
+        {"string", "byte",    {{"s","string"}, {"i","number?"}, {"j","number?"}}},
+        {"string", "char",    {{"...","number"}}},
+        {"string", "find",    {{"s","string"}, {"pattern","string"}, {"init","number?"}, {"plain","boolean?"}}},
+        {"string", "format",  {{"fmt","string"}, {"...","any"}}},
+        {"string", "gmatch",  {{"s","string"}, {"pattern","string"}}},
+        {"string", "gsub",    {{"s","string"}, {"pattern","string"}, {"repl","string|table|function"}, {"max","number?"}}},
+        {"string", "len",     {{"s","string"}}},
+        {"string", "lower",   {{"s","string"}}},
+        {"string", "match",   {{"s","string"}, {"pattern","string"}, {"init","number?"}}},
+        {"string", "rep",     {{"s","string"}, {"n","number"}, {"sep","string?"}}},
+        {"string", "reverse", {{"s","string"}}},
+        {"string", "sub",     {{"s","string"}, {"i","number"}, {"j","number?"}}},
+        {"string", "upper",   {{"s","string"}}},
+        {"string", "dump",    {{"f","function"}}},
+
+        // -------- table.* (LuaJIT 5.1 stdlib) --------
+        // insert is overloaded (insert(t, v) or insert(t, pos, v)); listed with the widest form.
+        {"table", "concat", {{"t","table"}, {"sep","string?"}, {"i","number?"}, {"j","number?"}}},
+        {"table", "insert", {{"t","table"}, {"pos","number?"}, {"value","any"}}},
+        {"table", "remove", {{"t","table"}, {"pos","number?"}}},
+        {"table", "sort",   {{"t","table"}, {"comp","function?"}}},
+        {"table", "maxn",   {{"t","table"}}},
+
+        // -------- os.* (subset useful for log parsing) --------
+        // io.* deliberately omitted — file I/O from a parsing script is a smell; ltg:* is the
+        // canonical sink for signals/tags/values.
+        {"os", "date",     {{"format","string?"}, {"time","number?"}}},
+        {"os", "time",     {{"table","table?"}}},
+        {"os", "difftime", {{"t2","number"}, {"t1","number"}}},
+        {"os", "clock",    {}},
+        {"os", "getenv",   {{"name","string"}}},
+
+        // -------- base lib (globals — target left empty) --------
+        // The trigger fires on `funcName(` at top level (no dot/colon prefix). Common scaffolding
+        // for parsing scripts: tostring/tonumber/pairs/ipairs/type/pcall/setmetatable.
+        {"", "tostring",     {{"v","any"}}},
+        {"", "tonumber",     {{"v","any"}, {"base","number?"}}},
+        {"", "type",         {{"v","any"}}},
+        {"", "select",       {{"n","number|string"}, {"...","any"}}},
+        {"", "pairs",        {{"t","table"}}},
+        {"", "ipairs",       {{"t","table"}}},
+        {"", "next",         {{"t","table"}, {"key","any?"}}},
+        {"", "unpack",       {{"list","table"}, {"i","number?"}, {"j","number?"}}},
+        {"", "assert",       {{"v","any"}, {"msg","string?"}}},
+        {"", "error",        {{"msg","any"}, {"level","number?"}}},
+        {"", "pcall",        {{"f","function"}, {"...","any"}}},
+        {"", "xpcall",       {{"f","function"}, {"handler","function"}, {"...","any"}}},
+        {"", "setmetatable", {{"t","table"}, {"mt","table|nil"}}},
+        {"", "getmetatable", {{"t","table"}}},
+        {"", "rawget",       {{"t","table"}, {"k","any"}}},
+        {"", "rawset",       {{"t","table"}, {"k","any"}, {"v","any"}}},
+        {"", "rawequal",     {{"a","any"}, {"b","any"}}},
+        {"", "print",        {{"...","any"}}},
     };
+    // clang-format on
     return catalog;
 }
 
