@@ -38,11 +38,13 @@ Ltg::DebugAction ScriptDebugger::onPause(const Ltg::DebugState& aState) {
         err.line = static_cast<size_t>(aState.line);
         err.message = aState.errorMessage;
         ScriptingEngine::ref()->AddRuntimeError(err);
-        // Auto-arm the master Debug toggle. The CodePane toolbar gates Continue/Step on isDebugArmed,
-        // and the user opted into pause-on-error already — so we flip the master switch ON to keep
-        // the toolbar consistent (otherwise the user would be paused with all debug buttons greyed
-        // out). This persists across runs; user can flip it off manually after they're done.
-        m_DebugArmed.store(true, std::memory_order_release);
+        // NOTE: master Debug toggle is NOT auto-armed anymore. Previously we did
+        // `m_DebugArmed.store(true)` here so the toolbar Continue/Step were clickable
+        // (they were gated on `armed`), but that leaked: after a single error pause
+        // Debug stayed on forever, and every breakpoint started firing on subsequent
+        // runs even though the user only opted into pause-on-error. CodePane's toolbar
+        // is now gated on `isPaused` (not `armed`), so Continue/Step work during an
+        // error pause without flipping the master toggle.
     }
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
@@ -119,6 +121,13 @@ int64_t ScriptDebugger::getBreakpointsRevision() const {
 }
 
 bool ScriptDebugger::isBreakpoint(int32_t aLine) {
+    // Breakpoints fire ONLY when the master Debug toggle is on. The line hook may still be
+    // installed when Debug is off (e.g. auto-bp-on-error is on alone — the hook is needed so
+    // step still works after the error pause), but the bp set stays inert. The user explicitly
+    // opted into pause-on-error, NOT into bp firing — those are independent intents.
+    if (!m_DebugArmed.load(std::memory_order_acquire)) {
+        return false;
+    }
     std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
     return m_Breakpoints.find(aLine) != m_Breakpoints.end();
 }

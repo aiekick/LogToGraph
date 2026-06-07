@@ -269,8 +269,9 @@ void CodePane::m_DrawDebugToolbar() {
 
     ImGui::LayoutSpring();
 
-    // Run / Continue
-    ImGui::BeginDisabled(!armed || (workerBusy && !isPaused));
+    // Run / Continue — Run gated on `armed`, Continue gated on `isPaused` so the user can resume
+    // out of a pause (incl. auto-bp-on-error) without having to flip the master Debug toggle.
+    ImGui::BeginDisabled(isPaused ? false : (!armed || workerBusy));
     if (ImGui::ContrastedButton(ICON_FONT_PLAY "##dbg_run", isPaused ? "Continue" : "Run (analyse the log files)")) {
         if (isPaused) {
             ScriptDebugger::ref()->doContinue();
@@ -282,7 +283,10 @@ void CodePane::m_DrawDebugToolbar() {
 
     ImGui::LayoutSpring();
 
-    ImGui::BeginDisabled(!armed || !isPaused);
+    // Step* gated on `isPaused` only — meaningful whenever the worker is paused, regardless of
+    // master Debug. The line hook is installed when shouldArmDebug() is true (which includes the
+    // auto-bp-on-error case), so step actually does something even when the master toggle is off.
+    ImGui::BeginDisabled(!isPaused);
     if (ImGui::ContrastedButton(ICON_FONT_DEBUG_STEP_INTO "##dbg_stepinto", "Step into")) {
         ScriptDebugger::ref()->stepInto();
     }
@@ -290,7 +294,7 @@ void CodePane::m_DrawDebugToolbar() {
 
     ImGui::LayoutSpring();
 
-    ImGui::BeginDisabled(!armed || !isPaused);
+    ImGui::BeginDisabled(!isPaused);
     if (ImGui::ContrastedButton(ICON_FONT_DEBUG_STEP_OVER "##dbg_stepover", "Step over")) {
         ScriptDebugger::ref()->stepOver();
     }
@@ -298,7 +302,7 @@ void CodePane::m_DrawDebugToolbar() {
 
     ImGui::LayoutSpring();
 
-    ImGui::BeginDisabled(!armed || !isPaused);
+    ImGui::BeginDisabled(!isPaused);
     if (ImGui::ContrastedButton(ICON_FONT_DEBUG_STEP_OUT "##dbg_stepout", "Step out")) {
         ScriptDebugger::ref()->stepOut();
     }
@@ -314,7 +318,11 @@ void CodePane::m_DrawDebugToolbar() {
 
     ImGui::LayoutSpring();
 
-    ImGui::BeginDisabled(!armed || !workerBusy);
+    // Stop is available whenever the worker is busy (running OR paused), regardless of master
+    // Debug state — you can always abort a run you started, incl. an auto-bp-on-error pause where
+    // master Debug is off. Without this the user could be stuck "Continue"-ing forever through
+    // the rest of the file.
+    ImGui::BeginDisabled(!workerBusy);
     if (ImGui::ContrastedButton(ICON_FONT_STOP "##dbg_stop", "Stop")) {
         ScriptingEngine::s_working = false;  // break the parse loop on the worker thread
         ScriptDebugger::ref()->stop();

@@ -127,3 +127,10 @@ void LuaDatasModel::luaModuleAddSignalEndZone(const std::string& vCategory, cons
         ptr->addSignalEndZone(vCategory, vName, vEpoch, vEndMsg);
     }
 }
+
+LuaRegex LuaDatasModel::luaModuleRegex(const std::string& vPattern) const {
+    // boost::regex constructor throws boost::regex_error (derives from std::runtime_error) on
+    // an invalid pattern. sol2's exception_handler catches it and pushes e.what() as the Lua
+    // error message, so the user sees the real boost diagnostic at the call site.
+    return LuaRegex(vPattern);
+}

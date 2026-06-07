@@ -200,6 +200,17 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
         });
 
         // clang-format off
+        // Shared regex brick — boost::regex wrapped as a Lua usertype. Registered BEFORE
+        // LuaDatasModel so that the `regex` factory method's return type is already known to
+        // sol2 (order doesn't strictly matter for resolution but keeps the compile order tidy).
+        m_luaPtr->new_usertype<LuaRegex>(
+            "LtgRegex", sol::no_constructor,  // no direct ctor — created via `ltg:regex(pattern)`
+            "test",    &LuaRegex::test,
+            "match",   &LuaRegex::match,
+            "find",    &LuaRegex::find,
+            "gsub",    &LuaRegex::gsub,
+            "gmatch",  &LuaRegex::gmatch
+        );
         m_luaPtr->new_usertype<LuaDatasModel>(
             "LuaDatasModel", sol::constructors<std::shared_ptr<LuaDatasModel>()>(),
             "stringToEpoch", &LuaDatasModel::luaModuleStringToEpoch,
@@ -216,7 +227,8 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
             "logError", &LuaDatasModel::luaModuleLogError,
             "logDebug", &LuaDatasModel::luaModuleLogDebug,
             "getRowIndex", &LuaDatasModel::luaModuleGetRowIndex,
-            "getRowCount", &LuaDatasModel::luaModuleGetRowCount
+            "getRowCount", &LuaDatasModel::luaModuleGetRowCount,
+            "regex", &LuaDatasModel::luaModuleRegex
         );
         // clang-format on
 
@@ -347,6 +359,16 @@ void Module::m_ensureCompletionState() {
     m_completionLuaPtr->open_libraries(sol::lib::jit);
 
     // clang-format off
+    // mirror the main VM's usertype registrations so the completion VM exposes the same metatable
+    // keys (`ltg:regex`, the regex object's methods, etc.).
+    m_completionLuaPtr->new_usertype<LuaRegex>(
+        "LtgRegex", sol::no_constructor,
+        "test",   &LuaRegex::test,
+        "match",  &LuaRegex::match,
+        "find",   &LuaRegex::find,
+        "gsub",   &LuaRegex::gsub,
+        "gmatch", &LuaRegex::gmatch
+    );
     m_completionLuaPtr->new_usertype<LuaDatasModel>(
         "LuaDatasModel", sol::constructors<std::shared_ptr<LuaDatasModel>()>(),
         "stringToEpoch", &LuaDatasModel::luaModuleStringToEpoch,
@@ -363,7 +385,8 @@ void Module::m_ensureCompletionState() {
         "logError", &LuaDatasModel::luaModuleLogError,
         "logDebug", &LuaDatasModel::luaModuleLogDebug,
         "getRowIndex", &LuaDatasModel::luaModuleGetRowIndex,
-        "getRowCount", &LuaDatasModel::luaModuleGetRowCount);
+        "getRowCount", &LuaDatasModel::luaModuleGetRowCount,
+        "regex", &LuaDatasModel::luaModuleRegex);
     // clang-format on
 
     // empty stub instance: ctor is public, no IDatasModel is required for introspection.
@@ -618,6 +641,17 @@ const std::vector<SignatureEntry>& s_signatureCatalog() {
         {"ltg", "logDebug",           {{"message","string"}}},
         {"ltg", "getRowIndex",        {}},
         {"ltg", "getRowCount",        {}},
+        {"ltg", "regex",              {{"pattern","string"}}},  // returns a LtgRegex usertype
+
+        // -------- LtgRegex methods (the object returned by `ltg:regex(pattern)`) --------
+        // boost::regex semantics, with Lua-style 1-based positions for `find` and the same
+        // (string, count) shape as string.gsub for `gsub`. `match` returns capture values as
+        // multiple results (or nil); `gmatch` returns a Lua iterator.
+        {"LtgRegex", "test",   {{"input","string"}}},
+        {"LtgRegex", "match",  {{"input","string"}}},
+        {"LtgRegex", "find",   {{"input","string"}}},
+        {"LtgRegex", "gsub",   {{"input","string"}, {"replacement","string"}}},
+        {"LtgRegex", "gmatch", {{"input","string"}}},
 
         // -------- math.* (LuaJIT 5.1 stdlib) --------
         // Overloaded variants (max/min/random with varying arity) are listed with their canonical
@@ -922,6 +956,16 @@ void Module::m_onHook(lua_State* apLua, lua_Debug* apDebug) {
 
 void Module::m_pauseOnError(lua_State* apLua, const std::string& aErrorMessage) {
     if (m_debugHostPtr == nullptr) {
+        return;
+    }
+    // Don't pause again if Stop has already been issued — at app shutdown, AbortAndJoinWorker
+    // sends a single Stop and waits in Join(). The worker unwinds the current error via the
+    // existing pause, but `callScriptEnd` then calls the user's endFile() which may error too;
+    // without this guard the error handler would call onPause again and block forever on the
+    // condvar (UI thread is stuck in Join, can't issue another Stop). Same applies after a
+    // mid-run Stop click on a script that errors during cleanup. m_onHook already has the
+    // equivalent guard for the line-hook path.
+    if (m_stopRequested) {
         return;
     }
     Ltg::DebugState state = m_buildErrorState(apLua, aErrorMessage);

@@ -115,6 +115,13 @@ R"lua(-- UserDatas ltg (LogToGraph valid only from LogToGraph)
 -- get/set epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
 -- double ltg:stringToEpoch("2023-01-16 15:24:26,464", 0)
 -- string ltg:epochToString(18798798465465.546546, 0)
+-- regex (boost::regex engine, PCRE-like syntax — supports |, {m,n}, lookahead, etc.):
+-- local re = ltg:regex(pattern)  -- compile once at script init, reuse on every row
+-- re:test(input)            -> bool
+-- re:match(input)           -> captures (multiple values), or nil
+-- re:find(input)            -> start, end (1-based), or nil
+-- re:gsub(input, repl)      -> result, count (mirrors string.gsub)
+-- re:gmatch(input)          -> iterator (for use in `for cap in re:gmatch(s) do ... end`)
 
 function startFile(filename, filepath)
 	ltg:logInfo(" --- Start paring of file '" .. filepath .. "'");
