@@ -165,7 +165,7 @@ you also have this dialog when you quit the app
 -- ltg:logDebug(infos_string) : will log the message in the in app console 
 -- ltg:addSignalTag(date, r, g, b, a, name, help) : add a signal tag with date, color a name (color is linear [0:1]. the help will be displayed when mouse over the tag
 -- ltg:addSignalStatus(signal_category, signal_name, signal_epoch_time, signal_status) : will add a signal string status
--- ltg:addSignalValue(signal_category, signal_name, signal_epoch_time, signal_value) : will add a signal numerical value
+-- ltg:addSignalValue(signal_category, signal_name, signal_epoch_time, signal_value, description_string_optional) : will add a signal numerical value
 -- ltg:addSignalStartZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal start zone
 -- ltg:addSignalEndZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal end zone 
 -- get/set epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param

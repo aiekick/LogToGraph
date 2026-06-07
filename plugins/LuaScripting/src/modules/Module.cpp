@@ -136,13 +136,35 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
         // generic "C++ exception" lua_error — the actual std::exception::what() is lost.
         // This handler forwards the real what() string back to Lua, so script error messages
         // surface the original throw text ("Invalid date format", etc.) instead.
+        //
+        // It also drives the auto-bp-on-error feature: it fires inside the sol2 C-trampoline
+        // BEFORE the Lua stack unwinds, so when the host's DebugSettings::AutoBreakpointOnError
+        // toggle is on, we can recover the Module from the lua_State registry (key set in
+        // enableDebug) and call onPause synchronously with the throwing frame still alive —
+        // user can inspect locals/upvalues/call-stack at the point of throw, then continue
+        // and the error keeps propagating up to pcall normally.
         m_luaPtr->set_exception_handler(
             [](lua_State* L, sol::optional<const std::exception&> maybe_exception, sol::string_view description) {
+                std::string errorMessage;
                 if (maybe_exception) {
-                    const std::exception& ex = *maybe_exception;
-                    return sol::stack::push(L, ex.what());
+                    errorMessage = maybe_exception->what();
+                } else {
+                    errorMessage.assign(description.data(), description.size());
                 }
-                return sol::stack::push(L, description);
+                // recover the Module bound to this lua_State (set in enableDebug; nullptr when
+                // debug session isn't armed — i.e. neither the master Debug toggle nor the
+                // auto-bp-on-error toggle is on, see ScriptDebugger::shouldArmDebug).
+                lua_getfield(L, LUA_REGISTRYINDEX, kDebugModuleRegistryKey);
+                Module* self = static_cast<Module*>(lua_touserdata(L, -1));
+                lua_pop(L, 1);
+                if (self != nullptr && self->m_debugHostPtr != nullptr && self->m_debugHostPtr->shouldPauseOnError()) {
+                    // surface the error in the console at the same time as the pause — the catch
+                    // block in callScriptExec also logs it (after the user resumes), so this is a
+                    // brief duplicate at the moment of the pause, intentional for visibility.
+                    LogVarLightError("Lua: %s", errorMessage.c_str());
+                    self->m_pauseOnError(L, errorMessage);
+                }
+                return sol::stack::push(L, errorMessage);
             });
 
         m_luaPtr->open_libraries(sol::lib::base);
@@ -191,6 +213,19 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
         // clang-format on
 
         (*m_luaPtr)["ltg"] = m_luaDatasModelPtr = LuaDatasModel::create(vDatasModel);
+
+        // Lua-level message handler — registered once via raw Lua API (sol2's `["x"] = func_ptr`
+        // can be ambiguous for `int(*)(lua_State*)`; lua_pushcfunction + lua_setglobal is the
+        // canonical path for a lua_CFunction). Attached to each protected_function call below so
+        // it fires BEFORE the Lua stack unwinds on a pure-Lua error (string.match(nil),
+        // nil:method(), bad arg types, ...). The sol2 exception_handler above handles the
+        // orthogonal case of C++ exceptions thrown from bindings; both call m_pauseOnError when
+        // shouldPauseOnError() is on.
+        {
+            lua_State* luaStatePtr = m_luaPtr->lua_state();
+            lua_pushcfunction(luaStatePtr, &Module::sLuaErrorHandler);
+            lua_setglobal(luaStatePtr, "__ltg_error_handler");
+        }
 
         return (m_luaPtr != nullptr) && (m_luaDatasModelPtr != nullptr) && (!m_datasModel.expired());
     } catch (std::exception& ex) {
@@ -611,7 +646,11 @@ bool Module::callScriptStart(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorCon
         LogVarLightError("Lua: %s", "the lua function startFile(filepath) is missing");
         return false;
     }
-    sol::protected_function_result result = startFile(vOutDatas.filename, vOutDatas.filepath);
+    // attach the Lua-level error handler so pure-Lua errors (string.match(nil), nil:method(), ...)
+    // trigger m_pauseOnError before the stack unwinds; the existing valid()-check below still
+    // catches the propagated error and logs it after the user resumes.
+    startFile.set_error_handler((*m_luaPtr)["__ltg_error_handler"]);
+    sol::protected_function_result result = startFile(vOutDatas.filepath);
     if (!result.valid()) {
         sol::error solErr = result;
         Ltg::ScriptingError err;
@@ -629,6 +668,7 @@ bool Module::callScriptExec(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorCont
         LogVarLightError("Lua: %s", "the lua function parse(buffer) is missing");
         return false;
     }
+    parse.set_error_handler((*m_luaPtr)["__ltg_error_handler"]);
     sol::protected_function_result result = parse(vOutDatas.buffer);
     if (!result.valid()) {
         sol::error solErr = result;
@@ -647,7 +687,8 @@ bool Module::callScriptEnd(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorConta
         LogVarLightError("%s", "the lua function endFile(filepath) is missing");
         return false;
     }
-    sol::protected_function_result result = endFile(vOutDatas.filename, vOutDatas.filepath);
+    endFile.set_error_handler((*m_luaPtr)["__ltg_error_handler"]);
+    sol::protected_function_result result = endFile(vOutDatas.filepath);
     if (!result.valid()) {
         sol::error solErr = result;
         Ltg::ScriptingError err;
@@ -727,6 +768,33 @@ void Module::sLuaHook(lua_State* apLua, lua_Debug* apDebug) {
     }
 }
 
+int Module::sLuaErrorHandler(lua_State* apLua) {
+    // The error message is at stack[1] (lua_pcall convention for the message handler).
+    // Coerce to a string conservatively — Lua errors are usually strings but the user can
+    // raise() arbitrary values.
+    std::string message;
+    if (lua_isstring(apLua, 1)) {
+        message = lua_tostring(apLua, 1);
+    } else {
+        const int valueType = lua_type(apLua, 1);
+        message = std::string(lua_typename(apLua, valueType)) + ": (non-string error value)";
+    }
+    // recover Module via the registry (set in enableDebug — nullptr when debug not armed,
+    // in which case we just pass the message through unchanged).
+    lua_getfield(apLua, LUA_REGISTRYINDEX, kDebugModuleRegistryKey);
+    Module* self = static_cast<Module*>(lua_touserdata(apLua, -1));
+    lua_pop(apLua, 1);
+    if (self != nullptr && self->m_debugHostPtr != nullptr && self->m_debugHostPtr->shouldPauseOnError()) {
+        // surface the error in the console at the same time as the pause (the catch in
+        // callScriptExec also logs after the user resumes — intentional duplicate for visibility).
+        LogVarLightError("Lua: %s", message.c_str());
+        self->m_pauseOnError(apLua, message);
+    }
+    // Push the message back as the error value so pcall returns it as-is to sol2 / callScriptExec.
+    lua_pushstring(apLua, message.c_str());
+    return 1;
+}
+
 void Module::m_onHook(lua_State* apLua, lua_Debug* apDebug) {
     if (m_debugHostPtr == nullptr) {
         return;
@@ -745,15 +813,52 @@ void Module::m_onHook(lua_State* apLua, lua_Debug* apDebug) {
         return;
     }
     Ltg::DebugState state = m_buildState(apLua, apDebug);
-    Ltg::DebugAction action = m_debugHostPtr->onPause(state);  // BLOCKS until the first action
-    // drain expand/eval requests until the host hands back a control command (Continue/Step/Stop).
+    m_runPauseLoop(apLua, std::move(state));
+    // Stop command was applied inside m_runPauseLoop (m_stopRequested set, hook removed) but the
+    // luaL_error raise was deferred — only the line-hook path is safe to longjmp from. Raise it
+    // here so the current Lua execution aborts immediately instead of continuing to the next line.
+    if (m_stopRequested) {
+        luaL_error(apLua, "execution stopped by the debugger");  // longjmp, never returns
+    }
+}
+
+void Module::m_pauseOnError(lua_State* apLua, const std::string& aErrorMessage) {
+    if (m_debugHostPtr == nullptr) {
+        return;
+    }
+    Ltg::DebugState state = m_buildErrorState(apLua, aErrorMessage);
+    m_runPauseLoop(apLua, std::move(state));
+}
+
+void Module::m_runPauseLoop(lua_State* apLua, Ltg::DebugState aState) {
+    // For Eval requests we need the apDebug of the innermost Lua frame (so lua_getinfo / lua_getlocal
+    // can read its function + locals). Find it lazily inside the drain loop: in the line-hook path,
+    // level 0 is already a Lua frame; in the exception-handler path, level 0 is the sol2 C trampoline,
+    // so we skip C frames and stop at the first Lua/main one.
+    Ltg::DebugAction action = m_debugHostPtr->onPause(aState);  // BLOCKS until the first action
     while (action.kind == Ltg::DebugAction::Kind::Expand || action.kind == Ltg::DebugAction::Kind::Eval) {
         if (action.kind == Ltg::DebugAction::Kind::Expand) {
             const std::vector<Ltg::DebugVar> children = m_expandRef(apLua, action.expandRef);
             m_debugHostPtr->publishExpansion(action.expandRef, children);
-        } else {  // Eval — watch expression evaluated in the innermost frame's scope
-            const Ltg::EvalResult result = m_evalExpression(apLua, apDebug, action.evalExpression);
-            m_debugHostPtr->publishEvalResult(action.evalId, result);
+        } else {  // Eval — watch expression evaluated in the innermost Lua frame's scope
+            lua_Debug evalFrame;
+            bool foundLuaFrame = false;
+            for (int32_t level = 0; level < 32 && lua_getstack(apLua, level, &evalFrame) != 0; ++level) {
+                lua_getinfo(apLua, "Sl", &evalFrame);
+                // what == "Lua" (Lua fn), "main" (chunk), "C" (C fn), "tail" (tail call).
+                if (evalFrame.what != nullptr && (evalFrame.what[0] == 'L' || evalFrame.what[0] == 'm')) {
+                    foundLuaFrame = true;
+                    break;
+                }
+            }
+            if (foundLuaFrame) {
+                const Ltg::EvalResult result = m_evalExpression(apLua, &evalFrame, action.evalExpression);
+                m_debugHostPtr->publishEvalResult(action.evalId, result);
+            } else {
+                Ltg::EvalResult result;
+                result.error = "no Lua frame available";
+                m_debugHostPtr->publishEvalResult(action.evalId, result);
+            }
         }
         action = m_debugHostPtr->waitAction();  // BLOCKS until the next action
     }
@@ -781,8 +886,67 @@ Ltg::DebugState Module::m_buildState(lua_State* apLua, lua_Debug* apDebug) {
     Ltg::DebugState state;
     state.logRowIndex = m_currentRowIndex;
     state.line = static_cast<int32_t>(apDebug->currentline);
-    state.sourceFile = apDebug->short_src;
+    // Strip Lua's `[string "FOO"]` wrapper so state.sourceFile matches the CodePane sheet ids
+    // (the project-script sheet uses `<project script>` directly). Same normalization as
+    // m_buildErrorState — without it, CodePane's `sheet.filepathName == state.sourceFile`
+    // check fails on every line-hook pause, breaking the caret-sync on Step.
+    std::string sourceFile(apDebug->short_src != nullptr ? apDebug->short_src : "");
+    if (sourceFile.size() >= 11 && sourceFile.compare(0, 9, "[string \"") == 0) {
+        const size_t closeQuote = sourceFile.rfind('"');
+        if (closeQuote != std::string::npos && closeQuote > 9) {
+            sourceFile = sourceFile.substr(9, closeQuote - 9);
+        }
+    }
+    state.sourceFile = sourceFile;
+    m_fillCallStackAndGlobals(apLua, state);
+    return state;
+}
 
+Ltg::DebugState Module::m_buildErrorState(lua_State* apLua, const std::string& aErrorMessage) {
+    Ltg::DebugState state;
+    state.logRowIndex = m_currentRowIndex;
+    state.errorPause = true;
+    state.errorMessage = aErrorMessage;
+
+    // For a C++ exception caught by sol2's trampoline, the message we receive is just `e.what()`
+    // (no `[string "..."]:LINE:` prefix yet — Lua wraps it later when the error propagates to
+    // pcall). So `parseLuaError` can't extract line info from the message at this point. Instead,
+    // walk the Lua stack and use the innermost Lua frame's `currentline` and `short_src` directly
+    // — that's the actual throw site, regardless of how the error message was formatted.
+    lua_Debug topLua;
+    bool foundLuaFrame = false;
+    for (int32_t level = 0; level < 32 && lua_getstack(apLua, level, &topLua) != 0; ++level) {
+        lua_getinfo(apLua, "Sl", &topLua);
+        if (topLua.what != nullptr && (topLua.what[0] == 'L' || topLua.what[0] == 'm')) {
+            state.line = static_cast<int32_t>(topLua.currentline);
+            // strip Lua's `[string "FOO"]` wrapper so the file matches CodePane's sheet ids
+            // (the project-script sheet uses `<project script>` directly, not the wrapped form).
+            std::string shortSrc(topLua.short_src != nullptr ? topLua.short_src : "");
+            if (shortSrc.size() >= 11 && shortSrc.compare(0, 9, "[string \"") == 0) {
+                const size_t closeQuote = shortSrc.rfind('"');
+                if (closeQuote != std::string::npos && closeQuote > 9) {
+                    shortSrc = shortSrc.substr(9, closeQuote - 9);
+                }
+            }
+            state.sourceFile = shortSrc;
+            foundLuaFrame = true;
+            break;
+        }
+    }
+    // fallback: if the throw originated from a place we couldn't trace, try parsing the message
+    // anyway — some errors arrive pre-wrapped (e.g. re-raised by lua-level pcall + xpcall).
+    if (!foundLuaFrame) {
+        Ltg::ScriptingError parsed;
+        parseLuaError(aErrorMessage, Ltg::sc_PROJECT_SCRIPT_CHUNK, parsed);
+        state.sourceFile = parsed.file;
+        state.line = static_cast<int32_t>(parsed.line);
+    }
+
+    m_fillCallStackAndGlobals(apLua, state);
+    return state;
+}
+
+void Module::m_fillCallStackAndGlobals(lua_State* apLua, Ltg::DebugState& aoState) {
     // each call-stack frame carries its own locals and upvalues (roots only; tables are
     // expanded later on demand through their ref). innermost frame first, capped for safety.
     lua_Debug frameInfo;
@@ -814,7 +978,7 @@ Ltg::DebugState Module::m_buildState(lua_State* apLua, lua_Debug* apDebug) {
         }
 
         lua_pop(apLua, 1);  // pop the frame function pushed by "f"
-        state.callStack.push_back(frame);
+        aoState.callStack.push_back(frame);
     }
 
     // top-level globals (no filter; each table is expandable on demand)
@@ -824,12 +988,10 @@ Ltg::DebugState Module::m_buildState(lua_State* apLua, lua_Debug* apDebug) {
     while (lua_next(apLua, globalsIndex) != 0) {
         const std::string keyType = lua_typename(apLua, lua_type(apLua, -2));
         const std::string keyName = luaKeyToString(apLua, -2);
-        state.globals.push_back(m_makeVar(apLua, -1, keyName, keyType));
+        aoState.globals.push_back(m_makeVar(apLua, -1, keyName, keyType));
         lua_pop(apLua, 1);  // pop value, keep key for the next lua_next
     }
     lua_pop(apLua, 1);  // pop the globals table
-
-    return state;
 }
 
 int32_t Module::m_makeRef(lua_State* apLua, int32_t aIndex) {
@@ -978,7 +1140,13 @@ void Module::m_applyCommand(lua_State* apLua, Ltg::DebugCommand aCommand) {
             m_stepMode = StepMode::None;
             m_stopRequested = true;
             lua_sethook(apLua, nullptr, 0, 0);  // stop hooking so callScriptEnd won't re-trigger
-            luaL_error(apLua, "execution stopped by the debugger");  // longjmp, never returns
+            // luaL_error is NOT raised here — it would longjmp from inside a Lua message handler
+            // (the sLuaErrorHandler path) or a sol2 C-trampoline (the exception_handler path),
+            // which is undefined behaviour / re-caught as OOM. The caller raises the abort error
+            // when it knows it's safe (m_onHook, which is a Lua debug hook — luaL_error there is
+            // the standard idiom). The error paths skip the raise: an error is already propagating
+            // through pcall, and the Stop button has already set ScriptingEngine::s_working = false
+            // which breaks the parse loop in m_run after the current row finishes.
             break;
     }
 }

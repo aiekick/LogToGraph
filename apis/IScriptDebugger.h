@@ -71,6 +71,13 @@ struct DebugState {
     int32_t logRowIndex = 0;
     std::vector<DebugFrame> callStack;  // innermost frame first; each frame holds its vars
     std::vector<DebugVar> globals;      // top-level _G entries (no filter)
+    // true when the pause was triggered by the auto-bp-on-error path (plugin caught a
+    // sol2/Lua exception, queried IScriptDebugHost::shouldPauseOnError, and called onPause
+    // synchronously with the throwing frame still on the Lua stack). Lets the host distinguish
+    // an error pause from a breakpoint hit — used to auto-set a breakpoint at the error line
+    // so subsequent runs can re-investigate.
+    bool errorPause = false;
+    std::string errorMessage;  // full Lua error text (used by the host as the auto-set bp tooltip / log)
 };
 
 // Set of breakpoint lines (1-based) for the active script.
@@ -114,6 +121,10 @@ struct IScriptDebugHost {
     // queried by the plugin hook on each line: is there a breakpoint on this line ?
     // live + thread-safe, so add/remove during a session takes effect immediately
     virtual bool isBreakpoint(int32_t aLine) = 0;
+    // queried by the plugin catch block when a runtime error fires: should the worker pause
+    // synchronously (state.errorPause = true) instead of just logging the error and moving on?
+    // live so the toggle takes effect mid-run.
+    virtual bool shouldPauseOnError() const = 0;
 };
 
 // Implemented by the plugin (extended by ScriptingModule), called by the host from

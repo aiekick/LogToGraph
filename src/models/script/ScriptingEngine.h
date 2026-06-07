@@ -114,6 +114,12 @@ public:
     // errors collected during the last run — UI reads them via revision-cache pattern (worker fills under mutex)
     int64_t GetErrorsRevision() const;  // atomic acquire load; no mutex
     std::vector<Ltg::ScriptingError> GetLastRunErrors() const;  // mutex-locked copy by value (worker mutates)
+    // appends a single error to m_LastRunErrors and bumps the revision NOW (instead of the usual
+    // wait-until-end-of-m_run publication). Used by ScriptDebugger::onPause(errorPause=true) so the
+    // CodePane error marker + the editor's red underline + tooltip appear DURING the paused state,
+    // not only after the worker finishes the whole source-file loop. The final publication at end of
+    // m_run (line ~169) overwrites this with the full errorContainer — the same error stays there.
+    void AddRuntimeError(const Ltg::ScriptingError& aError);
 
     // pushes the in-memory project script into the scripting module's completion state so user
     // globals (top-level `function foo(...)`, `helpers = {...}`, ...) surface in autocomplete.

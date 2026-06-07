@@ -66,25 +66,48 @@ bool CodeEditor::init() {
     m_Editor.SetCompletionCallbacks(
         [this](size_t aSelectedIndex) { m_OnCompletionAccepted(aSelectedIndex); },
         [this]() { m_OnCompletionCancelled(); });
-    // a narrow gutter decorator: a red dot marks a breakpoint, double-click toggles it
+    // a narrow gutter decorator: a red dot marks a breakpoint, single click toggles it; an amber
+    // right-pointing arrow marks the current paused line (VS-style). When both apply (paused on a
+    // breakpoint line) the arrow is drawn ON TOP of the dot so both states are visible at once.
+    //
+    // Breakpoint TOGGLING is always allowed — the user can set/remove BPs even when Debug is off
+    // (they're stored, just dormant until shouldArmDebug() installs the line hook). The visual
+    // alpha fades when Debug is off as a hint that those BPs won't fire yet — see
+    // m_BreakpointInteractionEnabled (renamed semantically to "BPs will actually fire").
     m_Editor.SetLineDecorator(16.0f, [this](TextEditor::Decorator& aDecorator) {
         const int32_t line0 = aDecorator.line;  // zero-based
         ImGui::InvisibleButton("##bp", ImVec2(aDecorator.width, aDecorator.height));
         const bool hovered = ImGui::IsItemHovered();
-        if (m_BreakpointInteractionEnabled && hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+        if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
             const bool has = (m_BreakpointLines.find(line0) != m_BreakpointLines.end());
             if (m_OnBreakpointToggled) {
-                m_OnBreakpointToggled(line0, !has);  // toggle
+                m_OnBreakpointToggled(line0, !has);  // toggle — allowed regardless of debug state
             }
         }
         const bool isBreakpoint = (m_BreakpointLines.find(line0) != m_BreakpointLines.end());
-        const bool drawHoverHalo = hovered && m_BreakpointInteractionEnabled;  // no false affordance when interaction is off
-        if (isBreakpoint || drawHoverHalo) {
-            const ImVec2 rectMin = ImGui::GetItemRectMin();
+        const ImVec2 rectMin = ImGui::GetItemRectMin();
+        const float centerX = rectMin.x + aDecorator.width * 0.5f;
+        const float centerY = rectMin.y + aDecorator.height * 0.5f;
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        if (isBreakpoint || hovered) {
             const float radius = (aDecorator.height - 6.0f) * 0.5f;
-            const uint8_t bpAlpha = m_BreakpointInteractionEnabled ? 255 : 110;  // fade existing dot when toggling is off
+            // when debug is off the user can still toggle BPs but they won't fire yet — fade the
+            // dot alpha as a visual hint.
+            const uint8_t bpAlpha = m_BreakpointInteractionEnabled ? 255 : 110;
             const ImU32 color = isBreakpoint ? IM_COL32(220, 40, 40, bpAlpha) : IM_COL32(220, 40, 40, 90);
-            ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(rectMin.x + aDecorator.width * 0.5f, rectMin.y + aDecorator.height * 0.5f), radius, color);
+            drawList->AddCircleFilled(ImVec2(centerX, centerY), radius, color);
+        }
+        // current paused line: amber right-pointing arrow (VS-style). Drawn after the bp dot so it
+        // sits on top when both coexist — the high-contrast amber/red pair stays readable.
+        if (m_CurrentExecLine == line0) {
+            const float arrowHalfWidth = aDecorator.width * 0.30f;
+            const float arrowHalfHeight = aDecorator.height * 0.28f;
+            const ImVec2 p1(centerX - arrowHalfWidth, centerY - arrowHalfHeight);  // top-left
+            const ImVec2 p2(centerX - arrowHalfWidth, centerY + arrowHalfHeight);  // bottom-left
+            const ImVec2 p3(centerX + arrowHalfWidth, centerY);                    // right-middle (tip)
+            drawList->AddTriangleFilled(p1, p2, p3, IM_COL32(255, 200, 0, 255));
+            // thin black outline so the arrow stays visible against any line background tint.
+            drawList->AddTriangle(p1, p2, p3, IM_COL32(0, 0, 0, 200), 1.0f);
         }
     });
     return true;
@@ -280,10 +303,12 @@ void CodeEditor::ClearErrorMarkers() {
 
 void CodeEditor::AddErrorMarker(const size_t& vErrorLine, const std::string& vErrorMsg) {
     m_ErrorMarkers[(int32_t)vErrorLine] = vErrorMsg;
-    // AddMarker's textTooltip carries the message again, so the per-line error tooltip
-    // is back (regression #2/#4 fixed); the cursor still jumps to the error line.
+    // AddMarker's textTooltip carries the message again, so the per-line error tooltip is back
+    // (regression #2/#4 fixed). The caret is NOT moved here — that used to jump the caret to
+    // the error line on every error-revision bump (incl. the end-of-run bump from
+    // ScriptingEngine::m_run), which fought with CodePane's VS-style caret sync on Step. The
+    // host now drives caret movement exclusively via MoveCursorTo on state-revision bumps.
     m_RebuildMarkers();
-    m_Editor.SetCursor((int32_t)vErrorLine, 0);
 }
 
 // Commands
@@ -390,9 +415,15 @@ void CodeEditor::SetCurrentExecLine(int32_t aZeroBasedLine) {
     if (m_CurrentExecLine != aZeroBasedLine) {
         m_CurrentExecLine = aZeroBasedLine;
         m_RebuildMarkers();
-        if (m_CurrentExecLine >= 0) {
-            m_Editor.SetCursor(m_CurrentExecLine, 0);  // scroll to the paused line
-        }
+    }
+}
+
+void CodeEditor::MoveCursorTo(int32_t aZeroBasedLine, int32_t aZeroBasedColumn) {
+    // explicit caret jump — used by CodePane to sync the caret to the active line on each new
+    // pause event (state revision bump). Separated from SetCurrentExecLine so the marker update
+    // (drawn every frame) doesn't fight a user who manually moved the caret between pauses.
+    if (aZeroBasedLine >= 0) {
+        m_Editor.SetCursor(aZeroBasedLine, aZeroBasedColumn);
     }
 }
 
@@ -410,13 +441,31 @@ float CodeEditor::GetCurrentFontScale() const {
 
 void CodeEditor::m_RebuildMarkers() {
     m_Editor.ClearMarkers();
-    // breakpoints are drawn by the line decorator (a red dot); markers carry errors + current line
+    // breakpoints are drawn by the line decorator (a red dot); markers carry errors + current line.
+    //
+    // Line-number gutter color: leave default (0 = no override). Only the code-line background is
+    // tinted, so the gutter numbers stay readable on dark themes (the amber tint behind white text
+    // washed out the line numbers on the previous design).
+    //
+    // TextEditor::AddMarker keys by line, so two calls on the same line — the second wins. On a
+    // pause-on-error the error line IS the current exec line, so we'd lose either the amber
+    // pause hint or the red error styling + tooltip. Merge them: red text background (error) +
+    // error message as the text tooltip + "current line" gutter tooltip on hover so the dual
+    // role of the line is still surfaced.
     for (const auto& errorMarker : m_ErrorMarkers) {
-        m_Editor.AddMarker(errorMarker.first - 1, 0, IM_COL32(200, 0, 40, 80), "", errorMarker.second);
+        const int32_t errorLine0Based = errorMarker.first - 1;
+        const bool isAlsoCurrentLine = (m_CurrentExecLine == errorLine0Based);
+        const char* lineNumberTooltip = isAlsoCurrentLine ? "current line" : "";
+        m_Editor.AddMarker(errorLine0Based, 0, IM_COL32(200, 0, 40, 80), lineNumberTooltip, errorMarker.second);
     }
-    // current paused line: amber line number + translucent amber text
+    // current paused line: translucent amber over the code line — ONLY when not already emitted
+    // as a merged error marker above. Alpha kept low so the syntax-highlighted text reads cleanly
+    // on top.
     if (m_CurrentExecLine >= 0) {
-        m_Editor.AddMarker(m_CurrentExecLine, IM_COL32(255, 200, 0, 255), IM_COL32(255, 200, 0, 60), "current line", "");
+        const bool alreadyEmittedAsError = (m_ErrorMarkers.find(m_CurrentExecLine + 1) != m_ErrorMarkers.end());
+        if (!alreadyEmittedAsError) {
+            m_Editor.AddMarker(m_CurrentExecLine, 0, IM_COL32(255, 200, 0, 60), "current line", "");
+        }
     }
 }
 

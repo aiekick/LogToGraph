@@ -97,9 +97,42 @@ void ProjectFile::ClearDatas() {
     SettingsDialog::ref().clearProjectSettings();
 }
 
+// boilerplate Lua script handed to the user on every new project — documents the ltg:* API and
+// scaffolds the three required callbacks (startFile/parse/endFile) so the user has something to
+// start from instead of an empty editor. Kept as a raw string literal so the indentation, tabs,
+// and `--` comments survive verbatim.
+static const char* const kDefaultProjectScript =
+R"lua(-- UserDatas ltg (LogToGraph valid only from LogToGraph)
+-- ltg:logInfo(infos_string) : will log the message in the in app console
+-- ltg:logWarning(infos_string) : will log the message in the in app console
+-- ltg:logError(infos_string) : will log the message in the in app console
+-- ltg:logDebug(infos_string) : will log the message in the in app console
+-- ltg:addSignalTag(date, r, g, b, a, name, help) : add a signal tag with date, color a name (color is linear [0:1]. the help will be displayed when mouse over the tag
+-- ltg:addSignalStatus(signal_category, signal_name, signal_epoch_time, signal_status) : will add a signal string status
+-- ltg:addSignalValue(signal_category, signal_name, signal_epoch_time, signal_value, description_string_optional) : will add a signal numerical value
+-- ltg:addSignalStartZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal start zone
+-- ltg:addSignalEndZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal end zone
+-- get/set epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
+-- double ltg:stringToEpoch("2023-01-16 15:24:26,464", 0)
+-- string ltg:epochToString(18798798465465.546546, 0)
+
+function startFile(filename, filepath)
+	ltg:logInfo(" --- Start paring of file '" .. filepath .. "'");
+end
+
+function parse(buffer)
+
+end
+
+function endFile(filename, filepath)
+	ltg:logInfo(" --- End paring of file '" .. filepath .. "'");
+end
+)lua";
+
 void ProjectFile::New() {
     Clear();
     ClearDatas();
+    CodePane::ref()->OpenScript(kDefaultProjectScript);
     m_IsLoaded = true;
     m_NeverSaved = true;
     SetProjectChange(true);
@@ -115,8 +148,11 @@ void ProjectFile::New(const std::string& vFilePathName) {
         m_ProjectFileName = ps.name;
         m_ProjectFilePath = ps.path;
     }
+    CodePane::ref()->OpenScript(kDefaultProjectScript);
     m_IsLoaded = true;
-    SetProjectChange(false);
+    // persist the boilerplate immediately so the .ltg has the script on disk from frame 1 — if the
+    // user closes without typing anything, re-opening shows the boilerplate, not an empty editor.
+    Save();
 }
 
 bool ProjectFile::Load() {
@@ -133,25 +169,31 @@ bool ProjectFile::LoadAs(const std::string& vFilePathName) {
             if (DataBase::ref()->OpenDBFile(filePathName)) {
                 ClearDatas();
                 auto xml_settings = DataBase::ref()->GetSettingsXMLDatas();
-                if (LoadConfigString(ez::xml::Node::unEscapeXml(xml_settings), "") || xml_settings.empty()) {
-                    m_ProjectFilePathName = ez::file::simplifyFilePath(vFilePathName);
-                    auto ps = ez::file::parsePathFileName(m_ProjectFilePathName);
-                    if (ps.isOk) {
-                        m_ProjectFileName = ps.name;
-                        m_ProjectFilePath = ps.path;
-                        auto scriptCode = DataBase::ref()->GetScriptCode();
-                        if (scriptCode.empty() && !m_ScriptFilePathName.empty() && ez::file::isFileExist(m_ScriptFilePathName)) {
-                            // retrocompat: import the old external script once, then it lives in the db
-                            scriptCode = ez::file::loadFileToString(m_ScriptFilePathName);
-                        }
-                        CodePane::ref()->OpenScript(scriptCode);
-                    }
-                    m_IsLoaded = true;
-                    SetProjectChange(false);
-                } else {
-                    Clear();
-                    LogVarError("The project file %s cant be loaded", filePathName.c_str());
+                // Best-effort XML config parse: if it fails (older .ltg files corrupted by a
+                // round-trip bug — e.g. the bp-attribute-with-XML-special-chars case fixed in
+                // getXmlNodes), we still load the rest of the project (script code, layout
+                // fallback to defaults). The user gets back a working project and can re-save
+                // it cleanly under the current format. Silent fallback would be worse — log a
+                // warning so the user knows the config was reset.
+                const bool xmlParseOK = LoadConfigString(ez::xml::Node::unEscapeXml(xml_settings), "");
+                if (!xmlParseOK && !xml_settings.empty()) {
+                    LogVarWarning("%s", "The project's settings XML failed to parse — loading "
+                                        "with defaults. Re-save the project to clean it up.");
                 }
+                m_ProjectFilePathName = ez::file::simplifyFilePath(vFilePathName);
+                auto ps = ez::file::parsePathFileName(m_ProjectFilePathName);
+                if (ps.isOk) {
+                    m_ProjectFileName = ps.name;
+                    m_ProjectFilePath = ps.path;
+                    auto scriptCode = DataBase::ref()->GetScriptCode();
+                    if (scriptCode.empty() && !m_ScriptFilePathName.empty() && ez::file::isFileExist(m_ScriptFilePathName)) {
+                        // retrocompat: import the old external script once, then it lives in the db
+                        scriptCode = ez::file::loadFileToString(m_ScriptFilePathName);
+                    }
+                    CodePane::ref()->OpenScript(scriptCode);
+                }
+                m_IsLoaded = true;
+                SetProjectChange(false);
 
                 LogEngine::ref()->Finalize();
                 GraphListPane::ref()->UpdateDB();
@@ -320,6 +362,20 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     for (const auto& file : m_SourceFilePathNames) {
         childNode.addChild("log_file").setContent(ez::xml::Node::escapeXml(file.second));
     }
+    // breakpoints — persisted so the user keeps their debug spots across project sessions. Only
+    // line numbers are stored; the script path is implicit (sc_PROJECT_SCRIPT_CHUNK, the
+    // in-project Lua script). NOT stored as an XML attribute: the project save round-trip
+    // double-escapes via ezXml's content escape AND ProjectFile::Save's outer escapeXml (for SQL
+    // safety), which doesn't reverse symmetrically when an attribute value contains XML special
+    // chars like `<`/`>` (sc_PROJECT_SCRIPT_CHUNK has them) — the resulting XML can't be
+    // re-parsed on load. Plain integer content in `<line>` children round-trips cleanly.
+    const auto& breakpoints1Based = ScriptDebugger::ref()->getBreakpoints();
+    if (!breakpoints1Based.empty()) {
+        auto& bpNode = node.addChild("breakpoints");
+        for (const auto& line : breakpoints1Based) {
+            bpNode.addChild("line").setContent(std::to_string(line));
+        }
+    }
     return {node};
 }
 
@@ -410,6 +466,15 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
     } else if (strParentName == "log_files") {
         if (strName == "log_file") {
             AddSourceFilePathName(ez::xml::Node::unEscapeXml(strValue));
+        }
+    } else if (strParentName == "breakpoints") {
+        if (strName == "line") {
+            const int32_t line = ez::ivariant(strValue).GetI();
+            if (line > 0) {
+                // path is implicit (sc_PROJECT_SCRIPT_CHUNK) — see getXmlNodes comment for why
+                // it's not stored as an attribute.
+                ScriptDebugger::ref()->setBreakpoint(Ltg::sc_PROJECT_SCRIPT_CHUNK, line, true);
+            }
         }
     }
 

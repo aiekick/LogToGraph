@@ -16,11 +16,34 @@ limitations under the License.
 
 #include "ScriptDebugger.h"
 
+#include <settings/DebugSettings.h>
+#include <models/script/ScriptingEngine.h>
+
 ///////////////////////////////////////////////////////////////////////////////////
 //// RENDEZVOUS (worker thread) /////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
 Ltg::DebugAction ScriptDebugger::onPause(const Ltg::DebugState& aState) {
+    // auto-bp-on-error path: when the plugin paused us synchronously from its catch block, persist
+    // a breakpoint at the error line BEFORE handing off to the UI. The user can step / continue
+    // normally, and on the next run the same line stays armed so they can re-investigate without
+    // re-triggering the original throw. Also publish the error to ScriptingEngine NOW so the
+    // CodePane red marker + tooltip show up during the pause (the worker's normal publication
+    // path only fires when m_run finishes the whole source-file loop — way after the user clicks
+    // Continue).
+    if (aState.errorPause && aState.line > 0 && !aState.sourceFile.empty()) {
+        setBreakpoint(aState.sourceFile, aState.line, true);
+        Ltg::ScriptingError err;
+        err.file = aState.sourceFile;
+        err.line = static_cast<size_t>(aState.line);
+        err.message = aState.errorMessage;
+        ScriptingEngine::ref()->AddRuntimeError(err);
+        // Auto-arm the master Debug toggle. The CodePane toolbar gates Continue/Step on isDebugArmed,
+        // and the user opted into pause-on-error already — so we flip the master switch ON to keep
+        // the toolbar consistent (otherwise the user would be paused with all debug buttons greyed
+        // out). This persists across runs; user can flip it off manually after they're done.
+        m_DebugArmed.store(true, std::memory_order_release);
+    }
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
         m_State = aState;
@@ -78,7 +101,13 @@ bool ScriptDebugger::shouldArmDebug() const {
     // installed and the existing breakpoints are kept in memory but stay inert (they are honoured
     // again as soon as the user re-arms Debug). this keeps `Debug off` synonymous with `full JIT speed`,
     // regardless of leftover breakpoints from a previous debug session.
-    return m_DebugArmed.load(std::memory_order_acquire);
+    // Exception: when the auto-bp-on-error toggle is on, we also arm the debugger — the plugin's
+    // catch block needs a non-null IScriptDebugHost to call onPause synchronously. Without this,
+    // the user would have to manually arm Debug to get pause-on-error, defeating the toggle.
+    if (m_DebugArmed.load(std::memory_order_acquire)) {
+        return true;
+    }
+    return DebugSettings::ref()->isAutoBreakpointOnErrorEnabled();
 }
 
 const Ltg::BreakpointLines& ScriptDebugger::getBreakpoints() const {
@@ -92,6 +121,12 @@ int64_t ScriptDebugger::getBreakpointsRevision() const {
 bool ScriptDebugger::isBreakpoint(int32_t aLine) {
     std::lock_guard<std::mutex> lock(m_BreakpointsMutex);
     return m_Breakpoints.find(aLine) != m_Breakpoints.end();
+}
+
+bool ScriptDebugger::shouldPauseOnError() const {
+    // live read of the user toggle — plugin queries this from its catch block each time an error
+    // fires, so flipping the toggle mid-run takes effect on the next exception (no need to reload).
+    return DebugSettings::ref()->isAutoBreakpointOnErrorEnabled();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////

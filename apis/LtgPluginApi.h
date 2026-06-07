@@ -142,7 +142,6 @@ typedef std::shared_ptr<IDatasModel> IDatasModelPtr;
 typedef std::weak_ptr<IDatasModel> IDatasModelWeak;
 
 struct ScriptingDatas {
-    std::string filename;
     std::string filepath;
     std::string buffer;
 };

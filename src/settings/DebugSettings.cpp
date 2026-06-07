@@ -41,6 +41,10 @@ bool DebugSettings::isErrorMarkersEnabled() const {
     return m_ErrorMarkersEnabled;
 }
 
+bool DebugSettings::isAutoBreakpointOnErrorEnabled() const {
+    return m_AutoBreakpointOnError;
+}
+
 Ltg::SettingsCategoryPath DebugSettings::getCategory() const {
     return "app/debug";
 }
@@ -87,6 +91,15 @@ bool DebugSettings::drawSettings() {
             "Hover eval tooltip: on", "Hover eval tooltip: off", &m_HoverEvalEnabled, "Show a value tooltip when hovering an identifier while paused")) {
         change = true;
     }
+    if (ImGui::ToggleContrastedButton(
+            "Auto-bp + pause on error: on",
+            "Auto-bp + pause on error: off",
+            &m_AutoBreakpointOnError,
+            "On a runtime script error, set a breakpoint at the error line and pause the worker\n"
+            "synchronously with the throwing frame visible (locals, upvalues, call stack).\n"
+            "Implies arming the debugger for this run.")) {
+        change = true;
+    }
     return change;
 }
 
@@ -110,6 +123,9 @@ bool DebugSettings::drawMenuItems() {
     if (ImGui::MenuItem("Hover eval tooltip", nullptr, &m_HoverEvalEnabled)) {
         change = true;
     }
+    if (ImGui::MenuItem("Auto-bp + pause on error", nullptr, &m_AutoBreakpointOnError)) {
+        change = true;
+    }
     return change;
 }
 
@@ -123,6 +139,7 @@ ez::xml::Nodes DebugSettings::getXmlSettings(const Ltg::ISettingsType& vType) co
     parent.addChild("signature_help_enabled").setContent(m_SignatureHelpEnabled ? "true" : "false");
     parent.addChild("hover_eval_enabled").setContent(m_HoverEvalEnabled ? "true" : "false");
     parent.addChild("error_markers_enabled").setContent(m_ErrorMarkersEnabled ? "true" : "false");
+    parent.addChild("auto_breakpoint_on_error").setContent(m_AutoBreakpointOnError ? "true" : "false");
     return {parent};
 }
 
@@ -144,5 +161,7 @@ void DebugSettings::setXmlSettings(const ez::xml::Node& vName, const ez::xml::No
         m_HoverEvalEnabled = ez::ivariant(vValue).GetB();
     } else if (nodeName == "error_markers_enabled") {
         m_ErrorMarkersEnabled = ez::ivariant(vValue).GetB();
+    } else if (nodeName == "auto_breakpoint_on_error") {
+        m_AutoBreakpointOnError = ez::ivariant(vValue).GetB();
     }
 }

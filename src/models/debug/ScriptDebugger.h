@@ -81,6 +81,7 @@ public:
     void publishExpansion(int32_t aRef, const std::vector<Ltg::DebugVar>& aChildren) final;
     void publishEvalResult(int32_t aEvalId, const Ltg::EvalResult& aResult) final;
     bool isBreakpoint(int32_t aLine) final;
+    bool shouldPauseOnError() const final;
 
     // session binding — called by ScriptingEngine around the parse run
     void bindPlugin(Ltg::IScriptDebugger* apPluginDebugger);

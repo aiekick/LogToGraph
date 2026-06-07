@@ -124,7 +124,6 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                                 try {
                                     Ltg::ScriptingDatas datas;
                                     datas.filepath = sourceFilePathName;
-                                    datas.filename = fs::path(sourceFilePathName).filename().string();
                                     source_file_id = DataBase::ref()->AddSourceFile(sourceFilePathName);
                                     DataBase::ref()->BeginTransaction();
                                     if (scriptingPtr->callScriptStart(datas, errorContainer)) {
@@ -184,6 +183,12 @@ int64_t ScriptingEngine::GetErrorsRevision() const {
 std::vector<Ltg::ScriptingError> ScriptingEngine::GetLastRunErrors() const {
     std::lock_guard<std::mutex> lock(m_ErrorsMutex);
     return m_LastRunErrors;
+}
+
+void ScriptingEngine::AddRuntimeError(const Ltg::ScriptingError& aError) {
+    std::lock_guard<std::mutex> lock(m_ErrorsMutex);
+    m_LastRunErrors.push_back(aError);
+    m_ErrorsRevision.fetch_add(1, std::memory_order_release);
 }
 
 void ScriptingEngine::SetProjectScriptCode(const std::string& aCode) {

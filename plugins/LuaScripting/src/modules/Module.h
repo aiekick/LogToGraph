@@ -71,9 +71,29 @@ public:
 
 private:
     static void sLuaHook(lua_State* apLua, lua_Debug* apDebug);
+    // Lua-level message handler — invoked by lua_pcall BEFORE the stack unwinds when the called
+    // function (or anything it calls) raises a Lua error (string.match(nil), nil:method(), etc.).
+    // Distinct from the sol2 exception_handler which only fires for C++ exceptions thrown by
+    // bindings. Recovers `this` from the lua_State registry (same key as the line hook), checks
+    // shouldPauseOnError, and calls m_pauseOnError synchronously while the throwing frame is
+    // still alive — so locals/upvalues/call-stack are inspectable in the debug UI.
+    static int sLuaErrorHandler(lua_State* apLua);
     void m_onHook(lua_State* apLua, lua_Debug* apDebug);
     bool m_shouldBreak(lua_State* apLua, int32_t aLine);
     Ltg::DebugState m_buildState(lua_State* apLua, lua_Debug* apDebug);
+    // Build a paused-on-error snapshot from the sol2 exception_handler. Same call-stack + globals
+    // walk as m_buildState, but line/source come from the parsed error message (which carries the
+    // Lua-reported throw site), and the state is flagged errorPause = true so the host can auto-set
+    // a breakpoint at that line.
+    Ltg::DebugState m_buildErrorState(lua_State* apLua, const std::string& aErrorMessage);
+    // Shared helper — walks the Lua call stack (innermost first, capped at 64) and the _G table,
+    // filling state.callStack and state.globals. Used by both m_buildState and m_buildErrorState.
+    void m_fillCallStackAndGlobals(lua_State* apLua, Ltg::DebugState& aoState);
+    // Drives the onPause -> waitAction loop and applies the returned command. Used by both the
+    // line-hook path (m_onHook) and the exception_handler path (m_pauseOnError).
+    void m_runPauseLoop(lua_State* apLua, Ltg::DebugState aState);
+    // Called from the sol2 exception_handler when shouldPauseOnError() is true.
+    void m_pauseOnError(lua_State* apLua, const std::string& aErrorMessage);
     void m_applyCommand(lua_State* apLua, Ltg::DebugCommand aCommand);
     int32_t m_makeRef(lua_State* apLua, int32_t aIndex);
     Ltg::DebugVar m_makeVar(lua_State* apLua, int32_t aIndex, const std::string& aName, const std::string& aKeyType);

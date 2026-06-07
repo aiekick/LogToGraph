@@ -97,6 +97,18 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
                 if (stateRevision != m_LastStateRevision) {
                     m_StateCache = ScriptDebugger::ref()->getState();
                     m_LastStateRevision = stateRevision;
+                    // VS-style caret sync — every NEW pause event snaps the editor's text caret to the
+                    // active line so Step* / Continue / breakpoint hits visually advance the caret in
+                    // step with the gutter arrow. Between pauses the caret is free (user can click
+                    // anywhere to inspect), but the next pause brings it back to the live execution.
+                    if (m_StateCache.line > 0 && !m_StateCache.sourceFile.empty()) {
+                        for (auto& sheet : m_CodeSheets) {
+                            if (sheet.filepathName == m_StateCache.sourceFile) {
+                                sheet.codeEditor.MoveCursorTo(m_StateCache.line - 1, 0);
+                                break;
+                            }
+                        }
+                    }
                 }
 
                 // scripting errors — refreshed when ScriptingEngine bumps GetErrorsRevision(). on a bump,
@@ -409,8 +421,10 @@ void CodePane::OpenFile(const std::string& vFilePathName, size_t vErrorLine, std
             sheet.title = ps.name + "." + ps.ext;
             // report gutter breakpoint toggles to the shared debugger (widget 0-based -> 1-based)
             const std::string filePathForCallback = vFilePathName;
-            sheet.codeEditor.SetBreakpointToggledCallback(
-                [filePathForCallback](int32_t aLine, bool aAdd) { ScriptDebugger::ref()->setBreakpoint(filePathForCallback, aLine + 1, aAdd); });
+            sheet.codeEditor.SetBreakpointToggledCallback([filePathForCallback](int32_t aLine, bool aAdd) {
+                ScriptDebugger::ref()->setBreakpoint(filePathForCallback, aLine + 1, aAdd);
+                ProjectFile::ref()->SetProjectChange(true);  // user gesture -> project dirty so it gets saved
+            });
             sheet.codeEditor.SetTokenContextCallback([](const std::string& aToken) { WatcherPane::ref()->AddExpression(aToken); });
             sheet.codeEditor.SetCode(code, type);
             sheet.codeEditor.AddErrorMarker(vErrorLine, vErrorMsg);
@@ -435,7 +449,10 @@ void CodePane::OpenScript(const std::string& aCode) {
         sheet.wasModified = false;
         // report gutter breakpoint toggles to the shared debugger (widget 0-based -> 1-based)
         const std::string scriptId = sc_PROJECT_SCRIPT_ID;
-        sheet.codeEditor.SetBreakpointToggledCallback([scriptId](int32_t aLine, bool aAdd) { ScriptDebugger::ref()->setBreakpoint(scriptId, aLine + 1, aAdd); });
+        sheet.codeEditor.SetBreakpointToggledCallback([scriptId](int32_t aLine, bool aAdd) {
+            ScriptDebugger::ref()->setBreakpoint(scriptId, aLine + 1, aAdd);
+            ProjectFile::ref()->SetProjectChange(true);  // user gesture -> project dirty so it gets saved
+        });
         sheet.codeEditor.SetTokenContextCallback([](const std::string& aToken) { WatcherPane::ref()->AddExpression(aToken); });
         // hover-eval — the editor reports the token under the mouse every frame; we stash it in
         // the CodePane and the post-tabbar code (drawPanes) drives the eval + tooltip.

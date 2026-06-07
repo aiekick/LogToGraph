@@ -98,6 +98,7 @@ public:
     void SetHoverTokenCallback(std::function<void(const std::string& aToken)> aCallback);
     void SetBreakpoints(const std::unordered_set<int32_t>& aZeroBasedLines, int64_t aRevision);
     void SetCurrentExecLine(int32_t aZeroBasedLine);
+    void MoveCursorTo(int32_t aZeroBasedLine, int32_t aZeroBasedColumn);  // jump caret; caller decides when to sync
 
     // per-editor persistent font scale — pushes a one-shot value into the underlying TextEditor
     // (applied on the next render after BeginChild). GetCurrentFontScale reads back the effective
