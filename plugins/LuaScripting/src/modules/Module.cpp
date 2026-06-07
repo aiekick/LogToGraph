@@ -5,6 +5,7 @@
 #include <ezlibs/ezFile.hpp>
 #include <ezlibs/ezTime.hpp>
 #include <ezlibs/ezLog.hpp>
+#include <algorithm>
 #include <exception>
 #include <chrono>
 #include <ctime>
@@ -329,16 +330,36 @@ void Module::m_ensureCompletionState() {
     (*m_completionLuaPtr)["ltg"] = m_completionDatasModelPtr;
 }
 
+// Filter out keys that are Lua-internal metamethods (`__name`, `__index`, `__gc`, `__eq`,
+// `__pairs`, `__newindex`, `__type`, ...) and sol2-internal helpers (`class_check`, `class_cast`,
+// `new`). These appear in the metatable iteration but are noise from the user's POV — they
+// don't help write Lua, they expose implementation details.
+static bool s_isCompletionNoise(const std::string& aName) {
+    if (aName.size() >= 2 && aName[0] == '_' && aName[1] == '_') {
+        return true;  // any `__*` metamethod
+    }
+    if (aName.compare(0, 6, "class_") == 0) {
+        return true;  // sol2 inheritance bookkeeping (class_check, class_cast)
+    }
+    if (aName == "new") {
+        return true;  // sol2 default constructor binding — never useful through `:method()` autocompletion
+    }
+    return false;
+}
+
 void Module::m_iterateLuaTable(lua_State* apLua, int aTableIndex, std::vector<Ltg::CompletionEntry>& aoEntries) {
     // aTableIndex must be an absolute stack index (lua_next manipulates the stack, breaking relative refs).
     lua_pushnil(apLua);
     while (lua_next(apLua, aTableIndex) != 0) {
         // -2 is the key, -1 is the value
         if (lua_type(apLua, -2) == LUA_TSTRING) {
-            Ltg::CompletionEntry entry;
-            entry.name = lua_tostring(apLua, -2);
-            entry.type = lua_typename(apLua, lua_type(apLua, -1));
-            aoEntries.push_back(entry);
+            std::string keyName = lua_tostring(apLua, -2);
+            if (!s_isCompletionNoise(keyName)) {
+                Ltg::CompletionEntry entry;
+                entry.name = std::move(keyName);
+                entry.type = lua_typename(apLua, lua_type(apLua, -1));
+                aoEntries.push_back(std::move(entry));
+            }
         }
         lua_pop(apLua, 1);  // pop value, keep key for next iter
     }
@@ -368,6 +389,72 @@ void Module::getCompletionEntries(const std::string& aTarget, std::vector<Ltg::C
         }
     }
     lua_settop(L, topBefore);
+
+    // alphabetic order — lua_next returns hash-table order which has no stable meaning to the user.
+    std::sort(aoEntries.begin(), aoEntries.end(), [](const Ltg::CompletionEntry& aLhs, const Ltg::CompletionEntry& aRhs) {
+        return aLhs.name < aRhs.name;
+    });
+}
+
+namespace {
+
+// Hand-maintained signature catalog for the Lua plugin. Must be kept in sync with the bindings
+// in Module::load (and m_ensureCompletionState). For overloaded methods we list the widest
+// variant — the host shows a single line in v1, no overload picker yet. v1 covers `ltg:`
+// methods only; `math.*` / `string.*` curated entries will land next.
+struct CatalogArg {
+    const char* name;
+    const char* type;
+};
+struct SignatureEntry {
+    const char* target;        // "" for globals
+    const char* functionName;
+    std::vector<CatalogArg> args;
+};
+
+const std::vector<SignatureEntry>& s_signatureCatalog() {
+    static const std::vector<SignatureEntry> catalog = {
+        // ltg: usertype methods (cf. new_usertype<LuaDatasModel> in Module::load)
+        {"ltg", "stringToEpoch",      {{"dateTime","string"}, {"hourOffset","number"}}},
+        {"ltg", "epochToString",      {{"epochTime","number"}, {"hourOffset","number"}}},
+        {"ltg", "addSignalTag",       {{"epoch","number"}, {"r","number"}, {"g","number"}, {"b","number"}, {"a","number"}, {"name","string"}, {"help","string"}}},
+        {"ltg", "addSignalStatus",    {{"category","string"}, {"name","string"}, {"epoch","number"}, {"status","string"}}},
+        {"ltg", "addSignalValue",     {{"category","string"}, {"name","string"}, {"epoch","number"}, {"value","number"}, {"desc","string"}}},
+        {"ltg", "addSignalStartZone", {{"category","string"}, {"name","string"}, {"epoch","number"}, {"startMsg","string"}}},
+        {"ltg", "addSignalEndZone",   {{"category","string"}, {"name","string"}, {"epoch","number"}, {"endMsg","string"}}},
+        {"ltg", "logInfo",            {{"message","string"}}},
+        {"ltg", "logWarning",         {{"message","string"}}},
+        {"ltg", "logError",           {{"message","string"}}},
+        {"ltg", "logDebug",           {{"message","string"}}},
+        {"ltg", "getRowIndex",        {}},
+        {"ltg", "getRowCount",        {}},
+    };
+    return catalog;
+}
+
+}  // namespace
+
+void Module::getSignatureInfo(const std::string& aTarget, const std::string& aFunctionName, Ltg::SignatureInfo& aoSignature) {
+    if (aFunctionName.empty()) {
+        return;
+    }
+    for (const auto& entry : s_signatureCatalog()) {
+        if (aTarget == entry.target && aFunctionName == entry.functionName) {
+            aoSignature.label = entry.target[0] != '\0'
+                ? std::string(entry.target) + ":" + entry.functionName
+                : entry.functionName;
+            aoSignature.args.clear();
+            aoSignature.args.reserve(entry.args.size());
+            for (const auto& catArg : entry.args) {
+                Ltg::SignatureArg arg;
+                arg.name = catArg.name;
+                arg.type = catArg.type;
+                aoSignature.args.push_back(std::move(arg));
+            }
+            return;
+        }
+    }
+    // not in the catalog — leave aoSignature empty, the host won't open the tooltip
 }
 
 bool Module::callScriptStart(Ltg::ErrorContainer& vOutErrors) {

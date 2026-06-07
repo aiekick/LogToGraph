@@ -100,6 +100,24 @@ struct CompletionEntry {
     std::string type;
 };
 
+// One argument descriptor inside a SignatureInfo. `type` is a free-form display string
+// ("number", "string", "table", "any", ...) — informational, no runtime semantics.
+struct SignatureArg {
+    std::string name;
+    std::string type;
+};
+
+// One function/method signature surfaced by the plugin for the signature-help tooltip (the IDE
+// hint that appears when the user types `(`, and that highlights the arg currently being typed).
+// `label` is what the tooltip displays before the parens (e.g. "ltg:addSignalTag"); `args` is
+// the ordered list of parameter descriptors. The plugin owns a curated catalog — Lua/LuaJIT
+// cannot introspect C-binding param names, and Lua function param names are not portable across
+// 5.1/5.2 / LuaJIT.
+struct SignatureInfo {
+    std::string label;
+    std::vector<SignatureArg> args;
+};
+
 // chunk name passed to the scripting runtime when compiling the in-memory project script.
 // the host's CodePane uses the SAME string as the sheet id, so a ScriptingError's `file` field
 // can be routed back to the matching sheet. keep both sides in sync.
@@ -156,6 +174,11 @@ struct ScriptingModule : public PluginModule, public IScriptDebugger {
     // table or sol2 usertype). default no-op so non-Lua plugins compile unchanged. consumed by the
     // host's autocompletion popup; called from the UI thread, fast (one Lua table walk).
     virtual void getCompletionEntries(const std::string& /*aTarget*/, std::vector<CompletionEntry>& /*aoEntries*/) {}
+    // returns the signature info for `aTarget:aFunctionName` (or `aTarget.aFunctionName`, or just
+    // `aFunctionName` when aTarget is empty) — used by the host signature-help tooltip when the
+    // user types `(`. default no-op so non-Lua plugins compile unchanged. An empty aoSignature
+    // (no label, no args) means "no signature known" — host then doesn't open the tooltip.
+    virtual void getSignatureInfo(const std::string& /*aTarget*/, const std::string& /*aFunctionName*/, SignatureInfo& /*aoSignature*/) {}
 };
 
 typedef std::shared_ptr<ScriptingModule> ScriptingModulePtr;

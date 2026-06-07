@@ -197,6 +197,23 @@ void ScriptingEngine::GetCompletionEntries(const std::string& aTarget, std::vect
     }
 }
 
+void ScriptingEngine::GetSignatureInfo(const std::string& aTarget, const std::string& aFunctionName, Ltg::SignatureInfo& aoSignature) {
+    // same gateway pattern as GetCompletionEntries — look up the selected plugin under the worker
+    // mutex, then forward. the plugin's catalog is hand-maintained, not from live introspection.
+    Ltg::ScriptingModulePtr scriptingPtr;
+    {
+        std::lock_guard<std::mutex> lock(s_workerThread_Mutex);
+        const auto selectedScripting = m_scriptingModuleCombo.getText();
+        const auto it = m_scriptingModules.find(selectedScripting);
+        if (it != m_scriptingModules.end()) {
+            scriptingPtr = it->second;
+        }
+    }
+    if (scriptingPtr != nullptr) {
+        scriptingPtr->getSignatureInfo(aTarget, aFunctionName, aoSignature);
+    }
+}
+
 ///////////////////////////////////////////////////
 /// INIT/UNIT /////////////////////////////////////
 ///////////////////////////////////////////////////

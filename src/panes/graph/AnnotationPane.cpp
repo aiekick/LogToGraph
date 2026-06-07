@@ -28,7 +28,7 @@ limitations under the License.
 #include <models/log/LogEngine.h>
 #include <panes/misc/ToolPane.h>
 #include <panes/graph/GraphListPane.h>
-#include <res/fontIcons.h>
+#include <fonts/fontIcons.h>
 
 ///////////////////////////////////////////////////////////////////////////////////
 //// OVERRIDES ////////////////////////////////////////////////////////////////////

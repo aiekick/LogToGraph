@@ -48,7 +48,7 @@ limitations under the License.
 #include <panes/debug/BreakpointsPane.h>
 #include <panes/debug/WatcherPane.h>
 
-#include <res/fontIcons.h>
+#include <fonts/fontIcons.h>
 
 #include <ezlibs/ezFile.hpp>
 

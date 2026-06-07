@@ -157,6 +157,12 @@ void CodeEditor::OnImGui() {
         m_Editor.Render("TextEditor", ImVec2(), isFocused);
     }
 
+    // signature-help: source of truth is the bytes between the opening `(` and the caret.
+    // Recomputing every frame keeps depth + arg index in sync with Backspace, Delete, paste,
+    // and arrow-key edits. Then Escape gets a chance to actively close the tooltip.
+    m_RecomputeSignatureState();
+    m_HandleSignatureDismissKeys();
+
     if (isFocused) {
         bool ctrlPressed = ImGui::GetIO().KeyCtrl;
         if (ctrlPressed) {
@@ -411,40 +417,55 @@ bool CodeEditor::m_IsIdentChar(ImWchar aChar) {
 }
 
 void CodeEditor::m_OnCharacterTyped(ImWchar aCharacter, int aLine, int aColumn) {
-    // popup already open: any identifier char extends the filter; anything else dismisses.
+    // signature tooltip state is recomputed every frame in m_RecomputeSignatureState() — we
+    // re-scan the bytes between the opening `(` and the current caret to derive depth + arg
+    // index. that lets Backspace, Delete, paste, and arrow-key edits all stay in sync without
+    // a per-event branch here.
+
+    // === completion popup: filter extension / dismissal =====================================
     if (m_Editor.IsCompletionPopupOpen()) {
         if (m_IsIdentChar(aCharacter)) {
             m_CompletionFilter += static_cast<char>(aCharacter);
             m_RecomputeCompletionFiltered();  // pushes refreshed items to TextEditor (closes if empty)
-        } else {
-            m_Editor.CloseCompletionPopup();
-            m_OnCompletionCancelled();
+            return;
         }
+        m_Editor.CloseCompletionPopup();
+        m_OnCompletionCancelled();
+        // fall through — a non-ident char may also be a `(` that triggers the signature
+    } else if (aCharacter == '.' || aCharacter == ':') {
+        // === completion trigger: `.` or `:` after a known catalog key ======================
+        // `aColumn` is the cursor RIGHT AFTER the trigger char. The identifier we want is to
+        // the LEFT of the trigger, so we look one column further back (the trigger itself
+        // is at column - 1).
+        const std::string target = m_ExtractTokenAt(aLine, aColumn - 2);
+        if (target.empty()) {
+            return;
+        }
+        std::vector<Ltg::CompletionEntry> entries;
+        ScriptingEngine::ref()->GetCompletionEntries(target, entries);
+        if (entries.empty()) {
+            return;
+        }
+        m_CompletionTarget = target;
+        m_CompletionAllEntries = std::move(entries);
+        m_CompletionFilter.clear();
+        m_CompletionAnchorLine = aLine;
+        m_CompletionAnchorColumn = aColumn;  // right after the trigger — where filter chars will start to land
+        m_RecomputeCompletionFiltered();      // builds the TextEditor::CompletionItem list and opens the popup
         return;
     }
 
-    // popup closed: open on `.` or `:` if the preceding word is a known catalog key.
-    if (aCharacter != '.' && aCharacter != ':') {
-        return;
+    // === signature trigger: `(` when no tooltip is currently open ==========================
+    // we skip the trigger when the signature is already open: the first block above already
+    // bumped the paren depth (nested call), and a nested signature tooltip would compete for
+    // screen space with no clean UI to disambiguate.
+    if (aCharacter == '(' && !m_Editor.IsSignatureTooltipOpen()) {
+        std::string target;
+        std::string funcName;
+        if (m_ExtractCallTargetAt(aLine, aColumn - 1, target, funcName)) {
+            m_OpenSignature(target, funcName);
+        }
     }
-    // `aColumn` is the cursor RIGHT AFTER the trigger char. The identifier we want is to the LEFT of
-    // the trigger, so we look one column further back (the trigger itself is at column - 1).
-    const std::string target = m_ExtractTokenAt(aLine, aColumn - 2);
-    if (target.empty()) {
-        return;
-    }
-    std::vector<Ltg::CompletionEntry> entries;
-    ScriptingEngine::ref()->GetCompletionEntries(target, entries);
-    if (entries.empty()) {
-        return;
-    }
-
-    m_CompletionTarget = target;
-    m_CompletionAllEntries = std::move(entries);
-    m_CompletionFilter.clear();
-    m_CompletionAnchorLine = aLine;
-    m_CompletionAnchorColumn = aColumn;  // right after the trigger — where filter chars will start to land
-    m_RecomputeCompletionFiltered();      // builds the TextEditor::CompletionItem list and opens the popup
 }
 
 void CodeEditor::m_RecomputeCompletionFiltered() {
@@ -489,4 +510,218 @@ void CodeEditor::m_OnCompletionCancelled() {
     m_CompletionFilter.clear();
     m_CompletionAnchorLine = 0;
     m_CompletionAnchorColumn = 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+//// SIGNATURE HELP (host-side state, TextEditor owns the tooltip render) /////////
+///////////////////////////////////////////////////////////////////////////////////
+
+bool CodeEditor::m_ExtractCallTargetAt(int aLine, int aOpeningParenColumn, std::string& aoTarget, std::string& aoFunctionName) {
+    // resolves `(target?, functionName)` from the bytes immediately to the LEFT of the `(`
+    // at (aLine, aOpeningParenColumn). v1 accepts NO whitespace between the function name
+    // and the `(`, and only a single `.` or `:` separator before an optional target.
+    aoTarget.clear();
+    aoFunctionName.clear();
+    if (aLine < 0 || aOpeningParenColumn < 0) {
+        return false;
+    }
+    const std::string lineText = m_Editor.GetLineText(aLine);
+    if (lineText.empty()) {
+        return false;
+    }
+    const int32_t tabSize = m_Editor.GetTabSize();
+
+    // convert the visual column of the `(` to a byte index in lineText
+    size_t parenByte = 0;
+    int32_t visualCol = 0;
+    while (parenByte < lineText.size() && visualCol < aOpeningParenColumn) {
+        if (lineText[parenByte] == '\t') {
+            visualCol += tabSize - (visualCol % tabSize);
+        } else {
+            ++visualCol;
+        }
+        ++parenByte;
+    }
+    if (parenByte > 0 && visualCol > aOpeningParenColumn) {
+        --parenByte;
+    }
+    if (parenByte == 0 || parenByte > lineText.size()) {
+        return false;  // nothing to the left of the `(`
+    }
+
+    auto isIdent = [](char aChar) {
+        return (aChar >= 'A' && aChar <= 'Z') || (aChar >= 'a' && aChar <= 'z') || (aChar >= '0' && aChar <= '9') || aChar == '_';
+    };
+
+    // the function name ends RIGHT before the `(` — bail out on whitespace / punctuation
+    if (!isIdent(lineText[parenByte - 1])) {
+        return false;
+    }
+    size_t funcStart = parenByte - 1;
+    while (funcStart > 0 && isIdent(lineText[funcStart - 1])) {
+        --funcStart;
+    }
+    // reject pure number literals (identifier rule: must not start with a digit)
+    if (lineText[funcStart] >= '0' && lineText[funcStart] <= '9') {
+        return false;
+    }
+    aoFunctionName = lineText.substr(funcStart, parenByte - funcStart);
+
+    // optional `target.` or `target:` separator right before the function name
+    if (funcStart == 0) {
+        return true;
+    }
+    const char sep = lineText[funcStart - 1];
+    if (sep != ':' && sep != '.') {
+        return true;
+    }
+    if (funcStart < 2 || !isIdent(lineText[funcStart - 2])) {
+        return true;  // separator with nothing valid before — leave target empty
+    }
+    size_t targetEnd = funcStart - 1;  // exclusive boundary (the separator)
+    size_t targetStart = targetEnd - 1;
+    while (targetStart > 0 && isIdent(lineText[targetStart - 1])) {
+        --targetStart;
+    }
+    if (lineText[targetStart] >= '0' && lineText[targetStart] <= '9') {
+        return true;  // bad target — leave empty
+    }
+    aoTarget = lineText.substr(targetStart, targetEnd - targetStart);
+    return true;
+}
+
+void CodeEditor::m_OpenSignature(const std::string& aTarget, const std::string& aFunctionName) {
+    Ltg::SignatureInfo sig;
+    ScriptingEngine::ref()->GetSignatureInfo(aTarget, aFunctionName, sig);
+    if (sig.label.empty()) {
+        return;  // unknown call — silently no tooltip
+    }
+    m_SignatureTarget = aTarget;
+    m_SignatureFunctionName = aFunctionName;
+    m_SignatureArgIndex = 0;
+    // anchor: line + visual col RIGHT AFTER the `(` (where the scan range starts on the next frame).
+    int currentLine = 0;
+    int currentColumn = 0;
+    m_Editor.GetCurrentCursor(currentLine, currentColumn);
+    m_SignatureAnchorLine = currentLine;
+    m_SignatureAnchorColumn = currentColumn;
+
+    TextEditor::SignatureTooltip tooltip;
+    tooltip.label = sig.label;
+    tooltip.args.reserve(sig.args.size());
+    for (const auto& arg : sig.args) {
+        TextEditor::SignatureArg tArg;
+        tArg.name = arg.name;
+        tArg.type = arg.type;
+        tooltip.args.push_back(std::move(tArg));
+    }
+    tooltip.currentArgIndex = 0;
+    m_Editor.OpenSignatureTooltip(tooltip);
+}
+
+void CodeEditor::m_CloseSignature() {
+    m_Editor.CloseSignatureTooltip();
+    m_SignatureTarget.clear();
+    m_SignatureFunctionName.clear();
+    m_SignatureAnchorLine = 0;
+    m_SignatureAnchorColumn = 0;
+    m_SignatureArgIndex = 0;
+}
+
+void CodeEditor::m_RecomputeSignatureState() {
+    // recomputed every frame: re-scans the bytes between the opening `(` (captured at open
+    // time) and the current caret to derive depth + comma count. handles Backspace, Delete,
+    // paste, and arrow-key edits naturally — the source of truth is always the actual text.
+    if (!m_Editor.IsSignatureTooltipOpen()) {
+        return;
+    }
+    int currentLine = 0;
+    int currentColumn = 0;
+    m_Editor.GetCurrentCursor(currentLine, currentColumn);
+
+    // close if the caret left the line of the opening `(`. v1 doesn't follow multi-line calls.
+    if (currentLine != m_SignatureAnchorLine) {
+        m_CloseSignature();
+        return;
+    }
+
+    const std::string lineText = m_Editor.GetLineText(currentLine);
+    const int32_t tabSize = m_Editor.GetTabSize();
+    auto colToByte = [&](int32_t aCol) -> size_t {
+        size_t byteIndex = 0;
+        int32_t visualCol = 0;
+        while (byteIndex < lineText.size() && visualCol < aCol) {
+            if (lineText[byteIndex] == '\t') {
+                visualCol += tabSize - (visualCol % tabSize);
+            } else {
+                ++visualCol;
+            }
+            ++byteIndex;
+        }
+        if (byteIndex > 0 && visualCol > aCol) {
+            --byteIndex;
+        }
+        return byteIndex;
+    };
+    const size_t anchorByte = colToByte(m_SignatureAnchorColumn);
+    const size_t cursorByte = colToByte(currentColumn);
+
+    // close if the caret moved BEFORE the opening `(` (user backspaced past it or moved left).
+    if (cursorByte < anchorByte) {
+        m_CloseSignature();
+        return;
+    }
+
+    // walk anchor → cursor, tracking paren depth (0 = our level) and comma count at depth 0.
+    // string literals are skipped so a `,` or `(` inside `"hello, world"` doesn't disturb us.
+    int32_t depth = 0;
+    int32_t commaCount = 0;
+    bool inString = false;
+    char stringDelim = 0;
+    for (size_t i = anchorByte; i < cursorByte && i < lineText.size(); ++i) {
+        const char c = lineText[i];
+        if (inString) {
+            if (c == '\\' && i + 1 < lineText.size()) {
+                ++i;  // skip escaped char
+                continue;
+            }
+            if (c == stringDelim) {
+                inString = false;
+            }
+            continue;
+        }
+        if (c == '"' || c == '\'') {
+            inString = true;
+            stringDelim = c;
+            continue;
+        }
+        if (c == '(') {
+            ++depth;
+        } else if (c == ')') {
+            --depth;
+            if (depth < 0) {
+                // caret moved past the matching `)` — call is finished
+                m_CloseSignature();
+                return;
+            }
+        } else if (c == ',' && depth == 0) {
+            ++commaCount;
+        }
+    }
+
+    if (commaCount != m_SignatureArgIndex) {
+        m_SignatureArgIndex = commaCount;
+        m_Editor.UpdateSignatureCurrentArg(m_SignatureArgIndex);
+    }
+}
+
+void CodeEditor::m_HandleSignatureDismissKeys() {
+    // Escape is the only event that actively closes the tooltip — everything else (caret moves,
+    // mouse clicks, Backspace, paste) is reconciled by m_RecomputeSignatureState() each frame.
+    if (!m_Editor.IsSignatureTooltipOpen()) {
+        return;
+    }
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        m_CloseSignature();
+    }
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <res/fontIcons.h>
+#include <fonts/fontIcons.h>
 
 #define APP_TITLE "LogToGraph"
 #define APP_PROJECT_FILE_EXT "ltg"
@@ -14,21 +14,6 @@
 #include <ezlibs/ezTools.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
 #include <ezlibs/ezCnt.hpp>
-
-#define declareMember(type, var, def)   \
-private:                                \
-    type m_##var = def;                 \
-                                        \
-public:                                 \
-    void set##var(const type& v##var) { \
-        m_##var = v##var;               \
-    }                                   \
-    type& get##var##Ref() {             \
-        return m_##var;                 \
-    }                                   \
-    const type& get##var() const {      \
-        return m_##var;                 \
-    }
 
 typedef const char* ImGuiLabel;
 

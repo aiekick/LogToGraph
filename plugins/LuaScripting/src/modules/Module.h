@@ -59,6 +59,7 @@ public:
     void setRowCount(int32_t vRowCount) final;
 
     void getCompletionEntries(const std::string& aTarget, std::vector<Ltg::CompletionEntry>& aoEntries) final;
+    void getSignatureInfo(const std::string& aTarget, const std::string& aFunctionName, Ltg::SignatureInfo& aoSignature) final;
 
     // IScriptDebugger — driven by the host
     void enableDebug(Ltg::IScriptDebugHost* apHost) final;

@@ -36,8 +36,9 @@
 #include <systems/AppSettings.h>
 
 // we include the cpp just for embedded fonts
-#include <res/fontIcons.cpp>
-#include <res/Roboto_Medium.cpp>
+#include <fonts/fontIcons.cpp>
+#include <fonts/Roboto_Medium.cpp>
+#include <fonts/DejaVuSansMono-Bold.h>
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -244,9 +245,15 @@ void MainBackend::m_MainLoop() {
         {
             // idle wait — runtime toggle + timeout from AppSettings (cf. SettingsDialog "app/general").
             // gated by IsJoinable so the threading progress bar keeps animating during analyse.
-            if (AppSettings::ref()->isWaitEventsEnabled() && !ScriptingEngine::ref()->IsJoinable()) {
+            const bool waitEventsActive = AppSettings::ref()->isWaitEventsEnabled() && !ScriptingEngine::ref()->IsJoinable();
+            if (waitEventsActive) {
                 glfwWaitEventsTimeout(AppSettings::ref()->getWaitEventsTimeoutSec());
             }
+            // disable text-caret blink when frames are gated by wait-events: there isn't a steady
+            // frame stream to animate the blink timer with, so the caret would freeze in whatever
+            // half of the cycle it last landed (looks like a bug). With blink off, the caret stays
+            // fixed visible — still hidden by TextEditor when the editor loses focus.
+            ImGui::GetIO().ConfigInputTextCursorBlink = !waitEventsActive;
             IAGPNewFrame("GPU Frame", "GPU Frame");  // a main Zone is always needed
 
             ProjectFile::ref()->NewFrame();
@@ -418,6 +425,11 @@ bool MainBackend::m_InitImGui() {
             icons_config.MergeMode = true;
             icons_config.PixelSnapH = true;
             if (ImGui::GetIO().Fonts->AddFontFromMemoryCompressedBase85TTF(FONT_ICON_BUFFER_NAME, 15.0f, &icons_config, icons_ranges) == nullptr) {
+                assert(0);  // failed to load font
+            }
+        }
+        {  // dev font
+            if (ImGui::GetIO().Fonts->AddFontFromMemoryCompressedBase85TTF(DVSMB_compressed_data_base85, 15.0f) == nullptr) {
                 assert(0);  // failed to load font
             }
         }

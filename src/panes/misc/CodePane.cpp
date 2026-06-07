@@ -7,7 +7,7 @@
 #include <ezlibs/ezLog.hpp>
 #include <ezlibs/ezFile.hpp>
 
-#include <res/fontIcons.h>
+#include <fonts/fontIcons.h>
 #include <models/debug/ScriptDebugger.h>
 #include <models/script/ScriptingEngine.h>
 #include <project/ProjectFile.h>

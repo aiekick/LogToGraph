@@ -118,6 +118,10 @@ public:
     // autocompletion gateway — forwards to the selected scripting module's getCompletionEntries.
     // returns whatever the plugin introspected from its live state for `aTarget` (e.g. "ltg", "math").
     void GetCompletionEntries(const std::string& aTarget, std::vector<Ltg::CompletionEntry>& aoEntries);
+    // signature-help gateway — forwards to the selected scripting module's getSignatureInfo.
+    // returns the parameter names for `aTarget:aFunctionName` (or `aTarget.aFunctionName`, or just
+    // `aFunctionName` when aTarget is empty). aoSignature stays empty when the call is unknown.
+    void GetSignatureInfo(const std::string& aTarget, const std::string& aFunctionName, Ltg::SignatureInfo& aoSignature);
 
     bool drawMenu();
     bool isValidScriptingSelected() const;

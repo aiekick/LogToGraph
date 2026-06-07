@@ -1,7 +1,7 @@
 #pragma once
 
 #include <imguipack.h>
-#include <apis/LtgPluginApi.h>  // brings Ltg::CompletionEntry
+#include <apis/LtgPluginApi.h>  // brings Ltg::CompletionEntry + Ltg::SignatureInfo
 
 #include <cstdint>
 #include <map>
@@ -56,6 +56,16 @@ private:
     int32_t m_CompletionAnchorLine = 0;
     int32_t m_CompletionAnchorColumn = 0;
 
+    // signature-help state — the tooltip itself (rendering, anchor capture) lives inside TextEditor.
+    // the host owns the byte-scan reconciliation that derives the current arg index from the
+    // text between the opening `(` and the caret. closed by host on Escape, on the caret moving
+    // before the anchor, on a different line, or on the matching `)` being passed.
+    std::string m_SignatureTarget;
+    std::string m_SignatureFunctionName;
+    int32_t m_SignatureAnchorLine = 0;     // line of the `(` that opened the tooltip
+    int32_t m_SignatureAnchorColumn = 0;   // visual col RIGHT AFTER the `(` — where the scan starts
+    int32_t m_SignatureArgIndex = 0;       // cached, mirrors the last value pushed to TextEditor
+
 public:
     CodeEditor() = default;
     ~CodeEditor() = default;
@@ -102,4 +112,11 @@ private:
     void m_OnCompletionAccepted(size_t aSelectedIndex);    // TextEditor → host: user picked an entry
     void m_OnCompletionCancelled();                        // TextEditor → host: Escape or click outside
     static bool m_IsIdentChar(ImWchar aChar);
+
+    // signature-help plumbing
+    bool m_ExtractCallTargetAt(int aLine, int aOpeningParenColumn, std::string& aoTarget, std::string& aoFunctionName);
+    void m_OpenSignature(const std::string& aTarget, const std::string& aFunctionName);
+    void m_CloseSignature();
+    void m_RecomputeSignatureState();     // called every frame from OnImGui — re-scans the line to derive depth + arg index
+    void m_HandleSignatureDismissKeys();  // Escape only — caret-movement / click / Backspace are handled by m_RecomputeSignatureState
 };
