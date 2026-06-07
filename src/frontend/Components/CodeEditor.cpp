@@ -395,6 +395,14 @@ void CodeEditor::SetBreakpointInteractionEnabled(bool aEnabled) {
     m_BreakpointInteractionEnabled = aEnabled;
 }
 
+void CodeEditor::SetPendingFontScale(float aScale) {
+    m_Editor.SetPendingFontScale(aScale);
+}
+
+float CodeEditor::GetCurrentFontScale() const {
+    return m_Editor.GetCurrentFontScale();
+}
+
 void CodeEditor::m_RebuildMarkers() {
     m_Editor.ClearMarkers();
     // breakpoints are drawn by the line decorator (a red dot); markers carry errors + current line

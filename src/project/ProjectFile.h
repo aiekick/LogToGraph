@@ -76,6 +76,7 @@ public:  // to save
     bool m_AutoResizeLogColumns = false;
     bool m_AutoResizeLog2ndColumns = false;
     float m_HoveredListChangedTextRectThickNess = 2.0f;
+    float m_ProjectScriptFontScale = 1.0f;  // interactive Ctrl+MouseWheel zoom of the project-script code editor, persisted in the project XML
 
 private:  // dont save
     bool m_IsLoaded = false;

@@ -135,6 +135,16 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
                             }
                             sheet.codeEditor.SetBreakpointInteractionEnabled(isDebugArmed);
                             sheet.codeEditor.OnImGui();
+                            // capture interactive Ctrl+MouseWheel zoom on the project-script sheet
+                            // and persist it via ProjectFile. Only the project-script sheet — external
+                            // file sheets are transient and not persisted in the project XML.
+                            if (sheet.filepathName == sc_PROJECT_SCRIPT_ID) {
+                                const float liveScale = sheet.codeEditor.GetCurrentFontScale();
+                                if (liveScale > 0.0f && std::fabs(liveScale - ProjectFile::ref()->m_ProjectScriptFontScale) > 0.001f) {
+                                    ProjectFile::ref()->m_ProjectScriptFontScale = liveScale;
+                                    ProjectFile::ref()->SetProjectChange(true);
+                                }
+                            }
                             ImGui::EndTabItem();
                         }
                         ImGui::PopID();
@@ -379,6 +389,10 @@ void CodePane::OpenScript(const std::string& aCode) {
         scriptSheetPtr = &sheet;
     }
     scriptSheetPtr->codeEditor.SetCode(aCode, TextEditor::Language::Lua());
+    // restore the persisted zoom — one-shot pending value that the editor applies on its next
+    // Render after BeginChild. After that, ImGui's interactive Ctrl+MouseWheel takes over and the
+    // drawPanes loop above captures any change back into ProjectFile.
+    scriptSheetPtr->codeEditor.SetPendingFontScale(ProjectFile::ref()->m_ProjectScriptFontScale);
 }
 
 std::string CodePane::GetScriptCode() {

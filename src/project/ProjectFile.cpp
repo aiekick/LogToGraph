@@ -313,6 +313,7 @@ ez::xml::Nodes ProjectFile::getXmlNodes(const std::string& /*vUserDatas*/) {
     node.addChild("auto_resize_columns_log_view").setContent(m_AutoResizeLogColumns);
     node.addChild("auto_resize_columns_log_2nd_view").setContent(m_AutoResizeLog2ndColumns);
     node.addChild("hovered_list_changed_text_rect_thickness").setContent(m_HoveredListChangedTextRectThickNess);
+    node.addChild("project_script_font_scale").setContent(m_ProjectScriptFontScale);
     node.addChild("last_log_file_path").setContent(m_LastLogFilePath);
     node.addChild("script_file").setContent(m_ScriptFilePathName);
     auto& childNode = node.addChild("log_files");
@@ -398,6 +399,9 @@ bool ProjectFile::setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Nod
             m_AutoResizeLog2ndColumns = ez::dvariant(strValue).GetB();
         } else if (strName == "hovered_list_changed_text_rect_thickness") {
             m_HoveredListChangedTextRectThickNess = ez::fvariant(strValue).GetF();
+        } else if (strName == "project_script_font_scale") {
+            m_ProjectScriptFontScale = ez::fvariant(strValue).GetF();
+            if (m_ProjectScriptFontScale <= 0.0f) m_ProjectScriptFontScale = 1.0f;
         } else if (strName == "last_log_file_path") {
             m_LastLogFilePath = strValue;
         } else if (strName == "script_file") {
