@@ -377,19 +377,23 @@ void Module::setProjectScriptCode(const std::string& aCode) {
     lua_State* L = m_completionLuaPtr->lua_state();
     const int topBefore = lua_gettop(L);
 
-    // 1) wipe globals introduced by the previous push, so removed top-level definitions stop
-    //    appearing in autocomplete. bindings (math, string, ltg, ...) live in _G too but are
-    //    NOT in m_completionUserGlobals so they are preserved.
-    for (const auto& key : m_completionUserGlobals) {
-        lua_pushnil(L);
-        lua_setglobal(L, key.c_str());
-    }
-    m_completionUserGlobals.clear();
-
+    // empty code path = explicit clear (e.g. project closed). Wipe + return.
     if (aCode.empty()) {
+        for (const auto& key : m_completionUserGlobals) {
+            lua_pushnil(L);
+            lua_setglobal(L, key.c_str());
+        }
+        m_completionUserGlobals.clear();
         lua_settop(L, topBefore);
         return;
     }
+
+    // NOTE on wipe order — the wipe of previous globals is DEFERRED until after the new chunk has
+    // both parsed and executed successfully (see step 5). Wiping eagerly here would break the
+    // user's mid-edit experience: typing inside a function body briefly invalidates the syntax,
+    // loadbuffer fails, we'd bail with previous globals already nil'd, and the autocomplete
+    // popup typed during that gap finds no targets. The current order keeps `_G` in its last
+    // good state across syntactically-invalid edits.
 
     // 2) build a fresh sandbox table holding only side-effect-free pointers. ltg is replaced
     //    by a metatable-driven stub that returns a no-op closure for any key access, so
@@ -455,9 +459,16 @@ void Module::setProjectScriptCode(const std::string& aCode) {
         lua_pop(L, 1);  // pop error message
     }
 
-    // 5) copy sandbox keys into _G, skipping pre-populated bindings. Track names so the next
-    //    push can wipe them. Functions, tables, numbers, strings — all welcome; the completion
-    //    iterator filters by type at query time.
+    // 5) NOW wipe previous user globals (deferred from step 1) and copy the fresh sandbox keys.
+    //    pcall succeeded -> the chunk is at least syntactically valid; partial state on a
+    //    mid-chunk runtime error is still better than the previous version, so we commit either
+    //    way as long as loadbuffer + setfenv + pcall didn't bail us out above.
+    for (const auto& key : m_completionUserGlobals) {
+        lua_pushnil(L);
+        lua_setglobal(L, key.c_str());
+    }
+    m_completionUserGlobals.clear();
+
     lua_pushnil(L);
     while (lua_next(L, sandboxIdx) != 0) {
         if (lua_type(L, -2) == LUA_TSTRING) {
