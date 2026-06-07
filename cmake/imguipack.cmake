@@ -18,7 +18,7 @@ set(USE_IM_GUIZMO OFF CACHE BOOL "" FORCE)
 set(USE_IMGUI_MARKDOW OFF CACHE BOOL "" FORCE)
 set(USE_IM_GRADIENT_HDR OFF CACHE BOOL "" FORCE)
 
-add_subdirectory(${IMGUIPACK_SOURCE_DIR})
+add_subdirectory(${IMGUIPACK_SOURCE_DIR} EXCLUDE_FROM_ALL)
 
 set_target_properties(imguipack PROPERTIES FOLDER 3rdparty)
 set_target_properties(freetype PROPERTIES FOLDER 3rdparty)

@@ -19,6 +19,7 @@ set(GLFW_BUILD_X11 ${GLFW_BUILD_X11} CACHE BOOL "" FORCE)
 FetchContent_Declare(glfw
     URL ${CMAKE_SOURCE_DIR}/3rdparty/libs/glfw-3.4.tar.gz
 	DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(glfw)
 set_target_properties(glfw PROPERTIES FOLDER 3rdparty)

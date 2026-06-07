@@ -3,6 +3,7 @@
 FetchContent_Declare(glad
     URL ${CMAKE_SOURCE_DIR}/3rdparty/libs/glad.tar.gz
 	DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(glad)
 

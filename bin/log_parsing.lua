@@ -1,24 +1,26 @@
--- logInfo(infos_string) 					 -- will log a message with level INFOS in the in app console 
--- logWarning(warning_string) 				 -- will log a message with level WARNING in app console 
--- logError(error_string) 					 -- will log a message with level ERROR in app console 
+-- UserDatas ltg (LogToGraph valid only from LogToGraph)
+-- ltg:logInfo(infos_string) : will log the message in the in app console
+-- ltg:logWarning(infos_string) : will log the message in the in app console
+-- ltg:logError(infos_string) : will log the message in the in app console
+-- ltg:logDebug(infos_string) : will log the message in the in app console
+-- ltg:addSignalTag(date, r, g, b, a, name, help) : add a signal tag with date, color a name (color is linear [0:1]. the help will be displayed when mouse over the tag
+-- ltg:addSignalStatus(signal_category, signal_name, signal_epoch_time, signal_status) : will add a signal string status
+-- ltg:addSignalValue(signal_category, signal_name, signal_epoch_time, signal_value, description_string_optional) : will add a signal numerical value
+-- ltg:addSignalStartZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal start zone
+-- ltg:addSignalEndZone(signal_category, signal_name, signal_epoch_time, signal_string) : will add a signal end zone
+-- get/set epoch time from datetime in format "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS" with hour offset in second param
+-- double ltg:stringToEpoch("2023-01-16 15:24:26,464", 0)
+-- string ltg:epochToString(18798798465465.546546, 0)
+-- regex (boost::regex engine, PCRE-like syntax — supports |, {m,n}, lookahead, etc.):
+-- local re = ltg:regex(pattern)  -- compile once at script init, reuse on every row
+-- re:test(input)            -> bool
+-- re:match(input)           -> captures (multiple values), or nil
+-- re:find(input)            -> start, end (1-based), or nil
+-- re:gsub(input, repl)      -> result, count (mirrors string.gsub)
+-- re:gmatch(input)          -> iterator (for use in `for cap in re:gmatch(s) do ... end`)
 
--- getRowIndex()						     -- return the row number of the file
--- getRowCount()							 -- return the number of rows of the file
-
-
--- stringToEpoch(string epoch, double hour_offset) -- epoch_sring must be in format '%Y-%m-%d %H:%M:%S'
--- epochToString(Epoch epoch_time, double hour_offset)
-
--- add a signal tag with date, color a name. the help will be displayed when mouse over the tag
--- addSignalTag(Epoch date, double r, double g, double b, double a, string name, string help)
-
--- addSignalStatus(string signal_category, string signal_name, Epoch signal_epoch_time, string signal_status)
--- addSignalValue(string signal_category, string signal_name, Epoch signal_epoch_time, double signal_value)
--- addSignalStartZone(string signal_category, string signal_name, Epoch signal_epoch_time, string signal_string)
--- addSignalEndZone(string signal_category, string signal_name, Epoch signal_epoch_time, string signal_string)
-
-function startFile()
-	ltg:logInfo(" --- Start of file parsing ---");
+function startFile(filepath)
+	ltg:logInfo(" --- Start parsing of file '" .. filepath .. "'");
 end
 
 function parse(buffer)
@@ -28,6 +30,6 @@ function parse(buffer)
 	end
 end
 
-function endFile()
-	ltg:logInfo(" --- End of file parsing ---");
+function endFile(filepath)
+	ltg:logInfo(" --- End parsing of file '" .. filepath .. "'");
 end
