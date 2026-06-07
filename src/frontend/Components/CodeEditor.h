@@ -83,6 +83,7 @@ public:
     std::string GetCode() const;
     bool IsModified() const;  // true if edited since the last SetCode / MarkSaved
     void MarkSaved();
+    size_t GetUndoIndex() const;  // monotonic edit counter — used to drive completion refresh on edit
 
     void ClearErrorMarkers();
     void AddErrorMarker(const size_t& vErrorLine, const std::string& vErrorMsg);

@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <ezlibs/ezClass.hpp>
 #include <ezlibs/ezSingleton.hpp>
-#include <systems/ISettings.h>
+#include <settings/ISettings.h>
 
 // App-level settings exposed via SettingsDialog. Persisted to the app's config.xml
 // (APP scope), not the .ltg project. First member: the glfwWaitEventsTimeout used by

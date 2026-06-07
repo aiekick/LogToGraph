@@ -8,6 +8,7 @@
 #include <atomic>
 #include <cstdint>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace sol {
 class state;
@@ -51,13 +52,14 @@ public:
     void unload() final;
     bool compileScript(const Ltg::ScriptFilePathName& vFilePathName, Ltg::ErrorContainer& vOutErrors) final;
     bool compileScriptCode(const std::string& aCode, Ltg::ErrorContainer& vOutErrors) final;
-    bool callScriptStart(Ltg::ErrorContainer& vOutErrors) final;
+    bool callScriptStart(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorContainer& vOutErrors) final;
     bool callScriptExec(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorContainer& vErrors) final;
-    bool callScriptEnd(Ltg::ErrorContainer& vOutErrors) final;
+    bool callScriptEnd(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorContainer& vOutErrors) final;
 
     void setRowIndex(int32_t vRowIndex) final;
     void setRowCount(int32_t vRowCount) final;
 
+    void setProjectScriptCode(const std::string& aCode) final;
     void getCompletionEntries(const std::string& aTarget, std::vector<Ltg::CompletionEntry>& aoEntries) final;
     void getSignatureInfo(const std::string& aTarget, const std::string& aFunctionName, Ltg::SignatureInfo& aoSignature) final;
 
@@ -81,4 +83,8 @@ private:
 
     void m_ensureCompletionState();  // lazy init of m_completionLuaPtr on first getCompletionEntries call
     static void m_iterateLuaTable(lua_State* apLua, int aTableIndex, std::vector<Ltg::CompletionEntry>& aoEntries);
+
+    // keys we currently expose as user globals in the completion state's _G — wiped before each
+    // setProjectScriptCode refresh so removed top-level definitions stop appearing in autocomplete.
+    std::unordered_set<std::string> m_completionUserGlobals;
 };

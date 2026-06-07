@@ -115,6 +115,11 @@ public:
     int64_t GetErrorsRevision() const;  // atomic acquire load; no mutex
     std::vector<Ltg::ScriptingError> GetLastRunErrors() const;  // mutex-locked copy by value (worker mutates)
 
+    // pushes the in-memory project script into the scripting module's completion state so user
+    // globals (top-level `function foo(...)`, `helpers = {...}`, ...) surface in autocomplete.
+    // safe to call frequently; the host calls it on every edit transaction of the project-script
+    // sheet (and once on OpenScript). orthogonal to SetScriptCode (which feeds the analysis run).
+    void SetProjectScriptCode(const std::string& aCode);
     // autocompletion gateway — forwards to the selected scripting module's getCompletionEntries.
     // returns whatever the plugin introspected from its live state for `aTarget` (e.g. "ltg", "math").
     void GetCompletionEntries(const std::string& aTarget, std::vector<Ltg::CompletionEntry>& aoEntries);

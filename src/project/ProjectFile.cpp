@@ -40,7 +40,7 @@
 
 #include <panes/graph/GraphPane.h>
 
-#include <systems/SettingsDialog.h>
+#include <settings/SettingsDialog.h>
 
 #include <ezlibs/ezFile.hpp>
 

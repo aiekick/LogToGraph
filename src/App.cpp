@@ -8,8 +8,9 @@
 #include <frontend/MainFrontend.h>
 #include <project/ProjectFile.h>
 #include <systems/PluginManager.h>
-#include <systems/SettingsDialog.h>
-#include <systems/AppSettings.h>
+#include <settings/SettingsDialog.h>
+#include <settings/AppSettings.h>
+#include <settings/DebugSettings.h>
 #include <systems/TranslationHelper.h>
 #include <models/log/LogEngine.h>
 #include <models/script/ScriptingEngine.h>
@@ -100,6 +101,7 @@ void App::m_InitSingletons() {
     TranslationHelper::initSingleton();
     // app-level settings — shared_ptr because SettingsDialog stores it as weak_ptr<ISettings>
     AppSettings::initSingleton();
+    DebugSettings::initSingleton();
     // models (shared_ptr based)
     ProjectFile::initSingleton();
     LogEngine::initSingleton();
@@ -164,6 +166,7 @@ void App::m_UnitSingletons() {
     LogEngine::unitSingleton();
     ProjectFile::unitSingleton();
     // app-level settings
+    DebugSettings::unitSingleton();
     AppSettings::unitSingleton();
     // managers
     TranslationHelper::unitSingleton();

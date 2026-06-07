@@ -1,6 +1,7 @@
 #include "CodeEditor.h"
 #include <ezlibs/ezTools.hpp>
 #include <models/script/ScriptingEngine.h>
+#include <settings/DebugSettings.h>
 
 #include <filesystem>
 #include <fstream>
@@ -264,6 +265,10 @@ bool CodeEditor::IsModified() const {
     return m_Editor.GetUndoIndex() != static_cast<size_t>(m_UndoIndexInDisk);
 }
 
+size_t CodeEditor::GetUndoIndex() const {
+    return m_Editor.GetUndoIndex();
+}
+
 void CodeEditor::MarkSaved() {
     m_UndoIndexInDisk = static_cast<int>(m_Editor.GetUndoIndex());
 }
@@ -440,11 +445,11 @@ void CodeEditor::m_OnCharacterTyped(ImWchar aCharacter, int aLine, int aColumn) 
         m_Editor.CloseCompletionPopup();
         m_OnCompletionCancelled();
         // fall through — a non-ident char may also be a `(` that triggers the signature
-    } else if (aCharacter == '.' || aCharacter == ':') {
+    } else if ((aCharacter == '.' || aCharacter == ':') && DebugSettings::ref()->isAutoCompletionEnabled()) {
         // === completion trigger: `.` or `:` after a known catalog key ======================
         // `aColumn` is the cursor RIGHT AFTER the trigger char. The identifier we want is to
         // the LEFT of the trigger, so we look one column further back (the trigger itself
-        // is at column - 1).
+        // is at column - 1). gated by DebugSettings — when off, no popup ever opens.
         const std::string target = m_ExtractTokenAt(aLine, aColumn - 2);
         if (target.empty()) {
             return;
@@ -466,8 +471,8 @@ void CodeEditor::m_OnCharacterTyped(ImWchar aCharacter, int aLine, int aColumn) 
     // === signature trigger: `(` when no tooltip is currently open ==========================
     // we skip the trigger when the signature is already open: the first block above already
     // bumped the paren depth (nested call), and a nested signature tooltip would compete for
-    // screen space with no clean UI to disambiguate.
-    if (aCharacter == '(' && !m_Editor.IsSignatureTooltipOpen()) {
+    // screen space with no clean UI to disambiguate. gated by DebugSettings.
+    if (aCharacter == '(' && !m_Editor.IsSignatureTooltipOpen() && DebugSettings::ref()->isSignatureHelpEnabled()) {
         std::string target;
         std::string funcName;
         if (m_ExtractCallTargetAt(aLine, aColumn - 1, target, funcName)) {

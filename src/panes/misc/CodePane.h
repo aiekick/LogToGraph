@@ -43,6 +43,13 @@ private:
     std::string m_LastHoverEvalToken;
     int32_t m_HoverEvalId = (1 << 30);
     double m_MouseStillSince = 0.0;  // ImGui::GetTime() when the mouse last stopped moving — gates the hover tooltip
+    // last undo index pushed to the scripting engine's completion state — refresh only when the
+    // editor's undo index advances (i.e. an actual edit happened). -1 forces a push on first frame.
+    int64_t m_LastCompletionPushUndoIndex = -1;
+    // tracks the DebugSettings::isErrorMarkersEnabled() toggle so the editor reacts in-place when
+    // the user flips it (off -> clear all markers; on -> re-apply from m_ErrorsCache without waiting
+    // for the next ScriptingEngine errors-revision bump).
+    bool m_ErrorMarkersEnabledLastSeen = true;
 
 public:
     bool init() final;

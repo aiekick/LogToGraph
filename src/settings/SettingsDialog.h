@@ -3,7 +3,7 @@
 #include <ezlibs/ezClass.hpp>
 #include <ezlibs/ezSingleton.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
-#include <systems/ISettings.h>
+#include <settings/ISettings.h>
 
 class SettingsDialog : public ez::xml::Config {
     DISABLE_CONSTRUCTORS(SettingsDialog)
@@ -11,7 +11,7 @@ class SettingsDialog : public ez::xml::Config {
     IMPLEMENT_SINGLETON(SettingsDialog)
 
 public:
-    std::map<Ltg::SettingsCategoryPath, Ltg::ISettingsWeak> m_SettingsPerCategoryPath;
+    std::vector<Ltg::ISettingsWeak> m_Settings;
     bool m_ShowDialog = false;
     Ltg::ISettingsWeak m_SelectedSettings;  // cached on left-pane click; content pane just locks + draws
 

@@ -28,7 +28,7 @@ limitations under the License.
 // no imguipack/glad/glfw. The host owns all UI. The only host objects a plugin borrows are
 // forwarded by pointer/interface at instantiation (ez::Log via init(), IDatasModel via load(),
 // IScriptDebugHost via enableDebug()). This is what lets LogToGraph build fully static. The host
-// settings-dialog interface (ISettings) is NOT here anymore — it moved to src/systems/ISettings.h
+// settings-dialog interface (ISettings) is NOT here anymore — it moved to src/settings/ISettings.h
 // since plugins no longer provide settings.
 #include "IScriptDebugger.h"
 
@@ -142,6 +142,8 @@ typedef std::shared_ptr<IDatasModel> IDatasModelPtr;
 typedef std::weak_ptr<IDatasModel> IDatasModelWeak;
 
 struct ScriptingDatas {
+    std::string filename;
+    std::string filepath;
     std::string buffer;
 };
 typedef std::string ScriptingModuleName;
@@ -160,16 +162,23 @@ struct ScriptingModule : public PluginModule, public IScriptDebugger {
         (void)aOutErrors;
         return false;
     }
-    // will call the start function from script and return errors
-    virtual bool callScriptStart(ErrorContainer& vOutErrors) = 0;
+    // will call the start function from script with a filepath and return errors
+    virtual bool callScriptStart(const ScriptingDatas& vOutDatas, ErrorContainer& vOutErrors) = 0;
     // will call the exec function from script with a buffer and return errors
     virtual bool callScriptExec(const ScriptingDatas& vOutDatas, ErrorContainer& vErrors) = 0;
-    // will call the end function from script and return errors
-    virtual bool callScriptEnd(ErrorContainer& vOutErrors) = 0;
+    // will call the end function from script with a filepath and return errors
+    virtual bool callScriptEnd(const ScriptingDatas& vOutDatas, ErrorContainer& vOutErrors) = 0;
     // will set the row index
     virtual void setRowIndex(int32_t vRowIndex) = 0;
     // will set the row count
     virtual void setRowCount(int32_t vRowCount) = 0;
+    // pushes the in-memory project script source into the plugin's completion state so user-defined
+    // globals (top-level `function foo(...)`, `helpers = {...}`, etc.) surface in autocomplete next
+    // to the stdlib + `ltg` bindings. default no-op so non-Lua plugins compile unchanged. safe to
+    // call frequently (host calls it on every edit transaction): the implementation should be cheap
+    // and side-effect-free regardless of what the user code contains (sandbox the execution so a
+    // mid-edit script can't open files / spam logs / etc.).
+    virtual void setProjectScriptCode(const std::string& /*aCode*/) {}
     // introspects the plugin's live scripting state and returns the members of `aTarget` (a global
     // table or sol2 usertype). default no-op so non-Lua plugins compile unchanged. consumed by the
     // host's autocompletion popup; called from the UI thread, fast (one Lua table walk).

@@ -52,7 +52,7 @@ limitations under the License.
 
 #include <ezlibs/ezFile.hpp>
 
-#include <systems/SettingsDialog.h>
+#include <settings/SettingsDialog.h>
 
 #include <systems/TranslationHelper.h>
 
@@ -233,7 +233,7 @@ void MainFrontend::Display(const uint32_t& vCurrentFrame, const ImVec2& vPos, co
 }
 
 bool MainFrontend::DrawDialogsAndPopups(const uint32_t& vCurrentFrame, const ImRect& vMaxRect, ImGuiContext* vContextPtr, void* vUserDatas) {
-    m_ActionSystem.RunActions();
+    m_ActionSystem.executeFirstConditionalAction();
     ImLayout::ref().drawDialogsAndPopups(vMaxRect, vUserDatas);
     if (m_ShowImGui) {
         ImGui::ShowDemoWindow(&m_ShowImGui);
@@ -560,9 +560,9 @@ void MainFrontend::Action_Menu_NewProject() {
     -	saved :
         -	add action : open dialog for new project file name
     */
-    m_ActionSystem.Clear();
+    m_ActionSystem.clear();
     Action_OpenUnSavedDialog_IfNeeded();
-    m_ActionSystem.Add([this]() {
+    m_ActionSystem.pushBackConditonalAction([this]() {
         CloseUnSavedDialog();
         IGFD::FileDialogConfig config;
         config.countSelectionMax = 1;
@@ -570,7 +570,7 @@ void MainFrontend::Action_Menu_NewProject() {
         ImGuiFileDialog::ref().OpenDialog("NewProjectDlg", "New Project File", PROJECT_EXT, config);
         return true;
     });
-    m_ActionSystem.Add([this]() { return Display_NewProjectDialog(); });
+    m_ActionSystem.pushBackConditonalAction([this]() { return Display_NewProjectDialog(); });
 }
 
 void MainFrontend::Action_Menu_OpenProject() {
@@ -582,9 +582,9 @@ void MainFrontend::Action_Menu_OpenProject() {
     -	saved :
         -	add action : open project
     */
-    m_ActionSystem.Clear();
+    m_ActionSystem.clear();
     Action_OpenUnSavedDialog_IfNeeded();
-    m_ActionSystem.Add([this]() {
+    m_ActionSystem.pushBackConditonalAction([this]() {
         CloseUnSavedDialog();
         IGFD::FileDialogConfig config;
         config.countSelectionMax = 1;
@@ -592,7 +592,7 @@ void MainFrontend::Action_Menu_OpenProject() {
         ImGuiFileDialog::ref().OpenDialog("OpenProjectDlg", "Open Project File", PROJECT_EXT, config);
         return true;
     });
-    m_ActionSystem.Add([this]() { return Display_OpenProjectDialog(); });
+    m_ActionSystem.pushBackConditonalAction([this]() { return Display_OpenProjectDialog(); });
 }
 
 void MainFrontend::Action_Menu_ReOpenProject() {
@@ -604,9 +604,9 @@ void MainFrontend::Action_Menu_ReOpenProject() {
     -	saved :
         -	add action : re open project
     */
-    m_ActionSystem.Clear();
+    m_ActionSystem.clear();
     Action_OpenUnSavedDialog_IfNeeded();
-    m_ActionSystem.Add([]() {
+    m_ActionSystem.pushBackConditonalAction([]() {
         MainBackend::ref().NeedToLoadProject(ProjectFile::ref()->GetProjectFilepathName());
         return true;
     });
@@ -620,8 +620,8 @@ void MainFrontend::Action_Menu_SaveProject() {
     -	saved in a file beofre :
         -	add action : save project
     */
-    m_ActionSystem.Clear();
-    m_ActionSystem.Add([this]() {
+    m_ActionSystem.clear();
+    m_ActionSystem.pushBackConditonalAction([this]() {
         if (!MainBackend::ref().SaveProject()) {
             CloseUnSavedDialog();
             IGFD::FileDialogConfig config;
@@ -631,7 +631,7 @@ void MainFrontend::Action_Menu_SaveProject() {
         }
         return true;
     });
-    m_ActionSystem.Add([this]() { return Display_SaveProjectDialog(); });
+    m_ActionSystem.pushBackConditonalAction([this]() { return Display_SaveProjectDialog(); });
 }
 
 void MainFrontend::Action_Menu_SaveAsProject() {
@@ -639,8 +639,8 @@ void MainFrontend::Action_Menu_SaveAsProject() {
     save as project :
     -	add action : save as project
     */
-    m_ActionSystem.Clear();
-    m_ActionSystem.Add([this]() {
+    m_ActionSystem.clear();
+    m_ActionSystem.pushBackConditonalAction([this]() {
         CloseUnSavedDialog();
         IGFD::FileDialogConfig config;
         config.countSelectionMax = 1;
@@ -648,7 +648,7 @@ void MainFrontend::Action_Menu_SaveAsProject() {
         ImGuiFileDialog::ref().OpenDialog("SaveProjectDlg", "Save Project File", PROJECT_EXT, config);
         return true;
     });
-    m_ActionSystem.Add([this]() { return Display_SaveProjectDialog(); });
+    m_ActionSystem.pushBackConditonalAction([this]() { return Display_SaveProjectDialog(); });
 }
 
 void MainFrontend::Action_Menu_CloseProject() {
@@ -660,9 +660,9 @@ void MainFrontend::Action_Menu_CloseProject() {
     -	saved :
         -	add action : Close project
     */
-    m_ActionSystem.Clear();
+    m_ActionSystem.clear();
     Action_OpenUnSavedDialog_IfNeeded();
-    m_ActionSystem.Add([]() {
+    m_ActionSystem.pushBackConditonalAction([]() {
         MainBackend::ref().NeedToCloseProject();
         return true;
     });
@@ -680,9 +680,9 @@ void MainFrontend::Action_Window_CloseApp() {
         -	add action : Close app
     */
 
-    m_ActionSystem.Clear();
+    m_ActionSystem.clear();
     Action_OpenUnSavedDialog_IfNeeded();
-    m_ActionSystem.Add([]() {
+    m_ActionSystem.pushBackConditonalAction([]() {
         MainBackend::ref().CloseApp();
         return true;
     });
@@ -691,7 +691,7 @@ void MainFrontend::Action_Window_CloseApp() {
 void MainFrontend::Action_OpenUnSavedDialog_IfNeeded() {
     if (ProjectFile::ref()->IsProjectLoaded() && ProjectFile::ref()->IsThereAnyProjectChanges()) {
         OpenUnSavedDialog();
-        m_ActionSystem.Add([this]() { return ShowUnSavedDialog(); });
+        m_ActionSystem.pushBackConditonalAction([this]() { return ShowUnSavedDialog(); });
     }
 }
 
@@ -701,15 +701,15 @@ void MainFrontend::Action_Cancel() {
         -	clear actions
     */
     CloseUnSavedDialog();
-    m_ActionSystem.Clear();
+    m_ActionSystem.clear();
     MainBackend::ref().NeedToCloseApp(false);
 }
 
 bool MainFrontend::Action_UnSavedDialog_SaveProject() {
     bool res = MainBackend::ref().SaveProject();
     if (!res) {
-        m_ActionSystem.Insert([this]() { return Display_SaveProjectDialog(); });
-        m_ActionSystem.Insert([this]() {
+        m_ActionSystem.pushFrontConditonalAction([this]() { return Display_SaveProjectDialog(); });
+        m_ActionSystem.pushFrontConditonalAction([this]() {
             CloseUnSavedDialog();
             IGFD::FileDialogConfig config;
             config.countSelectionMax = 1;
@@ -723,8 +723,8 @@ bool MainFrontend::Action_UnSavedDialog_SaveProject() {
 }
 
 void MainFrontend::Action_UnSavedDialog_SaveAsProject() {
-    m_ActionSystem.Insert([this]() { return Display_SaveProjectDialog(); });
-    m_ActionSystem.Insert([this]() {
+    m_ActionSystem.pushFrontConditonalAction([this]() { return Display_SaveProjectDialog(); });
+    m_ActionSystem.pushFrontConditonalAction([this]() {
         CloseUnSavedDialog();
         IGFD::FileDialogConfig config;
         config.countSelectionMax = 1;

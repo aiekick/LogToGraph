@@ -32,8 +32,8 @@
 
 #include <panes/misc/ConsolePane.h>
 
-#include <systems/SettingsDialog.h>
-#include <systems/AppSettings.h>
+#include <settings/SettingsDialog.h>
+#include <settings/AppSettings.h>
 
 // we include the cpp just for embedded fonts
 #include <fonts/fontIcons.cpp>

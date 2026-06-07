@@ -16,7 +16,8 @@
 #include <panes/debug/StackTreePane.h>
 #include <panes/debug/ScopePane.h>
 #include <panes/debug/WatcherPane.h>
-#include <systems/AppSettings.h>
+#include <settings/AppSettings.h>
+#include <settings/DebugSettings.h>
 
 #include <cmath>
 
@@ -42,6 +43,11 @@ void CodePane::Clear() {
     m_StateCache = Ltg::DebugState{};
     m_LastErrorsRevisionSeen = -1;
     m_ErrorsCache.clear();
+    m_LastCompletionPushUndoIndex = -1;
+    // wipe the plugin's completion state too — the previous project's user globals must not leak
+    // into the next project's autocomplete. empty code hits the plugin's reset path which clears
+    // the tracked user globals and leaves only the stdlib + ltg bindings.
+    ScriptingEngine::ref()->SetProjectScriptCode(std::string());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -60,6 +66,16 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
             else
                 flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar;
 #endif
+            // menu bar — Debug submenu mirrors DebugSettings (same fields as the SettingsDialog "Debug"
+            // section). always visible (even when no project is loaded) so the user can flip toggles
+            // before opening a project. compact MenuItem checkboxes share the bool* with the dialog.
+            if (ImGui::BeginMenuBar()) {
+                if (ImGui::BeginMenu("Debug")) {
+                    DebugSettings::ref()->drawMenuItems();
+                    ImGui::EndMenu();
+                }
+                ImGui::EndMenuBar();
+            }
             if (ProjectFile::ref()->IsProjectLoaded()) {
                 m_DrawDebugToolbar();
 
@@ -85,20 +101,43 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
 
                 // scripting errors — refreshed when ScriptingEngine bumps GetErrorsRevision(). on a bump,
                 // wipe all sheets' error markers then push the new ones to each matching sheet (route by err.file).
+                // user-gated by DebugSettings — when off, we still wipe (so a previously-shown marker disappears
+                // promptly) but skip the add step, so the editor stays clean across script runs.
                 const int64_t errorsRevision = ScriptingEngine::ref()->GetErrorsRevision();
+                const bool errorMarkersEnabled = DebugSettings::ref()->isErrorMarkersEnabled();
                 if (errorsRevision != m_LastErrorsRevisionSeen) {
                     m_ErrorsCache = ScriptingEngine::ref()->GetLastRunErrors();
                     m_LastErrorsRevisionSeen = errorsRevision;
                     for (auto& sheet : m_CodeSheets) {
                         sheet.codeEditor.ClearErrorMarkers();
                     }
-                    for (const auto& errorEntry : m_ErrorsCache) {
-                        for (auto& sheet : m_CodeSheets) {
-                            if (sheet.filepathName == errorEntry.file) {
-                                sheet.codeEditor.AddErrorMarker(errorEntry.line, errorEntry.message);
+                    if (errorMarkersEnabled) {
+                        for (const auto& errorEntry : m_ErrorsCache) {
+                            for (auto& sheet : m_CodeSheets) {
+                                if (sheet.filepathName == errorEntry.file) {
+                                    sheet.codeEditor.AddErrorMarker(errorEntry.line, errorEntry.message);
+                                }
                             }
                         }
                     }
+                }
+                // react in-place when the user toggles error markers without waiting for the next
+                // ScriptingEngine errors-revision bump: off -> wipe; on -> re-apply from cache.
+                if (errorMarkersEnabled != m_ErrorMarkersEnabledLastSeen) {
+                    if (!errorMarkersEnabled) {
+                        for (auto& sheet : m_CodeSheets) {
+                            sheet.codeEditor.ClearErrorMarkers();
+                        }
+                    } else {
+                        for (const auto& errorEntry : m_ErrorsCache) {
+                            for (auto& sheet : m_CodeSheets) {
+                                if (sheet.filepathName == errorEntry.file) {
+                                    sheet.codeEditor.AddErrorMarker(errorEntry.line, errorEntry.message);
+                                }
+                            }
+                        }
+                    }
+                    m_ErrorMarkersEnabledLastSeen = errorMarkersEnabled;
                 }
 
                 const bool isPaused = (ScriptDebugger::ref()->getMode() == ScriptDebugger::Mode::Paused);
@@ -144,6 +183,22 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
                                     ProjectFile::ref()->m_ProjectScriptFontScale = liveScale;
                                     ProjectFile::ref()->SetProjectChange(true);
                                 }
+                                // refresh the plugin's completion state when the editor's undo index advances
+                                // (i.e. an actual edit happened). this surfaces top-level user globals (function
+                                // parse(...), helpers = {...}, ...) in autocomplete next to the stdlib + ltg
+                                // bindings. the push is cheap (single sandbox exec on the plugin's separate
+                                // sol::state); the change is gated so we don't re-run it on idle frames.
+                                // also user-gated by DebugSettings — when off (intended for very large scripts
+                                // where re-exec is too heavy), the autocomplete falls back to the stdlib + ltg
+                                // bindings only. re-enabling resumes pushes on the next edit (undo index has
+                                // advanced past m_LastCompletionPushUndoIndex during the off period).
+                                if (DebugSettings::ref()->isProjectScriptRecompileEnabled()) {
+                                    const int64_t liveUndoIndex = static_cast<int64_t>(sheet.codeEditor.GetUndoIndex());
+                                    if (liveUndoIndex != m_LastCompletionPushUndoIndex) {
+                                        ScriptingEngine::ref()->SetProjectScriptCode(sheet.codeEditor.GetCode());
+                                        m_LastCompletionPushUndoIndex = liveUndoIndex;
+                                    }
+                                }
                             }
                             ImGui::EndTabItem();
                         }
@@ -154,7 +209,8 @@ bool CodePane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
 
                 // hover-eval tooltip — gated by the VS-style hover delay; only meaningful when paused
                 // (otherwise no scope to evaluate in). delay value is live-tunable in Settings > General.
-                if (isPaused && !m_HoveredToken.empty()) {
+                // also user-gated by DebugSettings (off → no eval requested, no tooltip shown).
+                if (isPaused && !m_HoveredToken.empty() && DebugSettings::ref()->isHoverEvalEnabled()) {
                     const double stillTime = ImGui::GetTime() - m_MouseStillSince;
                     if (stillTime >= AppSettings::ref()->getHoverDelaySec()) {
                         if (m_HoveredToken != m_LastHoverEvalToken) {

@@ -219,12 +219,12 @@ bool Module::compileScript(const Ltg::ScriptFilePathName& vFilePathName, Ltg::Er
         }
         sol::function startFile = (*m_luaPtr)["startFile"];
         if (!startFile.valid()) {
-            LogVarLightError("Lua: %s", "the lua function startFile() is missing");
+            LogVarLightError("Lua: %s", "the lua function startFile(filepath) is missing");
             res = false;
         }
         sol::function endFile = (*m_luaPtr)["endFile"];
         if (!endFile.valid()) {
-            LogVarLightError("Lua: %s", "the lua function endFile() is missing");
+            LogVarLightError("Lua: %s", "the lua function endFile(filepath) is missing");
             res = false;
         }
         return res;
@@ -254,12 +254,12 @@ bool Module::compileScriptCode(const std::string& aCode, Ltg::ErrorContainer& vO
         }
         sol::function startFile = (*m_luaPtr)["startFile"];
         if (!startFile.valid()) {
-            LogVarLightError("Lua: %s", "the lua function startFile() is missing");
+            LogVarLightError("Lua: %s", "the lua function startFile(filepath) is missing");
             res = false;
         }
         sol::function endFile = (*m_luaPtr)["endFile"];
         if (!endFile.valid()) {
-            LogVarLightError("Lua: %s", "the lua function endFile() is missing");
+            LogVarLightError("Lua: %s", "the lua function endFile(filepath) is missing");
             res = false;
         }
         return res;
@@ -365,6 +365,115 @@ void Module::m_iterateLuaTable(lua_State* apLua, int aTableIndex, std::vector<Lt
     }
 }
 
+void Module::setProjectScriptCode(const std::string& aCode) {
+    // Push the in-memory project script into the completion state so user globals (top-level
+    // `function parse(...)`, `helpers = { ... }`, etc.) surface alongside the stdlib + `ltg`
+    // bindings. Strategy: load the chunk, set its env to a fresh sandbox table pre-populated
+    // with safe stdlib pointers + a no-op `ltg` stub, pcall it under that env, then steal the
+    // sandbox keys back into _G of the completion state. Anything the user code does that the
+    // sandbox doesn't allow (io.open, os.exit, print, ...) raises a runtime error inside the
+    // pcall and is swallowed — the partial sandbox state is still useful.
+    m_ensureCompletionState();
+    lua_State* L = m_completionLuaPtr->lua_state();
+    const int topBefore = lua_gettop(L);
+
+    // 1) wipe globals introduced by the previous push, so removed top-level definitions stop
+    //    appearing in autocomplete. bindings (math, string, ltg, ...) live in _G too but are
+    //    NOT in m_completionUserGlobals so they are preserved.
+    for (const auto& key : m_completionUserGlobals) {
+        lua_pushnil(L);
+        lua_setglobal(L, key.c_str());
+    }
+    m_completionUserGlobals.clear();
+
+    if (aCode.empty()) {
+        lua_settop(L, topBefore);
+        return;
+    }
+
+    // 2) build a fresh sandbox table holding only side-effect-free pointers. ltg is replaced
+    //    by a metatable-driven stub that returns a no-op closure for any key access, so
+    //    `ltg:logInfo("x")` / `ltg:addSignalTag(...)` at top level of the user script don't
+    //    spam the host's console / Messaging pane during autocomplete refresh.
+    lua_newtable(L);
+    const int sandboxIdx = lua_gettop(L);
+    // clang-format off
+    static const char* const kSafeStdlib[] = {
+        "math", "string", "table",
+        "tostring", "tonumber", "pairs", "ipairs", "type", "select", "next", "unpack",
+        "rawget", "rawset", "rawequal", "setmetatable", "getmetatable",
+        "assert", "error", "pcall", "xpcall",
+    };
+    // clang-format on
+    for (const char* const name : kSafeStdlib) {
+        lua_getglobal(L, name);
+        if (lua_isnil(L, -1)) {
+            lua_pop(L, 1);
+        } else {
+            lua_setfield(L, sandboxIdx, name);
+        }
+    }
+    // ltg stub built via a Lua chunk so we don't need a second C-binding registration:
+    // setmetatable({}, { __index = function() return function() end end })
+    static const char* const kLtgStubChunk =
+        "local noop = function() end "
+        "return setmetatable({}, { __index = function(_, _) return noop end })";
+    if (luaL_loadstring(L, kLtgStubChunk) == 0 && lua_pcall(L, 0, 1, 0) == 0) {
+        lua_setfield(L, sandboxIdx, "ltg");
+    } else {
+        lua_pop(L, 1);  // pop error message or failed chunk
+    }
+
+    // 3) snapshot binding key names so the copy-back step doesn't shadow the real bindings
+    //    living in _G (notably: the real `ltg` is the LuaDatasModel userdata used by
+    //    getCompletionEntries("ltg"), not the no-op stub we just put in the sandbox).
+    std::unordered_set<std::string> bindingKeys;
+    lua_pushnil(L);
+    while (lua_next(L, sandboxIdx) != 0) {
+        if (lua_type(L, -2) == LUA_TSTRING) {
+            bindingKeys.insert(std::string(lua_tostring(L, -2)));
+        }
+        lua_pop(L, 1);  // pop value, keep key for next iter
+    }
+
+    // 4) load + setfenv + exec. parse error -> bail (the user is mid-edit, previous globals
+    //    have already been wiped above so autocomplete shows only the stdlib until the next
+    //    syntactically-valid edit). runtime error -> swallow, keep partial sandbox state.
+    if (luaL_loadbuffer(L, aCode.data(), aCode.size(), "<project script completion>") != 0) {
+        lua_pop(L, 1);  // pop error message
+        lua_settop(L, topBefore);
+        return;
+    }
+    lua_pushvalue(L, sandboxIdx);
+    if (lua_setfenv(L, -2) == 0) {
+        // chunk isn't a function/userdata/thread — should be impossible after a successful
+        // loadbuffer, but bail safely if the runtime ever changes.
+        lua_settop(L, topBefore);
+        return;
+    }
+    if (lua_pcall(L, 0, 0, 0) != 0) {
+        lua_pop(L, 1);  // pop error message
+    }
+
+    // 5) copy sandbox keys into _G, skipping pre-populated bindings. Track names so the next
+    //    push can wipe them. Functions, tables, numbers, strings — all welcome; the completion
+    //    iterator filters by type at query time.
+    lua_pushnil(L);
+    while (lua_next(L, sandboxIdx) != 0) {
+        if (lua_type(L, -2) == LUA_TSTRING) {
+            std::string key(lua_tostring(L, -2));
+            if (bindingKeys.find(key) == bindingKeys.end()) {
+                lua_pushvalue(L, -1);  // dup value
+                lua_setglobal(L, key.c_str());
+                m_completionUserGlobals.insert(std::move(key));
+            }
+        }
+        lua_pop(L, 1);  // pop value, keep key for next iter
+    }
+
+    lua_settop(L, topBefore);
+}
+
 void Module::getCompletionEntries(const std::string& aTarget, std::vector<Ltg::CompletionEntry>& aoEntries) {
     if (aTarget.empty()) {
         return;
@@ -375,9 +484,37 @@ void Module::getCompletionEntries(const std::string& aTarget, std::vector<Ltg::C
 
     lua_getglobal(L, aTarget.c_str());
     const int targetType = lua_type(L, -1);
+    const int targetIdx = lua_gettop(L);
     if (targetType == LUA_TTABLE) {
-        // plain table (Lua stdlib namespace, user table) — iterate directly
-        m_iterateLuaTable(L, lua_gettop(L), aoEntries);
+        // plain table (Lua stdlib namespace, user table, class instance, ...) — iterate the
+        // direct keys first (e.g. instance fields `self.prefix`, `self.count`).
+        m_iterateLuaTable(L, targetIdx, aoEntries);
+        // then hop one level through the metatable's __index to surface inherited methods.
+        // This is the standard Lua OOP idiom: `Logger.__index = Logger` + `setmetatable(self, Logger)`
+        // means `log:info()` resolves to `Logger.info`. Without this hop, `log:` autocomplete
+        // would only see direct instance fields and miss every method on the class table.
+        if (lua_getmetatable(L, targetIdx) != 0) {
+            lua_getfield(L, -1, "__index");
+            if (lua_type(L, -1) == LUA_TTABLE) {
+                std::vector<Ltg::CompletionEntry> hopEntries;
+                m_iterateLuaTable(L, lua_gettop(L), hopEntries);
+                // dedup against direct fields — closer scopes win (a shadowing field on the
+                // instance should hide the metatable's same-named method in the popup).
+                for (auto& entry : hopEntries) {
+                    bool present = false;
+                    for (const auto& existing : aoEntries) {
+                        if (existing.name == entry.name) {
+                            present = true;
+                            break;
+                        }
+                    }
+                    if (!present) {
+                        aoEntries.push_back(std::move(entry));
+                    }
+                }
+            }
+            lua_pop(L, 2);  // __index + metatable
+        }
     } else if (targetType == LUA_TUSERDATA) {
         // sol2 usertype — methods are stored in the metatable's __index field, hop through it
         if (lua_getmetatable(L, -1) != 0) {
@@ -457,13 +594,13 @@ void Module::getSignatureInfo(const std::string& aTarget, const std::string& aFu
     // not in the catalog — leave aoSignature empty, the host won't open the tooltip
 }
 
-bool Module::callScriptStart(Ltg::ErrorContainer& vOutErrors) {
+bool Module::callScriptStart(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorContainer& vOutErrors) {
     sol::protected_function startFile = (*m_luaPtr)["startFile"];
     if (!startFile.valid()) {
-        LogVarLightError("Lua: %s", "the lua function startFile() is missing");
+        LogVarLightError("Lua: %s", "the lua function startFile(filepath) is missing");
         return false;
     }
-    sol::protected_function_result result = startFile();
+    sol::protected_function_result result = startFile(vOutDatas.filename, vOutDatas.filepath);
     if (!result.valid()) {
         sol::error solErr = result;
         Ltg::ScriptingError err;
@@ -493,13 +630,13 @@ bool Module::callScriptExec(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorCont
     return true;
 }
 
-bool Module::callScriptEnd(Ltg::ErrorContainer& vOutErrors) {
+bool Module::callScriptEnd(const Ltg::ScriptingDatas& vOutDatas, Ltg::ErrorContainer& vOutErrors) {
     sol::protected_function endFile = (*m_luaPtr)["endFile"];
     if (!endFile.valid()) {
-        LogVarLightError("%s", "the lua function endFile() is missing");
+        LogVarLightError("%s", "the lua function endFile(filepath) is missing");
         return false;
     }
-    sol::protected_function_result result = endFile();
+    sol::protected_function_result result = endFile(vOutDatas.filename, vOutDatas.filepath);
     if (!result.valid()) {
         sol::error solErr = result;
         Ltg::ScriptingError err;

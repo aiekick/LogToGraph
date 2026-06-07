@@ -38,7 +38,11 @@ limitations under the License.
 #include <systems/PluginManager.h>
 #include <models/debug/ScriptDebugger.h>
 
+#include <filesystem>
+
 using namespace std::chrono;
+
+namespace fs = std::filesystem;
 
 ///////////////////////////////////////////////////
 /// STATIC ////////////////////////////////////////
@@ -118,15 +122,17 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                             const auto fileContent = ez::file::loadFileToString(sourceFilePathName);
                             if (!fileContent.empty()) {
                                 try {
+                                    Ltg::ScriptingDatas datas;
+                                    datas.filepath = sourceFilePathName;
+                                    datas.filename = fs::path(sourceFilePathName).filename().string();
                                     source_file_id = DataBase::ref()->AddSourceFile(sourceFilePathName);
                                     DataBase::ref()->BeginTransaction();
-                                    if (scriptingPtr->callScriptStart(errorContainer)) {
+                                    if (scriptingPtr->callScriptStart(datas, errorContainer)) {
                                         const auto fileLines = ez::str::splitStringToVector(fileContent, '\n');
                                         rowCount = (int32_t)fileLines.size();
                                         scriptingPtr->setRowCount(rowCount);
                                         SetRowCount(rowCount);
                                         rowIndex = 0U;
-                                        Ltg::ScriptingDatas datas;
                                         for (const auto& rowContent : fileLines) {
                                             if (!vWorking) {
                                                 break;
@@ -139,7 +145,7 @@ void ScriptingEngine::m_run(std::atomic<double>& vProgress, std::atomic<bool>& v
                                             datas.buffer = rowContent;
                                             scriptingPtr->callScriptExec(datas, errorContainer);
                                         }
-                                        scriptingPtr->callScriptEnd(errorContainer);
+                                        scriptingPtr->callScriptEnd(datas, errorContainer);
                                     }
                                     DataBase::ref()->CommitTransaction();
                                 } catch (std::exception& e) {
@@ -178,6 +184,23 @@ int64_t ScriptingEngine::GetErrorsRevision() const {
 std::vector<Ltg::ScriptingError> ScriptingEngine::GetLastRunErrors() const {
     std::lock_guard<std::mutex> lock(m_ErrorsMutex);
     return m_LastRunErrors;
+}
+
+void ScriptingEngine::SetProjectScriptCode(const std::string& aCode) {
+    // same gateway pattern as GetCompletionEntries — look up the selected plugin under the worker
+    // mutex, then forward outside the lock so the plugin's sandbox exec doesn't pin the mutex.
+    Ltg::ScriptingModulePtr scriptingPtr;
+    {
+        std::lock_guard<std::mutex> lock(s_workerThread_Mutex);
+        const auto selectedScripting = m_scriptingModuleCombo.getText();
+        const auto it = m_scriptingModules.find(selectedScripting);
+        if (it != m_scriptingModules.end()) {
+            scriptingPtr = it->second;
+        }
+    }
+    if (scriptingPtr != nullptr) {
+        scriptingPtr->setProjectScriptCode(aCode);
+    }
 }
 
 void ScriptingEngine::GetCompletionEntries(const std::string& aTarget, std::vector<Ltg::CompletionEntry>& aoEntries) {

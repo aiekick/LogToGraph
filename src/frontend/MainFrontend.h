@@ -21,7 +21,7 @@ limitations under the License.
 #include <ezlibs/ezSingleton.hpp>
 #include <ezlibs/ezXmlConfig.hpp>
 
-#include <systems/FrameActionSystem.h>
+#include <ezlibs/ezActions.hpp>
 
 #include <backend/MainBackend.h>
 
@@ -116,7 +116,7 @@ private:
     bool m_ShowAboutDialog = false;          // show about dlg
     bool m_SaveDialogIfRequired = false;     // open save options dialog (save / save as / continue without saving / cancel)
     bool m_SaveDialogActionWasDone = false;  // if action was done by save options dialog
-    FrameActionSystem m_ActionSystem;
+    ez::Actions m_ActionSystem;
 
 public:
     static bool sCentralWindowHovered;
@@ -133,7 +133,7 @@ public:
 
     void OpenAboutDialog();
 
-    FrameActionSystem* GetActionSystem() { return &m_ActionSystem; }
+    ez::Actions* GetActionSystem() { return &m_ActionSystem; }
 
 public:                         // save : on quit or project loading
     void IWantToCloseTheApp();  // user want close app, but we want to ensure its saved
