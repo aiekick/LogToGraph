@@ -1,0 +1,38 @@
+name: win package
+
+on:
+  workflow_dispatch:
+
+jobs:
+  package_Win:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: master
+        token: ${{ secrets.PAT_SUBMODULES }}
+        submodules: recursive
+    - name: configure
+      run: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release
+    - name: build
+      run: cmake --build build --config Release
+    - name: reconfigure
+      run: cmake -B build
+    - name: package
+      run: cmake --build build --config Release --target package
+    - name: extract version
+      id: ver
+      shell: pwsh
+      run: |
+        $content = Get-Content VERSION -Raw
+        if ($content -match 'v[\d\.]+') { $version = $Matches[0] } else { $version = 'v0.0.0' }
+        "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+    - name: upload to draft release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.ver.outputs.version }}
+        name: ${{ steps.ver.outputs.version }}
+        draft: true
+        files: bin/packages/${{ github.event.repository.name }}_*
