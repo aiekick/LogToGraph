@@ -387,7 +387,7 @@ void LogPaneSecondView::PrepareLog() {
 }
 
 void LogPaneSecondView::m_exportToCSV(const std::string& aFilePathName) {
-    auto& csv_file = ez::Csv::Csv();
+    ez::Csv csv_file;
 
     csv_file.setHeader({
      "time_epoch",
