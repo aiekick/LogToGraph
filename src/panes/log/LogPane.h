@@ -44,14 +44,16 @@ public:
     bool init() override;
     void unit() override;
     bool drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) override;
+    bool drawDialogsAndPopups(const ImRect& aRect, LayoutPaneUserDatas apUserDatas) override;
 
     void Clear();
     void CheckItem(SignalTickPtr vSignalTick);
     void PrepareLog();
 
 private:
-    void goOnNextSelection();
-    void goOnBackSelection();
-    void DrawMenuBar();
-    void DrawTable();
+    void m_goOnNextSelection();
+    void m_goOnBackSelection();
+    void m_drawMenuBar();
+    void m_drawTable();
+    void m_exportToCSV(const std::string& aFilePathName);
 };

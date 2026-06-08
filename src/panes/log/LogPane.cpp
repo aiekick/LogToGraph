@@ -31,6 +31,8 @@ limitations under the License.
 #include <models/graphs/GraphView.h>
 #include <models/script/ScriptingEngine.h>
 
+#include <ezlibs/ezCsv.hpp>
+
 ///////////////////////////////////////////////////////////////////////////////////
 //// OVERRIDES ////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -56,16 +58,26 @@ bool LogPane::drawPanes(bool* apOpened, LayoutPaneUserDatas apUserDatas) {
 #endif
             if (ProjectFile::ref()->IsProjectLoaded()) {
                 if (ImGui::BeginMenuBar()) {
-                    DrawMenuBar();
+                    m_drawMenuBar();
                     ImGui::EndMenuBar();
                 }
-                DrawTable();
+                m_drawTable();
             }
         }
 
         ImGui::End();
     }
     return change;
+}
+
+bool LogPane::drawDialogsAndPopups(const ImRect& aRect, LayoutPaneUserDatas apUserDatas) {
+    if (ImGuiFileDialog::ref().Display("EXPORT_TO_CSV")) {
+        if (ImGuiFileDialog::ref().IsOk()) {
+            m_exportToCSV(ImGuiFileDialog::ref().GetFilePathName());
+        }
+        ImGuiFileDialog::ref().Close();
+    }
+    return false;
 }
 
 void LogPane::Clear() {
@@ -95,7 +107,7 @@ void LogPane::CheckItem(SignalTickPtr vSignalTick) {
             LogEngine::ref()->SetSecondDiffMark(vSignalTick->time_epoch);
         }
 
-        // second mark
+        // reset marks
         if (ImGui::IsKeyPressed(ImGuiKey_R)) {
             LogEngine::ref()->SetFirstDiffMark(0.0);
             LogEngine::ref()->SetSecondDiffMark(0.0);
@@ -103,7 +115,7 @@ void LogPane::CheckItem(SignalTickPtr vSignalTick) {
     }
 }
 
-void LogPane::DrawMenuBar() {
+void LogPane::m_drawMenuBar() {
     bool need_update = false;
     if (ImGui::BeginMenu("Settings")) {
         if (ImGui::MenuItem("Collapse Selection", nullptr, &ProjectFile::ref()->m_CollapseLogSelection)) {
@@ -118,6 +130,15 @@ void LogPane::DrawMenuBar() {
         }
         if (ImGui::MenuItem("Hide some values", nullptr, &ProjectFile::ref()->m_HideSomeLogValues)) {
             need_update = true;
+        }
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Export")) {
+        if (ImGui::MenuItem("CSV")) {
+            IGFD::FileDialogConfig config;
+            config.flags = ImGuiFileDialogFlags_Modal;
+            ImGuiFileDialog::ref().OpenDialog("EXPORT_TO_CSV", "Export to CSV", ".csv", config);
         }
         ImGui::EndMenu();
     }
@@ -162,7 +183,7 @@ void LogPane::DrawMenuBar() {
     }
 }
 
-void LogPane::goOnNextSelection() {
+void LogPane::m_goOnNextSelection() {
     int32_t max_idx = m_LogDatas.size();
     for (int32_t idx = m_LogListClipper.DisplayStart + 1; idx < max_idx; ++idx) {
         const auto infos_ptr = m_LogDatas.at(idx).lock();
@@ -175,7 +196,7 @@ void LogPane::goOnNextSelection() {
     }
 }
 
-void LogPane::goOnBackSelection() {
+void LogPane::m_goOnBackSelection() {
     int32_t max_idx = m_LogDatas.size();
     for (int32_t idx = m_LogListClipper.DisplayStart - 1; idx >= 0; --idx) {
         const auto infos_ptr = m_LogDatas.at(idx).lock();
@@ -188,7 +209,7 @@ void LogPane::goOnBackSelection() {
     }
 }
 
-void LogPane::DrawTable() {
+void LogPane::m_drawTable() {
     ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_NoHostExtendY;
 
     if (!ProjectFile::ref()->m_AutoResizeLogColumns) {
@@ -252,12 +273,12 @@ void LogPane::DrawTable() {
 
                     if (m_nextSelectionNeeded) {
                         m_nextSelectionNeeded = false;
-                        goOnNextSelection();
+                        m_goOnNextSelection();
                     }
 
                     if (m_backSelectionNeeded) {
                         m_backSelectionNeeded = false;
-                        goOnBackSelection();
+                        m_goOnBackSelection();
                     }
 
                     if (ImGui::TableNextColumn())  // time
@@ -362,4 +383,30 @@ void LogPane::PrepareLog() {
             m_LogDatas.push_back(infos_ptr);
         }
     }
+}
+
+void LogPane::m_exportToCSV(const std::string& aFilePathName) {
+    auto& csv_file = ez::Csv::Csv();
+
+    csv_file.setHeader({
+     "time_epoch",
+     "time_date_time",
+     "category",
+     "name",
+     "value",
+     "status",
+     "description" });
+
+    for (const auto& datas : m_LogDatas) {
+        auto ptr = datas.lock();
+        if (ptr != nullptr) {
+            auto str = ptr->string;
+            if (str.empty()) {
+                str = std::to_string(ptr->value) ;
+            }
+            csv_file.appendRow({ std::to_string(ptr->time_epoch), ptr->time_date_time, ptr->category, ptr->name, str, ptr->status, ptr->desc });
+        }
+    }
+
+    csv_file.writeToFile(aFilePathName, ';');
 }
