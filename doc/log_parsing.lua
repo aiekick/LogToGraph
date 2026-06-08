@@ -23,11 +23,14 @@ function startFile(filepath)
 	ltg:logInfo(" --- Start parsing of file '" .. filepath .. "'");
 end
 
+local re = ltg:regex([[<profiler section="([^"]*)" epoch_time="([^"]*)" name="([^"]*)" render_time_ms="([^"]*)">]])
+
 function parse(buffer)
-	_section, _time, _name, _value = string.match(buffer, "<profiler section=\"(.*)\" epoch_time=\"(.*)\" name=\"(.*)\" render_time_ms=\"(.*)\">")
-	if _section ~= nil and _time ~= nil and _name ~= nil and _value ~= nil then
-		ltg:addSignalValue(_section, _name, tonumber(_time), tonumber(_value))
-	end
+    local section, time, name, value = re:match(buffer)
+    if section and time and name and value then
+    	local epoch = ltg:stringToEpoch(time, 0);
+        ltg:addSignalValue(section, name, epoch, tonumber(value))
+    end
 end
 
 function endFile(filepath)
