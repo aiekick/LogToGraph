@@ -38,7 +38,7 @@ private:
     bool m_SignatureHelpEnabled = true;           // tooltip opened on `(` in the code editor
     bool m_HoverEvalEnabled = true;               // value-on-hover tooltip when paused
     bool m_ErrorMarkersEnabled = true;            // red underlines + tooltips for last-run script errors
-    bool m_AutoBreakpointOnError = false;         // opt-in: pause at the error line + auto-set a breakpoint there
+    bool m_AutoBreakpointOnError = true;          // opt-in: pause at the error line + auto-set a breakpoint there
 
 public:
     bool isProjectScriptRecompileEnabled() const;

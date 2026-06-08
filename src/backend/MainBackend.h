@@ -31,7 +31,6 @@ private:
     ez::math::fvec2 m_LastNormalizedMousePos;
     ez::math::fvec2 m_NormalizedMousePos;
 
-    bool m_ConsoleVisiblity = false;
     uint32_t m_CurrentFrame = 0U;
 
     bool m_NeedToCloseApp = false;  // when app closing app is required
@@ -81,10 +80,6 @@ public:
 public:  // configuration
     ez::xml::Nodes getXmlNodes(const std::string& vUserDatas = "") final;
     bool setFromXmlNodes(const ez::xml::Node& vNode, const ez::xml::Node& vParent, const std::string& vUserDatas) final;
-
-    void SetConsoleVisibility(const bool vFlag);
-    void SwitchConsoleVisibility();
-    bool GetConsoleVisibility();
 
 private:
     void m_RenderOffScreen();

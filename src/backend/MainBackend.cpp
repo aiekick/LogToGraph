@@ -72,11 +72,6 @@ void MainBackend::run(const std::string& vAppPath) {
 
 // todo : to refactor ! i dont like that
 bool MainBackend::init(const std::string& vAppPath) {
-#ifdef _DEBUG
-    SetConsoleVisibility(true);
-#else
-    SetConsoleVisibility(false);
-#endif
     if (m_InitWindow() && m_InitImGui()) {
         m_InitPlugins(vAppPath);
         m_InitModels();
@@ -197,37 +192,6 @@ ez::math::dvec2 MainBackend::GetMousePos() {
 
 int MainBackend::GetMouseButton(int vButton) {
     return glfwGetMouseButton(m_MainWindowPtr, vButton);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//// CONSOLE ///////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void MainBackend::SetConsoleVisibility(const bool vFlag) {
-    m_ConsoleVisiblity = vFlag;
-
-    if (m_ConsoleVisiblity) {
-        // on cache la console
-        // on l'affichera au besoin comme blender fait
-#ifdef WIN32
-        ShowWindow(GetConsoleWindow(), SW_SHOW);
-#endif
-    } else {
-        // on cache la console
-        // on l'affichera au besoin comme blender fait
-#ifdef WIN32
-        ShowWindow(GetConsoleWindow(), SW_HIDE);
-#endif
-    }
-}
-
-void MainBackend::SwitchConsoleVisibility() {
-    m_ConsoleVisiblity = !m_ConsoleVisiblity;
-    SetConsoleVisibility(m_ConsoleVisiblity);
-}
-
-bool MainBackend::GetConsoleVisibility() {
-    return m_ConsoleVisiblity;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
