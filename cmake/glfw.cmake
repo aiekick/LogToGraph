@@ -30,3 +30,7 @@ endif()
 # expose to the root CMakeLists (it uses these vars directly)
 set(GLFW_INCLUDE_DIR ${glfw_SOURCE_DIR}/include CACHE INTERNAL "")
 set(GLFW_LIBRARIES glfw CACHE INTERNAL "")
+
+if(MSVC)
+	set_property(TARGET glfw PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()

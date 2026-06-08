@@ -20,3 +20,7 @@ endif()
 # expose to the root CMakeLists (it uses these vars directly)
 set(SQLITE3_INCLUDE_DIR ${SQLITE3_SOURCE_DIR};${SQLITE3_SOURCE_DIR}/include CACHE INTERNAL "")
 set(SQLITE3_LIBRARIES sqlite3 CACHE INTERNAL "")
+
+if (MSVC)
+	set_property(TARGET sqlite3 PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()

@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
+set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
 
 set(PROJECT LogToGraph)
 
@@ -43,6 +44,8 @@ if ("${CMAKE_EXE_LINKER_FLAGS}" STREQUAL "/machine:x64")
 else()
 	set(ARCH x32)
 endif()
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # some times for unknown reason, the lib file is not generated so no symbols are exported.
 # this option force all shared lib to export theirs symbols
@@ -230,6 +233,10 @@ set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL 
 set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${FINAL_BIN_DIR})
 
 set_target_properties(${PROJECT} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${FINAL_BIN_DIR})
+
+if(MSVC)
+    set_property(TARGET ${PROJECT} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 ########################################################
 ############## FORCE BUILD OF PLUGINS ##################

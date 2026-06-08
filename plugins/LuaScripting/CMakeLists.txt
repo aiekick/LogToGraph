@@ -115,6 +115,10 @@ if (${BUILD_SHARED_LIBS})
 	install(TARGETS ${LUA_JIT_LIBRARIES} RUNTIME DESTINATION plugins COMPONENT APP_LIBS_${LUA_JIT_LIBRARIES})
 endif()
 
+if (MSVC)
+	set_property(TARGET ${PROJECT} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 target_include_directories(${PROJECT} PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
 	${CMAKE_CURRENT_SOURCE_DIR}/src
