@@ -35,7 +35,9 @@ public:
     void luaModuleLogError(const std::string& vKey);
     void luaModuleLogDebug(const std::string& vKey);
     double luaModuleStringToEpoch(const std::string& vDateTime, double vHourOffset);
+    double luaModuleStringToEpochWithPattern(const std::string& vDateTime, double vHourOffset, const std::string& vPattern);
     std::string luaModuleEpochToString(double vEpochTime, double vHourOffset);
+    std::string luaModuleEpochToStringWithPattern(double vEpochTime, double vHourOffset, const std::string& vPattern);
     void luaModuleAddSignalTag(double vEpoch, double r, double g, double b, double a, const std::string& vName, const std::string& vHelp);
     void luaModuleAddSignalValue(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue);
     void luaModuleAddSignalValueWithDesc(const std::string& vCategory, const std::string& vName, double vEpoch, double vValue, const std::string&);

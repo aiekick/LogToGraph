@@ -103,11 +103,15 @@ ltg:addSignalEndZone("category", "signal_name", epoch, "label")
 ltg:addSignalTag(epoch, r, g, b, a, "name", "tooltip")   -- point event, color is linear [0:1]
 ```
 
-Time conversion (ISO-like "YYYY-MM-DD HH:MM:SS,MS" or "YYYY-MM-DD HH:MM:SS.MS", hour offset as 2nd arg):
+Time conversion. Default pattern is `"yyyy-MM-dd HH:mm:ss,SSS"` (Joda-style). Pass a custom pattern as the 3rd argument to parse / format other layouts. Supported tokens: `yyyy`/`yy` (year), `MM` (month), `dd` (day), `HH`/`hh` (hour 24/12), `mm` (minute), `ss` (second), and a trailing `S` run (N digits, fractional seconds — must be at the end of the pattern, preceded by exactly one delimiter character):
 
 ```lua
 local epoch = ltg:stringToEpoch("2023-01-16 15:24:26,464", 0)
 local s     = ltg:epochToString(epoch, 0)
+
+-- custom pattern (microseconds with a dot delimiter, or a day-first layout):
+local e2    = ltg:stringToEpoch("2023-01-16 15:24:26.123456", 0, "yyyy-MM-dd HH:mm:ss.SSSSSS")
+local s2    = ltg:epochToString(e2, 0, "dd/MM/yyyy HH:mm:ss")
 ```
 
 Regex (`boost::regex` engine, PCRE-like — supports `|`, `{m,n}`, lookahead, etc., much more expressive than Lua patterns):

@@ -213,8 +213,12 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
         );
         m_luaPtr->new_usertype<LuaDatasModel>(
             "LuaDatasModel", sol::constructors<std::shared_ptr<LuaDatasModel>()>(),
-            "stringToEpoch", &LuaDatasModel::luaModuleStringToEpoch,
-            "epochToString", &LuaDatasModel::luaModuleEpochToString,
+            "stringToEpoch", sol::overload(
+                &LuaDatasModel::luaModuleStringToEpoch,
+                &LuaDatasModel::luaModuleStringToEpochWithPattern),
+            "epochToString", sol::overload(
+                &LuaDatasModel::luaModuleEpochToString,
+                &LuaDatasModel::luaModuleEpochToStringWithPattern),
             "addSignalTag", &LuaDatasModel::luaModuleAddSignalTag,
             "addSignalStatus", &LuaDatasModel::luaModuleAddSignalStatus,
             "addSignalValue",sol::overload(
@@ -371,8 +375,12 @@ void Module::m_ensureCompletionState() {
     );
     m_completionLuaPtr->new_usertype<LuaDatasModel>(
         "LuaDatasModel", sol::constructors<std::shared_ptr<LuaDatasModel>()>(),
-        "stringToEpoch", &LuaDatasModel::luaModuleStringToEpoch,
-        "epochToString", &LuaDatasModel::luaModuleEpochToString,
+        "stringToEpoch", sol::overload(
+            &LuaDatasModel::luaModuleStringToEpoch,
+            &LuaDatasModel::luaModuleStringToEpochWithPattern),
+        "epochToString", sol::overload(
+            &LuaDatasModel::luaModuleEpochToString,
+            &LuaDatasModel::luaModuleEpochToStringWithPattern),
         "addSignalTag", &LuaDatasModel::luaModuleAddSignalTag,
         "addSignalStatus", &LuaDatasModel::luaModuleAddSignalStatus,
         "addSignalValue", sol::overload(
@@ -628,8 +636,8 @@ const std::vector<SignatureEntry>& s_signatureCatalog() {
     // clang-format off
     static const std::vector<SignatureEntry> catalog = {
         // -------- ltg: usertype methods (cf. new_usertype<LuaDatasModel> in Module::load) --------
-        {"ltg", "stringToEpoch",      {{"dateTime","string"}, {"hourOffset","number"}}},
-        {"ltg", "epochToString",      {{"epochTime","number"}, {"hourOffset","number"}}},
+        {"ltg", "stringToEpoch",      {{"dateTime","string"}, {"hourOffset","number"}, {"pattern","string?"}}},
+        {"ltg", "epochToString",      {{"epochTime","number"}, {"hourOffset","number"}, {"pattern","string?"}}},
         {"ltg", "addSignalTag",       {{"epoch","number"}, {"r","number"}, {"g","number"}, {"b","number"}, {"a","number"}, {"name","string"}, {"help","string"}}},
         {"ltg", "addSignalStatus",    {{"category","string"}, {"name","string"}, {"epoch","number"}, {"status","string"}}},
         {"ltg", "addSignalValue",     {{"category","string"}, {"name","string"}, {"epoch","number"}, {"value","number"}, {"desc","string"}}},

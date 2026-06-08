@@ -47,11 +47,13 @@ Each call goes through the host's Messaging singleton and shows up in the Consol
 
 ### Date / time conversion
 
-ISO-like strings (`"YYYY-MM-DD HH:MM:SS,MS"` or `"YYYY-MM-DD HH:MM:SS.MS"`), with an hour offset as the second argument:
+Default Joda-style pattern `"yyyy-MM-dd HH:mm:ss,SSS"`. An optional 3rd argument overrides the pattern. Supported tokens: `yyyy`/`yy` (year), `MM` (month), `dd` (day), `HH`/`hh` (hour 24/12), `mm` (minute), `ss` (second). A trailing run of `S` marks fractional seconds (N digits, must be at the end of the pattern, preceded by exactly one delimiter character). Hour offset is the 2nd argument:
 
 ```lua
-local epoch = ltg:stringToEpoch("2023-01-16 15:24:26,464", 0)   -- -> double (epoch seconds, ms preserved)
-local s     = ltg:epochToString(18798798465465.546546, 0)      -- -> string
+local epoch = ltg:stringToEpoch("2023-01-16 15:24:26,464", 0)                                  -- -> double (epoch seconds, ms preserved)
+local s     = ltg:epochToString(18798798465465.546546, 0)                                     -- -> string
+local e2    = ltg:stringToEpoch("16/01/2023 15:24:26.123456", 0, "dd/MM/yyyy HH:mm:ss.SSSSSS")
+local s2    = ltg:epochToString(e2, 0, "yyyy-MM-dd HH:mm:ss")                                 -- no fractional part
 ```
 
 Both throw a `std::runtime_error` on a bad format. With the auto-bp-on-error toggle on, that throw pauses the worker at the exact line of the call, with the actual boost message visible.

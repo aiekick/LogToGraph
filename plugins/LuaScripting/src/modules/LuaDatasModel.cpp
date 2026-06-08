@@ -51,38 +51,159 @@ double LuaDatasModel::luaModuleGetRowCount() {
     return static_cast<double>(m_RowCount);
 }
 
+namespace {
+
+// Default Joda-style pattern when the 2-arg form is used — backward-compatible with the
+// previously hardcoded "YYYY-MM-DD HH:MM:SS,MS" / ".MS" inputs.
+constexpr const char* sDefaultJodaPattern = "yyyy-MM-dd HH:mm:ss,SSS";
+
+// Translate a Joda-style pattern (yyyy / MM / dd / HH / mm / ss + optional trailing 'S' run)
+// into a strftime format string for std::get_time / std::put_time, plus the fractional-seconds
+// delimiter and digit count. The 'S' run, if present, MUST be at the end of the pattern and
+// MUST be preceded by exactly one literal delimiter character.
+void translateJodaPattern(const std::string& vPattern, std::string& aoStrftimeFmt, char& aoFracDelim, int32_t& aoFracDigits) {
+    if (vPattern.empty()) {
+        throw std::invalid_argument("pattern: empty");
+    }
+    // walk back from the end to count the trailing 'S' run (Joda fractional seconds marker)
+    std::size_t fracStart = vPattern.size();
+    while (fracStart > 0 && vPattern[fracStart - 1] == 'S') {
+        --fracStart;
+    }
+    std::string dateOnly;
+    if (fracStart == vPattern.size()) {
+        dateOnly = vPattern;
+        aoFracDelim = 0;
+        aoFracDigits = 0;
+    } else if (fracStart == 0) {
+        throw std::invalid_argument("pattern: fractional 'S' must be preceded by a delimiter");
+    } else {
+        dateOnly = vPattern.substr(0, fracStart - 1);
+        aoFracDelim = vPattern[fracStart - 1];
+        aoFracDigits = static_cast<int32_t>(vPattern.size() - fracStart);
+    }
+    aoStrftimeFmt = dateOnly;
+    // longer tokens first so 'yyyy' is consumed before 'yy' tries to match
+    // clang-format off
+    const std::pair<std::string, std::string> tokens[] = {
+        {"yyyy", "%Y"}, {"yy", "%y"},
+        {"MM",   "%m"},
+        {"dd",   "%d"},
+        {"HH",   "%H"}, {"hh", "%I"},
+        {"mm",   "%M"},
+        {"ss",   "%S"},
+    };
+    // clang-format on
+    for (const auto& tk : tokens) {
+        std::size_t pos = 0;
+        while ((pos = aoStrftimeFmt.find(tk.first, pos)) != std::string::npos) {
+            aoStrftimeFmt.replace(pos, tk.first.size(), tk.second);
+            pos += tk.second.size();
+        }
+    }
+}
+
+// Convert a fractional-seconds integer with `vDigits` digits into microseconds (6 digits).
+int64_t scaleFractionToMicros(int64_t vValue, int32_t vDigits) {
+    if (vDigits == 6) {
+        return vValue;
+    }
+    int64_t factor = 1;
+    if (vDigits < 6) {
+        for (int32_t i = 0; i < 6 - vDigits; ++i) {
+            factor *= 10;
+        }
+        return vValue * factor;
+    }
+    for (int32_t i = 0; i < vDigits - 6; ++i) {
+        factor *= 10;
+    }
+    return vValue / factor;
+}
+
+// Convert microseconds (6 digits) into a fractional-seconds integer with `vDigits` digits.
+int64_t scaleMicrosToFraction(int64_t vMicros, int32_t vDigits) {
+    if (vDigits == 6) {
+        return vMicros;
+    }
+    int64_t factor = 1;
+    if (vDigits < 6) {
+        for (int32_t i = 0; i < 6 - vDigits; ++i) {
+            factor *= 10;
+        }
+        return vMicros / factor;
+    }
+    for (int32_t i = 0; i < vDigits - 6; ++i) {
+        factor *= 10;
+    }
+    return vMicros * factor;
+}
+
+}  // namespace
+
 double LuaDatasModel::luaModuleStringToEpoch(const std::string& vDateTime, double vHourOffset) {
+    return luaModuleStringToEpochWithPattern(vDateTime, vHourOffset, sDefaultJodaPattern);
+}
+
+double LuaDatasModel::luaModuleStringToEpochWithPattern(const std::string& vDateTime, double vHourOffset, const std::string& vPattern) {
+    std::string strftimeFmt;
+    char fracDelim = 0;
+    int32_t fracDigits = 0;
+    translateJodaPattern(vPattern, strftimeFmt, fracDelim, fracDigits);
+
     struct tm timeStruct = {};
-    int microseconds = 0;
     std::istringstream dateStream(vDateTime);
-    char delimiter;
-    dateStream >> std::get_time(&timeStruct, "%Y-%m-%d %H:%M:%S");
+    dateStream >> std::get_time(&timeStruct, strftimeFmt.c_str());
     if (dateStream.fail()) {
         throw std::invalid_argument("Invalid date format");
     }
     timeStruct.tm_hour += static_cast<int32_t>(vHourOffset);
     timeStruct.tm_isdst = 1;
-    dateStream >> delimiter >> microseconds;
+
+    int64_t fracValue = 0;
+    if (fracDigits > 0) {
+        char delimiter = 0;
+        dateStream >> delimiter >> fracValue;
+        if (dateStream.fail() || delimiter != fracDelim) {
+            throw std::invalid_argument("Invalid fractional seconds");
+        }
+    }
+
     std::time_t epochSeconds = std::mktime(&timeStruct);
     if (epochSeconds == -1) {
         throw std::runtime_error("Failed to convert to epoch time");
     }
     epochSeconds -= static_cast<time_t>(std::difftime(std::mktime(std::gmtime(&epochSeconds)), std::mktime(std::localtime(&epochSeconds))));
+
+    const int64_t microseconds = (fracDigits > 0) ? scaleFractionToMicros(fracValue, fracDigits) : 0;
     return static_cast<double>(epochSeconds) + static_cast<double>(microseconds) / 1000000.0;
 }
 
 std::string LuaDatasModel::luaModuleEpochToString(double vEpochTime, double vHourOffset) {
+    return luaModuleEpochToStringWithPattern(vEpochTime, vHourOffset, sDefaultJodaPattern);
+}
+
+std::string LuaDatasModel::luaModuleEpochToStringWithPattern(double vEpochTime, double vHourOffset, const std::string& vPattern) {
+    std::string strftimeFmt;
+    char fracDelim = 0;
+    int32_t fracDigits = 0;
+    translateJodaPattern(vPattern, strftimeFmt, fracDelim, fracDigits);
+
     std::time_t seconds = static_cast<std::time_t>(vEpochTime);
-    int microseconds = static_cast<int>((vEpochTime - seconds) * 1000000.0);
+    const int64_t microseconds = static_cast<int64_t>((vEpochTime - seconds) * 1000000.0);
     struct tm* timeStruct = std::gmtime(&seconds);
     if (!timeStruct) {
         throw std::runtime_error("Failed to convert epoch time to struct tm");
     }
     timeStruct->tm_hour += static_cast<int32_t>(vHourOffset);
     timeStruct->tm_isdst = 1;
+
     std::ostringstream dateStream;
-    dateStream << std::put_time(timeStruct, "%Y-%m-%d %H:%M:%S");
-    dateStream << '.' << std::setfill('0') << std::setw(6) << microseconds;
+    dateStream << std::put_time(timeStruct, strftimeFmt.c_str());
+    if (fracDigits > 0) {
+        const int64_t fracValue = scaleMicrosToFraction(microseconds, fracDigits);
+        dateStream << fracDelim << std::setfill('0') << std::setw(fracDigits) << fracValue;
+    }
     return dateStream.str();
 }
 
