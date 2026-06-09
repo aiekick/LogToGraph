@@ -228,6 +228,26 @@ void MainBackend::m_MainLoop() {
 
             glfwPollEvents();
 
+            // Win11 + AZERTY workaround: AltGr is synthesized as LCtrl-down + RAlt-down on Windows.
+            // When an overlay (Steam, NVIDIA), an IME, or a focus race intercepts between the two
+            // synthetic messages, GLFW's PeekMessage-based AltGr hack (win32_window.c) fails to
+            // discard the LCtrl, AND the matching Ctrl-up is sometimes dropped at release. GLFW
+            // never recovers — glfwGetKey(GLFW_KEY_*_CONTROL) stays at GLFW_PRESS, so the backend's
+            // ImGui_ImplGlfw_UpdateKeyModifiers re-emits Ctrl-down on every event. Result: arrows
+            // jump word-wise / Up = top-of-file / Down = end-of-file until the user changes focus.
+            // GetAsyncKeyState reads the hardware state via the desktop input thread, bypassing the
+            // lost WM_KEYUP, and this AddKeyEvent runs AFTER glfwPollEvents so it wins ImGui's queue
+            // at NewFrame. AddKeyEvent dedupes when the state is unchanged → ~3 Win32 reads/frame.
+            // No-op on Linux/Mac. See GLFW issues #1622 / #1630 / #1903.
+#ifdef WIN32
+            {
+                auto& io = ImGui::GetIO();
+                io.AddKeyEvent(ImGuiMod_Ctrl,  (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0);
+                io.AddKeyEvent(ImGuiMod_Shift, (GetAsyncKeyState(VK_SHIFT)   & 0x8000) != 0);
+                io.AddKeyEvent(ImGuiMod_Alt,   (GetAsyncKeyState(VK_MENU)    & 0x8000) != 0);
+            }
+#endif
+
             glfwGetFramebufferSize(m_MainWindowPtr, &display_w, &display_h);
 
             m_Update();  // to do absolutly before imgui rendering
