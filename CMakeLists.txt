@@ -7,10 +7,8 @@ project(${PROJECT} CXX)
 
 enable_language(C CXX)
 
-## new imguipack's TextEditor uses a protected static `defaultPalette` accessed inline
-## from its constructor; the symbol is not exported on the DLL boundary so a shared
-## imguipack triggers LNK2001 in any consumer that embeds a TextEditor member. Build
-## everything static to dodge it (and keep linkage symmetrical with the new ezlibs).
+## keep everything static by default: the editor widget (im::Code) is embedded by value
+## in app classes, and static linkage keeps symbol visibility symmetrical with ezlibs.
 option(USE_BUILDING_AS_SHARED "Enable shared building" OFF)
 option(USE_BUILDING_OF_TESTS "Enable the build of tests" OFF)
 
@@ -103,6 +101,13 @@ if(USE_BUILDING_OF_TESTS)
 endif()
 
 include(cmake/3rdparty.cmake)
+
+## googletest must be available BEFORE the plugins loop below — each plugin may add its
+## own gtest-based tests subdir when USE_BUILDING_OF_TESTS is ON
+if(USE_BUILDING_OF_TESTS)
+	include(cmake/googletest.cmake)
+	add_subdirectory(tests) ## app test suites
+endif()
 
 ###########################################################
 ##### PLUGINS PREFIX ######################################
