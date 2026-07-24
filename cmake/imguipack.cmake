@@ -3,6 +3,10 @@ set(IMGUIPACK_LIBRARIES imguipack)
 
 # ON
 set(USE_IM_CODE ON CACHE BOOL "" FORCE) ## ImCode editor (replaces the removed ImGuiColorTextEdit)
+## NOTE: IMGUIPACK_BUILD_TESTS stays OFF here — imguipack's own suite vendors its own
+## ezlibs snapshot (tests/ezlibs) which clashes with this repo's ezlibs; it runs in
+## imguipack's standalone builds. The ImCode behaviors THIS app relies on are pinned
+## locally by tests/TestImCodeContract.cpp.
 set(USE_IM_TOOLS ON CACHE BOOL "" FORCE)
 set(USE_IM_GENIE ON CACHE BOOL "" FORCE)
 set(USE_IM_NODAL ON CACHE BOOL "" FORCE)

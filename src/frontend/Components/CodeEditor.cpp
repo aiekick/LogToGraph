@@ -1,6 +1,5 @@
 #include "CodeEditor.h"
 #include "CodeUtils.h"
-#include <3rdparty/imgui_docking/imgui_internal.h>  // FindWindowByName / GetKeyData / GImGui — layout mirror + popup key interception
 #include <ezlibs/ezTools.hpp>
 #include <models/script/ScriptingEngine.h>
 #include <settings/DebugSettings.h>
@@ -8,54 +7,14 @@
 #include <cstdio>
 #include <fstream>
 
-// The old ImGuiColorTextEdit-based TextEditor is gone from imguipack; im::Code (ImCode)
-// replaces it. ImCode v0.1 is a lean model+canvas: it owns text/caret/undo/find and the
-// gutter/marker/decoration rendering, but has NO completion popup, NO signature tooltip,
-// NO context menus and NO hover/char callbacks. Those features live HERE now, host-side,
-// over ImCode's public API. Two ImCode internals are mirrored to make that possible:
-//  - the render layout (char width / line height / gutter width / child scroll) so screen
-//    coordinates map to (line, byte-column) and back — see m_CaptureLayout;
-//  - the byte-column coordinate system (ImCode positions are byte offsets, the old
-//    TextEditor reported tab-expanded visual columns — every consumer got simpler).
+// The editor widget is im::Code (ImCode v0.2). ImCode owns the canvas AND the IDE overlay
+// UIs (completion popup, signature tooltip, context menus, hover, local zoom); this host
+// class owns the FEATURE LOGIC on top: the completion catalog + filter state machine, the
+// signature arg-index byte-scan, the breakpoint/error marker sets, and the pane chrome
+// (menus, go-to-line, find popup, Ctrl+S/R shortcuts).
+// Coordinates are BYTE columns everywhere (ImCode convention).
 
 namespace {
-
-constexpr const char* sc_EditorChildId = "ltg_code_editor";
-constexpr int32_t sc_TabWidth = 4;  // mirrors im::Code::Style::tabWidth default (never changed by the host)
-
-// keys the completion popup owns while it is open: they must not reach ImCode::Render
-// (Up/Down would move the caret, Enter would insert a newline). IsKeyPressed reads
-// ImGuiKeyData, so blanking Down/DownDuration around Render hides the press from ImCode
-// while the host (which reads the keys BEFORE Render) still saw it.
-constexpr ImGuiKey sc_PopupOwnedKeys[] = {ImGuiKey_UpArrow, ImGuiKey_DownArrow, ImGuiKey_Enter, ImGuiKey_KeypadEnter};
-
-struct KeyBackup {
-    bool down = false;
-    float downDuration = -1.0f;
-    float downDurationPrev = -1.0f;
-};
-KeyBackup g_KeyBackups[IM_ARRAYSIZE(sc_PopupOwnedKeys)];
-
-void pushKeySuppression() {
-    for (int i = 0; i < IM_ARRAYSIZE(sc_PopupOwnedKeys); ++i) {
-        ImGuiKeyData* keyData = ImGui::GetKeyData(sc_PopupOwnedKeys[i]);
-        g_KeyBackups[i].down = keyData->Down;
-        g_KeyBackups[i].downDuration = keyData->DownDuration;
-        g_KeyBackups[i].downDurationPrev = keyData->DownDurationPrev;
-        keyData->Down = false;
-        keyData->DownDuration = -1.0f;
-        keyData->DownDurationPrev = -1.0f;
-    }
-}
-
-void popKeySuppression() {
-    for (int i = 0; i < IM_ARRAYSIZE(sc_PopupOwnedKeys); ++i) {
-        ImGuiKeyData* keyData = ImGui::GetKeyData(sc_PopupOwnedKeys[i]);
-        keyData->Down = g_KeyBackups[i].down;
-        keyData->DownDuration = g_KeyBackups[i].downDuration;
-        keyData->DownDurationPrev = g_KeyBackups[i].downDurationPrev;
-    }
-}
 
 void splitLines(const std::string& aText, std::vector<std::string>& aoLines) {
     aoLines.clear();
@@ -81,6 +40,9 @@ bool CodeEditor::init() {
     config.flags = im::Code::Flags_ShowLineNumbers | im::Code::Flags_ShowGutter | im::Code::Flags_HighlightCurLine;
     m_Editor.init(config);
     m_ApplyPalette(true);
+    // the mono font is pushed by ImCode itself; its internal Ctrl+MouseWheel zoom scales it
+    m_Editor.getStyle().font = m_CodeFontPtr;
+
     // left click on the gutter toggles a breakpoint on that line (widget 0-based).
     // Toggling is ALWAYS allowed — breakpoints set while Debug is off are stored dormant
     // (they fire once shouldArmDebug() installs the line hook); the marker alpha fades as
@@ -91,6 +53,60 @@ bool CodeEditor::init() {
             m_OnBreakpointToggled(aLine, !has);
         }
     });
+    // right-click on the gutter: breakpoint set/remove menu (rendered inside ImCode's popup).
+    // Items are disabled when debug is off (dormant breakpoints CAN still be toggled with a
+    // plain gutter click).
+    m_Editor.setGutterContextMenuCallback([this](int32_t aLine) {
+        const bool hasBreakpoint = (m_BreakpointLines.find(aLine) != m_BreakpointLines.end());
+        ImGui::BeginDisabled(!m_BreakpointInteractionEnabled);
+        if (!hasBreakpoint) {
+            if (ImGui::MenuItem("Set Breakpoint")) {
+                if (m_OnBreakpointToggled) {
+                    m_OnBreakpointToggled(aLine, true);
+                }
+            }
+        } else {
+            if (ImGui::MenuItem("Remove Breakpoint")) {
+                if (m_OnBreakpointToggled) {
+                    m_OnBreakpointToggled(aLine, false);
+                }
+            }
+        }
+        ImGui::EndDisabled();
+    });
+    // right-click on the text: "Watch <token>" when the click lands on an identifier
+    // (rendered inside ImCode's popup — an empty menu means the click was on punctuation)
+    m_Editor.setTextContextMenuCallback([this](int32_t aLine, int32_t aColumn) {
+        if (!m_OnTokenContext) {
+            return;
+        }
+        const std::string token = m_ExtractTokenAt(aLine, aColumn);
+        if (token.empty()) {
+            return;
+        }
+        const std::string label = std::string("Watch \"") + token + "\"";
+        if (ImGui::MenuItem(label.c_str())) {
+            m_OnTokenContext(token);
+        }
+    });
+    // per-frame mouse hover over text → propagate the token under the mouse to the consumer.
+    // ALWAYS fired (even with an empty token on whitespace/punctuation) so the consumer can
+    // detect when the user has moved off a previously-hovered identifier.
+    m_Editor.setTextHoverCallback([this](int32_t aLine, int32_t aColumn) {
+        if (m_OnHoverToken) {
+            m_OnHoverToken(m_ExtractTokenAt(aLine, aColumn));
+        }
+    });
+    // characters typed in the editor drive the autocompletion/signature state machines
+    m_Editor.setCharacterTypedCallback([this](unsigned int aChar, int32_t aLine, int32_t aColumn) {
+        m_OnCharacterTyped(aChar, aLine, aColumn);
+    });
+    // ImCode owns the popup rendering + the Up/Down/Enter/Escape interception; it routes
+    // back here when the user picks an entry or dismisses the popup
+    m_Editor.setCompletionCallbacks(
+        [this](size_t aSelectedIndex) { m_OnCompletionAccepted(aSelectedIndex); },
+        [this]() { m_OnCompletionCancelled(); });
+
     m_RefreshTextCache();
     return true;
 }
@@ -107,7 +123,7 @@ void CodeEditor::OnImGui() {
     bool requestingFindPopup = false;
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Edit")) {
-            // ImCode does not expose can-undo/can-redo in v0.1 — items stay enabled (no-op when empty)
+            // ImCode does not expose can-undo/can-redo — items stay enabled (no-op when empty)
             if (ImGui::MenuItem("Undo", "Ctrl+Z")) {
                 m_Editor.execute(im::Code::Command::Undo);
             }
@@ -163,89 +179,29 @@ void CodeEditor::OnImGui() {
         ImGui::EndMenuBar();
     }
 
-    // one-shot restore of the persisted zoom (project load)
+    // one-shot restore of the persisted zoom (project load) — ImCode's zoom is
+    // readable/settable, interactive Ctrl+MouseWheel is handled internally
     if (m_PendingFontScale > 0.0f) {
-        m_FontScale = ImClamp(m_PendingFontScale, 0.3f, 6.0f);
+        m_Editor.setZoom(m_PendingFontScale);
         m_PendingFontScale = 0.0f;
     }
-    // Ctrl+MouseWheel zoom — HOST-owned so it can be persisted in the project file. The
-    // wheel event is eaten before Render so ImCode's internal zoom (not readable from
-    // outside) never engages; the scale is applied through the PushFont size below.
-    // Uses the previous frame's child rect: good enough at frame rate.
-    if (m_Layout.valid && io.KeyCtrl && io.MouseWheel != 0.0f) {
-        const ImVec2 mouse = ImGui::GetMousePos();
-        if (mouse.x >= m_Layout.childPos.x && mouse.x < m_Layout.childPos.x + m_Layout.childSize.x &&  //
-            mouse.y >= m_Layout.childPos.y && mouse.y < m_Layout.childPos.y + m_Layout.childSize.y) {
-            m_FontScale = ImClamp(m_FontScale * ((io.MouseWheel > 0.0f) ? 1.1f : (1.0f / 1.1f)), 0.3f, 6.0f);
-            io.MouseWheel = 0.0f;
-        }
-    }
 
-    // completion popup keyboard/mouse handling happens BEFORE Render (the popup owns
-    // Up/Down/Enter while open); if the popup was open at frame start those keys are
-    // then hidden from ImCode during Render — including on the accept/cancel frame.
-    const bool popupOwnedKeysThisFrame = m_CompletionPopupVisible;
-    bool escapeConsumedByCompletion = false;
-    if (m_CompletionPopupVisible) {
-        m_HandleCompletionKeys();
-        if (!m_CompletionPopupVisible && ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
-            escapeConsumedByCompletion = true;  // don't let the SAME Escape press also close the signature tooltip
-        }
-    }
+    // completion-open state BEFORE Render: when ImCode consumes an Escape press to close
+    // its popup, the SAME press must not also close the signature tooltip below
+    const bool completionWasOpen = m_Editor.isCompletionPopupOpen();
 
-    // parent window identity — needed to reconstruct the editor child window's name
-    // ("parent/childid_%08X", the BeginChild naming scheme) for the layout capture.
-    ImGuiWindow* parentWindow = ImGui::GetCurrentWindow();
-    const ImGuiID childId = parentWindow->GetID(sc_EditorChildId);
+    m_Editor.Render("ltg_code_editor", ImVec2(0.0f, 0.0f));
 
-    // the host owns font AND size: im::Code::Style::font stays null, so ImCode renders with
-    // whatever is pushed here. PushFont(nullptr, size) keeps the current font (size only).
-    const float editorFontSize = ImGui::GetFontSize() * m_FontScale;
-    ImGui::PushFont(m_CodeFontPtr, editorFontSize);
-    // sample the exact metrics ImCode::Render derives internally (same formulas)
-    const float fontSize = ImGui::GetFontSize();
-    const float spacingRatio = ImGui::GetTextLineHeightWithSpacing() / fontSize;
-    const float lineHeight = fontSize * spacingRatio;
-    const float charWidth = ImGui::GetFont()->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, "X").x;
-
-    if (popupOwnedKeysThisFrame) {
-        pushKeySuppression();
-    }
-    m_Editor.Render(sc_EditorChildId, ImVec2(0.0f, 0.0f));
-    if (popupOwnedKeysThisFrame) {
-        popKeySuppression();
-    }
-    ImGui::PopFont();
-
-    m_CaptureLayout(sc_EditorChildId, childId, parentWindow->Name, fontSize, lineHeight, charWidth);
-    m_RefreshTextCache();  // pick up the edits made inside Render so every mapping below works on fresh lines
-
-    // characters inserted by ImCode this frame drive the completion / signature state
-    // machines. Same gates as ImCode's own input loop: child focused, no Ctrl chord,
-    // printable ASCII. The reported position is the caret AFTER insertion.
-    if (m_Layout.valid && m_Layout.focused && !io.KeyCtrl) {
-        const im::Code::Pos cursor = m_Editor.getCursor();
-        for (int i = 0; i < io.InputQueueCharacters.Size; ++i) {
-            const ImWchar character = io.InputQueueCharacters[i];
-            if (character >= 32 && character != 127 && character < 128) {
-                m_OnCharacterTyped(character, cursor.line, cursor.column);
-            }
-        }
-    }
-
-    m_HandleMouseInteractions();
-    m_DrawContextMenus();
+    m_RefreshTextCache();  // pick up the edits made inside Render so every scan below works on fresh lines
 
     // signature-help: source of truth is the bytes between the opening `(` and the caret.
     // Recomputing every frame keeps depth + arg index in sync with Backspace, Delete,
     // paste, and arrow-key edits. Then Escape gets a chance to actively close the tooltip.
     m_RecomputeSignatureState();
+    const bool escapeConsumedByCompletion = completionWasOpen && !m_Editor.isCompletionPopupOpen() && ImGui::IsKeyPressed(ImGuiKey_Escape, false);
     if (!escapeConsumedByCompletion) {
         m_HandleSignatureDismissKeys();
     }
-
-    m_DrawCompletionPopup();
-    m_DrawSignatureTooltip();
 
     // pane-level shortcuts — the editor child owns the keyboard once clicked, so the scope
     // is "this window or any of its children". Ctrl+F is NOT handled here on purpose:
@@ -443,7 +399,7 @@ void CodeEditor::SetPendingFontScale(float aScale) {
 }
 
 float CodeEditor::GetCurrentFontScale() const {
-    return m_FontScale;
+    return m_Editor.getZoom();
 }
 
 void CodeEditor::m_RebuildMarkers() {
@@ -588,179 +544,16 @@ std::string CodeEditor::m_ExtractTokenAt(int aLine, int aByteColumn) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-//// LAYOUT MIRROR (ImCode::Render formulas) //////////////////////////////////////
+//// AUTOCOMPLETION (state machine — ImCode owns the popup UI) ////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-void CodeEditor::m_CaptureLayout(const char* aChildStrId, ImGuiID aChildId, const char* aParentName, float aFontSize, float aLineHeight, float aCharWidth) {
-    m_Layout.valid = false;
-    char childWindowName[512];
-    ImFormatString(childWindowName, sizeof(childWindowName), "%s/%s_%08X", aParentName, aChildStrId, aChildId);
-    ImGuiWindow* childWindow = ImGui::FindWindowByName(childWindowName);
-    if (childWindow == nullptr) {
-        return;
-    }
-    m_Layout.valid = true;
-    m_Layout.focused = (GImGui->NavWindow == childWindow);
-    m_Layout.childPos = childWindow->Pos;
-    m_Layout.childSize = childWindow->Size;
-    m_Layout.scroll = childWindow->Scroll;
-    m_Layout.fontSize = aFontSize;
-    m_Layout.lineHeight = aLineHeight;
-    m_Layout.charWidth = aCharWidth;
-    // same gutter formula as ImCode::Render: digits * charWidth + 3 * (charWidth / 2)
-    int32_t digits = 1;
-    for (int32_t n = (int32_t)m_CachedLines.size(); n >= 10; n /= 10) {
-        ++digits;
-    }
-    m_Layout.gutterWidth = (float)digits * aCharWidth + aCharWidth * 1.5f;
-}
+void CodeEditor::m_OnCharacterTyped(unsigned int aCharacter, int aLine, int aColumn) {
+    // fired from INSIDE ImCode::Render, right after the insertion: refresh the line cache
+    // first so the token scans below see the just-typed characters
+    m_RefreshTextCache();
 
-int32_t CodeEditor::m_DisplayColumn(int32_t aLine, int32_t aByteColumn) const {
-    const std::string& line = m_GetLineText(aLine);
-    const int32_t end = (aByteColumn < (int32_t)line.size()) ? aByteColumn : (int32_t)line.size();
-    int32_t displayColumn = 0;
-    for (int32_t k = 0; k < end; ++k) {
-        if (line[(size_t)k] == '\t') {
-            displayColumn += sc_TabWidth - (displayColumn % sc_TabWidth);
-        } else {
-            ++displayColumn;
-        }
-    }
-    if (aByteColumn > end) {
-        displayColumn += aByteColumn - end;  // bytes past EOL count as 1 each
-    }
-    return displayColumn;
-}
-
-int32_t CodeEditor::m_ByteColumnFromDisplay(int32_t aLine, float aDisplayColumns) const {
-    const std::string& line = m_GetLineText(aLine);
-    int32_t displayColumn = 0;
-    for (int32_t k = 0; k < (int32_t)line.size(); ++k) {
-        const int32_t advance = (line[(size_t)k] == '\t') ? (sc_TabWidth - (displayColumn % sc_TabWidth)) : 1;
-        if (aDisplayColumns < (float)displayColumn + (float)advance * 0.5f) {
-            return k;
-        }
-        displayColumn += advance;
-    }
-    return (int32_t)line.size();
-}
-
-bool CodeEditor::m_ScreenToTextPos(const ImVec2& aScreen, int32_t& aoLine, int32_t& aoByteColumn) const {
-    if (!m_Layout.valid || m_CachedLines.empty() || m_Layout.lineHeight <= 0.0f || m_Layout.charWidth <= 0.0f) {
-        return false;
-    }
-    const ImVec2 contentOrigin(m_Layout.childPos.x - m_Layout.scroll.x, m_Layout.childPos.y - m_Layout.scroll.y);
-    const float textOriginX = contentOrigin.x + m_Layout.gutterWidth;
-    int32_t line = (int32_t)((aScreen.y - contentOrigin.y) / m_Layout.lineHeight);
-    if (line < 0) {
-        line = 0;
-    }
-    const int32_t lastLine = (int32_t)m_CachedLines.size() - 1;
-    if (line > lastLine) {
-        line = lastLine;
-    }
-    aoLine = line;
-    aoByteColumn = m_ByteColumnFromDisplay(line, (aScreen.x - textOriginX) / m_Layout.charWidth);
-    return true;
-}
-
-bool CodeEditor::m_TextPosToScreen(int32_t aLine, int32_t aByteColumn, ImVec2& aoScreen) const {
-    if (!m_Layout.valid || m_Layout.lineHeight <= 0.0f || m_Layout.charWidth <= 0.0f) {
-        return false;
-    }
-    const ImVec2 contentOrigin(m_Layout.childPos.x - m_Layout.scroll.x, m_Layout.childPos.y - m_Layout.scroll.y);
-    aoScreen.x = contentOrigin.x + m_Layout.gutterWidth + (float)m_DisplayColumn(aLine, aByteColumn) * m_Layout.charWidth;
-    aoScreen.y = contentOrigin.y + (float)aLine * m_Layout.lineHeight;
-    return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////////
-//// MOUSE INTERACTIONS (hover token + right-click menus) /////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-
-void CodeEditor::m_HandleMouseInteractions() {
-    if (!m_Layout.valid) {
-        return;
-    }
-    const ImVec2 mouse = ImGui::GetMousePos();
-    const bool inChild = (mouse.x >= m_Layout.childPos.x && mouse.x < m_Layout.childPos.x + m_Layout.childSize.x &&  //
-                          mouse.y >= m_Layout.childPos.y && mouse.y < m_Layout.childPos.y + m_Layout.childSize.y);
-    if (!inChild) {
-        return;
-    }
-    // the gutter is drawn at a FIXED x (not scrolled) — same zone test as ImCode's click path
-    const bool inGutter = (mouse.x < m_Layout.childPos.x + m_Layout.gutterWidth);
-    if (inGutter) {
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-            const ImVec2 contentOrigin(m_Layout.childPos.x - m_Layout.scroll.x, m_Layout.childPos.y - m_Layout.scroll.y);
-            const int32_t line = (int32_t)((mouse.y - contentOrigin.y) / m_Layout.lineHeight);
-            if (line >= 0 && (size_t)line < m_CachedLines.size()) {
-                m_GutterContextLine = line;
-                ImGui::OpenPopup("ltg_code_gutter_ctx");
-            }
-        }
-        return;
-    }
-    int32_t line = 0;
-    int32_t byteColumn = 0;
-    if (!m_ScreenToTextPos(mouse, line, byteColumn)) {
-        return;
-    }
-    // per-frame hover — ALWAYS fired (even with an empty token on whitespace/punctuation)
-    // so the consumer can detect when the user has moved off a previously-hovered identifier.
-    if (m_OnHoverToken) {
-        m_OnHoverToken(m_ExtractTokenAt(line, byteColumn));
-    }
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && m_OnTokenContext) {
-        const std::string token = m_ExtractTokenAt(line, byteColumn);
-        if (!token.empty()) {
-            m_ContextToken = token;
-            ImGui::OpenPopup("ltg_code_text_ctx");
-        }
-    }
-}
-
-void CodeEditor::m_DrawContextMenus() {
-    // right-click on the gutter: breakpoint set/remove. Items are disabled when debug is
-    // off (dormant breakpoints CAN still be toggled with a plain gutter click).
-    if (ImGui::BeginPopup("ltg_code_gutter_ctx")) {
-        const bool hasBreakpoint = (m_BreakpointLines.find(m_GutterContextLine) != m_BreakpointLines.end());
-        ImGui::BeginDisabled(!m_BreakpointInteractionEnabled);
-        if (!hasBreakpoint) {
-            if (ImGui::MenuItem("Set Breakpoint")) {
-                if (m_OnBreakpointToggled) {
-                    m_OnBreakpointToggled(m_GutterContextLine, true);
-                }
-            }
-        } else {
-            if (ImGui::MenuItem("Remove Breakpoint")) {
-                if (m_OnBreakpointToggled) {
-                    m_OnBreakpointToggled(m_GutterContextLine, false);
-                }
-            }
-        }
-        ImGui::EndDisabled();
-        ImGui::EndPopup();
-    }
-    // right-click on the text: "Watch <token>" (and future eval/expand actions)
-    if (ImGui::BeginPopup("ltg_code_text_ctx")) {
-        const std::string label = std::string("Watch \"") + m_ContextToken + "\"";
-        if (ImGui::MenuItem(label.c_str())) {
-            if (m_OnTokenContext) {
-                m_OnTokenContext(m_ContextToken);
-            }
-        }
-        ImGui::EndPopup();
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////
-//// AUTOCOMPLETION (host-rendered popup over ImCode) /////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-
-void CodeEditor::m_OnCharacterTyped(ImWchar aCharacter, int aLine, int aColumn) {
     // === completion popup: filter extension / dismissal =====================================
-    if (m_CompletionPopupVisible) {
+    if (m_Editor.isCompletionPopupOpen()) {
         if (ltg::code::isIdentChar((char)aCharacter)) {
             m_CompletionFilter += static_cast<char>(aCharacter);
             m_RecomputeCompletionFiltered();  // closes the popup when the filter matches nothing
@@ -795,49 +588,12 @@ void CodeEditor::m_OnCharacterTyped(ImWchar aCharacter, int aLine, int aColumn) 
     // when the tooltip is already open, the nested `(` was counted by the per-frame scan
     // (paren depth), and a nested signature tooltip would compete for screen space with no
     // clean UI to disambiguate. gated by DebugSettings.
-    if (aCharacter == '(' && !m_SignatureOpen && DebugSettings::ref()->isSignatureHelpEnabled()) {
+    if (aCharacter == '(' && !m_Editor.isSignatureTooltipOpen() && DebugSettings::ref()->isSignatureHelpEnabled()) {
         std::string target;
         std::string functionName;
         if (ltg::code::extractCallTargetAt(m_GetLineText(aLine), aColumn - 1, target, functionName)) {
             m_OpenSignature(target, functionName);
         }
-    }
-}
-
-void CodeEditor::m_HandleCompletionKeys() {
-    // pre-Render: the popup owns Up/Down/Enter/Escape while open. Runs when
-    // m_CompletionPopupVisible is true at frame start; the same keys are then hidden from
-    // ImCode::Render for this frame (see pushKeySuppression in OnImGui).
-    const size_t count = m_CompletionFilteredEntries.size();
-    if (count == 0) {
-        m_OnCompletionCancelled();
-        return;
-    }
-    // click outside the popup (previous frame's rect) dismisses — clicking a row is INSIDE
-    // the rect and handled by the row's Selectable during the draw.
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-        const ImVec2 mouse = ImGui::GetMousePos();
-        const bool inPopup = (mouse.x >= m_CompletionPopupPos.x && mouse.x < m_CompletionPopupPos.x + m_CompletionPopupSize.x &&  //
-                              mouse.y >= m_CompletionPopupPos.y && mouse.y < m_CompletionPopupPos.y + m_CompletionPopupSize.y);
-        if (!inPopup) {
-            m_OnCompletionCancelled();
-            return;
-        }
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
-        m_CompletionSelectedIndex = (m_CompletionSelectedIndex == 0) ? (count - 1) : (m_CompletionSelectedIndex - 1);
-        m_CompletionSelectionChanged = true;
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
-        m_CompletionSelectedIndex = (m_CompletionSelectedIndex + 1) % count;
-        m_CompletionSelectionChanged = true;
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_Enter, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false)) {
-        m_OnCompletionAccepted(m_CompletionSelectedIndex);
-        return;
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
-        m_OnCompletionCancelled();
     }
 }
 
@@ -851,15 +607,21 @@ void CodeEditor::m_RecomputeCompletionFiltered() {
     const std::vector<size_t> kept = ltg::code::filterByPrefix(names, m_CompletionFilter);
     m_CompletionFilteredEntries.clear();
     m_CompletionFilteredEntries.reserve(kept.size());
+    std::vector<im::Code::CompletionItem> popupItems;
+    popupItems.reserve(kept.size());
     for (const size_t index : kept) {
-        m_CompletionFilteredEntries.push_back(m_CompletionAllEntries[index]);
+        const auto& entry = m_CompletionAllEntries[index];
+        m_CompletionFilteredEntries.push_back(entry);
+        im::Code::CompletionItem item;
+        item.label = entry.name;
+        item.insertText = entry.name;
+        item.detail = entry.type;
+        popupItems.push_back(std::move(item));
     }
-    m_CompletionSelectedIndex = 0;
-    m_CompletionSelectionChanged = true;
     if (m_CompletionFilteredEntries.empty()) {
         m_OnCompletionCancelled();  // empty list closes the popup silently
     } else {
-        m_CompletionPopupVisible = true;
+        m_Editor.openCompletionPopup(popupItems, im::Code::Pos{m_CompletionAnchorLine, m_CompletionAnchorColumn});
     }
 }
 
@@ -887,57 +649,11 @@ void CodeEditor::m_OnCompletionCancelled() {
     m_CompletionFilter.clear();
     m_CompletionAnchorLine = 0;
     m_CompletionAnchorColumn = 0;
-    m_CompletionPopupVisible = false;
-    m_CompletionSelectedIndex = 0;
-}
-
-void CodeEditor::m_DrawCompletionPopup() {
-    if (!m_CompletionPopupVisible || m_CompletionFilteredEntries.empty() || !m_Layout.valid) {
-        return;
-    }
-    ImVec2 anchorCell;
-    if (!m_TextPosToScreen(m_CompletionAnchorLine, m_CompletionAnchorColumn, anchorCell)) {
-        return;
-    }
-    const float rowHeight = ImGui::GetTextLineHeightWithSpacing();
-    const float visibleRows = (float)((m_CompletionFilteredEntries.size() < 10) ? m_CompletionFilteredEntries.size() : 10);
-    const ImGuiStyle& style = ImGui::GetStyle();
-    const ImVec2 popupSize(320.0f, visibleRows * rowHeight + style.WindowPadding.y * 2.0f);
-    ImGui::SetNextWindowPos(ImVec2(anchorCell.x, anchorCell.y + m_Layout.lineHeight));
-    ImGui::SetNextWindowSize(popupSize);
-    // Tooltip layer so the popup sorts above the pane without ever taking the focus away
-    // from the editor child (typing must keep flowing into ImCode while the popup shows).
-    const ImGuiWindowFlags flags = ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                                   ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-    if (ImGui::Begin("##ltg_completion_popup", nullptr, flags)) {
-        m_CompletionPopupPos = ImGui::GetWindowPos();
-        m_CompletionPopupSize = ImGui::GetWindowSize();
-        for (size_t i = 0; i < m_CompletionFilteredEntries.size(); ++i) {
-            const auto& entry = m_CompletionFilteredEntries[i];
-            const bool selected = (i == m_CompletionSelectedIndex);
-            ImGui::PushID((int)i);
-            if (ImGui::Selectable(entry.name.c_str(), selected)) {
-                m_OnCompletionAccepted(i);
-                ImGui::PopID();
-                break;
-            }
-            if (selected && m_CompletionSelectionChanged) {
-                ImGui::SetScrollHereY();
-            }
-            if (!entry.type.empty()) {
-                const float typeWidth = ImGui::CalcTextSize(entry.type.c_str()).x;
-                ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - typeWidth);
-                ImGui::TextDisabled("%s", entry.type.c_str());
-            }
-            ImGui::PopID();
-        }
-        m_CompletionSelectionChanged = false;
-    }
-    ImGui::End();
+    m_Editor.closeCompletionPopup();  // no-op when ImCode initiated the close itself
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-//// SIGNATURE HELP (host-rendered tooltip over ImCode) ///////////////////////////
+//// SIGNATURE HELP (state machine — ImCode owns the tooltip UI) //////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
 void CodeEditor::m_OpenSignature(const std::string& aTarget, const std::string& aFunctionName) {
@@ -946,22 +662,24 @@ void CodeEditor::m_OpenSignature(const std::string& aTarget, const std::string& 
     if (signature.label.empty()) {
         return;  // unknown call — silently no tooltip
     }
-    m_SignatureInfo = std::move(signature);
-    m_SignatureTarget = aTarget;
-    m_SignatureFunctionName = aFunctionName;
-    m_SignatureArgIndex = 0;
     // anchor: line + BYTE col RIGHT AFTER the `(` (where the scan range starts each frame)
     const im::Code::Pos cursor = m_Editor.getCursor();
     m_SignatureAnchorLine = cursor.line;
     m_SignatureAnchorColumn = cursor.column;
-    m_SignatureOpen = true;
+    m_SignatureArgIndex = 0;
+
+    im::Code::SignatureTooltip tooltip;
+    tooltip.label = signature.label;
+    tooltip.args.reserve(signature.args.size());
+    for (const auto& arg : signature.args) {
+        tooltip.args.push_back({arg.name, arg.type});
+    }
+    tooltip.currentArgIndex = 0;
+    m_Editor.openSignatureTooltip(tooltip, cursor);
 }
 
 void CodeEditor::m_CloseSignature() {
-    m_SignatureOpen = false;
-    m_SignatureInfo = {};
-    m_SignatureTarget.clear();
-    m_SignatureFunctionName.clear();
+    m_Editor.closeSignatureTooltip();
     m_SignatureAnchorLine = 0;
     m_SignatureAnchorColumn = 0;
     m_SignatureArgIndex = 0;
@@ -971,7 +689,7 @@ void CodeEditor::m_RecomputeSignatureState() {
     // recomputed every frame: re-scans the bytes between the opening `(` (captured at open
     // time) and the current caret to derive depth + comma count. handles Backspace, Delete,
     // paste, and arrow-key edits naturally — the source of truth is always the actual text.
-    if (!m_SignatureOpen) {
+    if (!m_Editor.isSignatureTooltipOpen()) {
         return;
     }
     const im::Code::Pos cursor = m_Editor.getCursor();
@@ -991,52 +709,19 @@ void CodeEditor::m_RecomputeSignatureState() {
         m_CloseSignature();  // caret moved past the matching `)` — call is finished
         return;
     }
-    m_SignatureArgIndex = argIndex;
+    if (argIndex != m_SignatureArgIndex) {
+        m_SignatureArgIndex = argIndex;
+        m_Editor.updateSignatureCurrentArg(argIndex);
+    }
 }
 
 void CodeEditor::m_HandleSignatureDismissKeys() {
     // Escape is the only event that actively closes the tooltip — everything else (caret
     // moves, mouse clicks, Backspace, paste) is reconciled by m_RecomputeSignatureState().
-    if (!m_SignatureOpen) {
+    if (!m_Editor.isSignatureTooltipOpen()) {
         return;
     }
     if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
         m_CloseSignature();
     }
-}
-
-void CodeEditor::m_DrawSignatureTooltip() {
-    if (!m_SignatureOpen || !m_Layout.valid) {
-        return;
-    }
-    ImVec2 anchorCell;
-    if (!m_TextPosToScreen(m_SignatureAnchorLine, m_SignatureAnchorColumn, anchorCell)) {
-        return;
-    }
-    // bottom-left pivot: the tooltip sits just ABOVE the line being typed
-    ImGui::SetNextWindowPos(ImVec2(anchorCell.x, anchorCell.y - 2.0f), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
-    const ImGuiWindowFlags flags = ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                                   ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
-                                   ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs;
-    if (ImGui::Begin("##ltg_signature_tooltip", nullptr, flags)) {
-        ImGui::TextUnformatted(m_SignatureInfo.label.c_str());
-        ImGui::SameLine(0.0f, 0.0f);
-        ImGui::TextUnformatted("(");
-        for (size_t i = 0; i < m_SignatureInfo.args.size(); ++i) {
-            const auto& arg = m_SignatureInfo.args[i];
-            ImGui::SameLine(0.0f, 0.0f);
-            if ((int32_t)i == m_SignatureArgIndex) {
-                ImGui::TextColored(ImVec4(1.0f, 0.78f, 0.0f, 1.0f), "%s: %s", arg.name.c_str(), arg.type.c_str());
-            } else {
-                ImGui::TextDisabled("%s: %s", arg.name.c_str(), arg.type.c_str());
-            }
-            if (i + 1 < m_SignatureInfo.args.size()) {
-                ImGui::SameLine(0.0f, 0.0f);
-                ImGui::TextUnformatted(", ");
-            }
-        }
-        ImGui::SameLine(0.0f, 0.0f);
-        ImGui::TextUnformatted(")");
-    }
-    ImGui::End();
 }

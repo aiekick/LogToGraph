@@ -165,3 +165,53 @@ TEST(ImCodeContract, UnknownLanguageMeansPlainText) {
     editor.getLineTokens(0, tokens);
     EXPECT_TRUE(tokens.empty());
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// v0.2 overlays — the completion/signature state machines of CodeEditor drive
+// these; the popup/tooltip rendering and key interception live inside ImCode
+///////////////////////////////////////////////////////////////////////////////
+
+TEST(ImCodeContract, CompletionOverlayStateMachine) {
+    im::Code editor;
+    ASSERT_TRUE(editor.init());
+    setContent(editor, "ltg.ad");
+    EXPECT_FALSE(editor.isCompletionPopupOpen());
+    std::vector<im::Code::CompletionItem> items;
+    items.push_back({"addSignalValue", "addSignalValue", 0, "function"});
+    editor.openCompletionPopup(items, im::Code::Pos{0, 4});
+    EXPECT_TRUE(editor.isCompletionPopupOpen());
+    // the refilter-to-nothing path closes silently (m_RecomputeCompletionFiltered relies on it)
+    editor.openCompletionPopup(std::vector<im::Code::CompletionItem>(), im::Code::Pos{0, 4});
+    EXPECT_FALSE(editor.isCompletionPopupOpen());
+    editor.openCompletionPopup(items, im::Code::Pos{0, 4});
+    editor.closeCompletionPopup();
+    EXPECT_FALSE(editor.isCompletionPopupOpen());
+}
+
+TEST(ImCodeContract, SignatureOverlayState) {
+    im::Code editor;
+    ASSERT_TRUE(editor.init());
+    setContent(editor, "foo(");
+    EXPECT_FALSE(editor.isSignatureTooltipOpen());
+    im::Code::SignatureTooltip tooltip;
+    tooltip.label = "foo";
+    tooltip.args.push_back({"a", "number"});
+    editor.openSignatureTooltip(tooltip, im::Code::Pos{0, 4});
+    EXPECT_TRUE(editor.isSignatureTooltipOpen());
+    editor.updateSignatureCurrentArg(0);
+    editor.closeSignatureTooltip();
+    EXPECT_FALSE(editor.isSignatureTooltipOpen());
+}
+
+TEST(ImCodeContract, ZoomIsPersistableAndClamped) {
+    // SetPendingFontScale/GetCurrentFontScale of CodeEditor map straight onto this
+    im::Code editor;
+    ASSERT_TRUE(editor.init());
+    EXPECT_FLOAT_EQ(editor.getZoom(), 1.0f);
+    editor.setZoom(1.5f);
+    EXPECT_FLOAT_EQ(editor.getZoom(), 1.5f);
+    editor.setZoom(100.0f);
+    EXPECT_FLOAT_EQ(editor.getZoom(), 6.0f);
+    editor.setZoom(0.0f);
+    EXPECT_FLOAT_EQ(editor.getZoom(), 0.3f);
+}
