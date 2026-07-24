@@ -24,9 +24,8 @@
 bool CodePane::init() {
     // for avoid a reallocation of the vector for each push/emplace
     // where the the language Type in each editor got corrupted
-    // because passed by ref
-    // 1000 editor is sufficient for our need
-    m_CodeSheets.reserve(1000U);
+    // m_CodeSheets is a std::list: node addresses are stable by construction, so the old
+    // reserve()-to-avoid-relocation trick is no longer needed
     return true;
 }
 
@@ -404,13 +403,14 @@ void CodePane::OpenFile(const std::string& vFilePathName, size_t vErrorLine, std
     auto ps = ez::file::parsePathFileName(vFilePathName);
     if (ps.isOk) {
         const auto code = ez::file::loadFileToString(vFilePathName);
-        CodeEditorLanguage type = TextEditor::Language::C();
+        // ImCode lexer names — "cpp"/"c" share the C/C++ lexer, "lua"/"glsl"/"sql" have their own
+        CodeEditorLanguage type = "cpp";
         if (ps.ext == "cpp" || ps.ext == "hpp") {
-            type = TextEditor::Language::Cpp();
+            type = "cpp";
         } else if (ps.ext == "c" || ps.ext == "h") {
-            type = TextEditor::Language::C();
+            type = "c";
         } else if (ps.ext == "lua") {
-            type = TextEditor::Language::Lua();
+            type = "lua";
         }
         if (existing_code_sheet_ptr != nullptr) {
             existing_code_sheet_ptr->wasModified = false;
@@ -469,7 +469,7 @@ void CodePane::OpenScript(const std::string& aCode) {
         sheet.codeEditor.SetSaveCallback([]() { ProjectFile::ref()->Save(); });
         scriptSheetPtr = &sheet;
     }
-    scriptSheetPtr->codeEditor.SetCode(aCode, TextEditor::Language::Lua());
+    scriptSheetPtr->codeEditor.SetCode(aCode, "lua");
     // restore the persisted zoom — one-shot pending value that the editor applies on its next
     // Render after BeginChild. After that, ImGui's interactive Ctrl+MouseWheel takes over and the
     // drawPanes loop above captures any change back into ProjectFile.

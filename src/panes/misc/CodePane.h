@@ -6,6 +6,7 @@
 #include <frontend/Components/CodeEditor.h>
 #include <apis/LtgPluginApi.h>  // also pulls IScriptDebugger.h transitively; brings ScriptingError + sc_PROJECT_SCRIPT_CHUNK
 #include <cstdint>
+#include <list>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -25,7 +26,9 @@ private:
         bool wasModified = false;
         bool opened = false;
     };
-    std::vector<CodeSheet> m_CodeSheets;
+    // std::list on purpose: CodeEditor embeds im::Code (non-copyable, non-movable), and list
+    // nodes never relocate — sheet addresses stay stable across emplace_back for free.
+    std::list<CodeSheet> m_CodeSheets;
     // breakpoint render cache — refreshed only when ScriptDebugger::getBreakpointsRevision() advances
     int64_t m_BreakpointsRevisionSeen = -1;
     std::string m_DebugScriptFileCache;
