@@ -132,14 +132,20 @@ target_include_directories(${PROJECT} PRIVATE
 target_link_libraries(${PROJECT}
 	${LUA_JIT_LIBRARIES}
 	${SOL2_LIBRARIES}
-	# boost_regex is created by imguipack when USE_IMGUI_COLOR_TEXT_EDIT is ON (forced ON by the host
-	# in cmake/imguipack.cmake). Linking it here gives the plugin a real regex engine without dragging
-	# imguipack, and keeps the host + plugin on the SAME regex library for future ltg:regex bindings.
-	boost_regex
+	# the regex engine is std::regex now — the boost_regex target vendored by the old imguipack
+	# (USE_IMGUI_COLOR_TEXT_EDIT) does not exist anymore since the ImCode upgrade.
 )
 
 # add plugin name in parent LOADED_STROCKER_PLUGINS list
 set(LOADED_LOG_TO_GRAPH_PLUGINS ${LOADED_LOG_TO_GRAPH_PLUGINS} ${PROJECT} PARENT_SCOPE)
+
+########################################################
+################# TESTS ################################
+########################################################
+
+if(USE_BUILDING_OF_TESTS)
+	add_subdirectory(tests)
+endif()
 
 ########################################################
 ################# BUILD INCREMENT TOOL #################

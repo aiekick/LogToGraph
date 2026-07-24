@@ -47,7 +47,7 @@ public:
     // factory for the shared regex brick — `ltg:regex(pattern)` returns a LuaRegex usertype, which
     // the user then keeps as a local/global and calls `:test` / `:match` / `:find` / `:gsub` /
     // `:gmatch` on. Typical usage compiles a handful of patterns at script init and reuses them
-    // across every row of every log file. boost::regex_error on an invalid pattern is caught by
+    // across every row of every log file. std::regex_error on an invalid pattern is caught by
     // sol2's exception_handler and surfaces e.what() (real message, not "C++ exception").
     LuaRegex luaModuleRegex(const std::string& vPattern) const;
 };

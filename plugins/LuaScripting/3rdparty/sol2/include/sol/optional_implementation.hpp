@@ -2182,16 +2182,19 @@ namespace sol {
 			return *this;
 		}
 
-		/// Constructs the value in-place, destroying the current one if there is
-		/// one.
+		/// Rebinds this optional to `u`.
 		///
-		/// \group emplace
-		template <class... Args>
-		T& emplace(Args&&... args) noexcept {
-			static_assert(std::is_constructible<T, Args&&...>::value, "T must be constructible with Args");
-
-			*this = nullopt;
-			this->construct(std::forward<Args>(args)...);
+		/// \requires `U` must be an lvalue reference.
+		/// \synopsis optional &emplace(U &&u) noexcept;
+		///
+		/// (upstream TartanLlama/optional fix: the old body called this->construct(...),
+		/// which does not exist in the T& specialization — clang rejects it at definition
+		/// time, even when the function is never instantiated)
+		template <class U>
+		T& emplace(U&& u) noexcept {
+			static_assert(std::is_lvalue_reference<U&&>::value, "optional<T&>::emplace requires an lvalue to bind to");
+			m_value = std::addressof(u);
+			return *m_value;
 		}
 
 		/// Swaps this optional with the other.

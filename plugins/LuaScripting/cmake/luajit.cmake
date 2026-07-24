@@ -28,8 +28,10 @@ if(NOT CMAKE_RELWITHDEBINFO_POSTFIX)
 endif()
 
 add_subdirectory(${LUA_JIT_INCLUDE_DIR} EXCLUDE_FROM_ALL)
-    
+
 set_target_properties(libluajit PROPERTIES LINKER_LANGUAGE C)
+## the plugin is a MODULE (shared object): the static luajit objects must be PIC on unix
+set_target_properties(libluajit PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(luajit PROPERTIES FOLDER 3rdparty/luajit)
 set_target_properties(minilua PROPERTIES FOLDER 3rdparty/luajit)
 set_target_properties(libluajit PROPERTIES FOLDER 3rdparty/luajit)

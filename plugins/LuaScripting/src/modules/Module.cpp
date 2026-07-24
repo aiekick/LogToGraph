@@ -14,9 +14,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
-// boost::regex (vendored by imguipack via USE_IMGUI_COLOR_TEXT_EDIT) — same engine the host will use
-// when the future shared ltg:regex(...) brick lands. linked through the boost_regex CMake target.
-#include <boost/regex.hpp>
+// std::regex (ECMAScript) — the boost_regex target vendored by the old imguipack died with
+// the ImCode upgrade; the standard engine covers both the error-message parsing here and the
+// ltg:regex(...) Lua brick (LuaRegex.h) with zero extra dependency.
+#include <regex>
 
 #include <lua.hpp>
 #include <sol/sol.hpp>
@@ -38,16 +39,16 @@ const char* const kDebugModuleRegistryKey = "ltg_debug_module";
 bool parseLuaError(const std::string& aMsg, const std::string& aFallbackChunk, Ltg::ScriptingError& aoErr) {
     // delimiter `re(...)re` mandatory: the chunkRe pattern contains a literal `)"` (the `+)"` after
     // the `[^"]+` group), which would otherwise close an empty-delimiter R"(...)" prematurely.
-    static const boost::regex chunkRe(R"re(\[string\s+"([^"]+)"\]:(\d+):\s*(.*))re");
-    static const boost::regex plainRe(R"re(([^:\[\]\s]+):(\d+):\s*(.*))re");
-    boost::smatch match;
+    static const std::regex chunkRe(R"re(\[string\s+"([^"]+)"\]:(\d+):\s*(.*))re");
+    static const std::regex plainRe(R"re(([^:\[\]\s]+):(\d+):\s*(.*))re");
+    std::smatch match;
     aoErr.message = aMsg;
-    if (boost::regex_search(aMsg, match, chunkRe)) {
+    if (std::regex_search(aMsg, match, chunkRe)) {
         aoErr.file = match[1].str();
         aoErr.line = static_cast<size_t>(std::stoul(match[2].str()));
         return true;
     }
-    if (boost::regex_search(aMsg, match, plainRe)) {
+    if (std::regex_search(aMsg, match, plainRe)) {
         aoErr.file = match[1].str();
         aoErr.line = static_cast<size_t>(std::stoul(match[2].str()));
         return true;
@@ -200,7 +201,7 @@ bool Module::load(Ltg::IDatasModelWeak vDatasModel) {
         });
 
         // clang-format off
-        // Shared regex brick — boost::regex wrapped as a Lua usertype. Registered BEFORE
+        // Shared regex brick — std::regex wrapped as a Lua usertype. Registered BEFORE
         // LuaDatasModel so that the `regex` factory method's return type is already known to
         // sol2 (order doesn't strictly matter for resolution but keeps the compile order tidy).
         m_luaPtr->new_usertype<LuaRegex>(
@@ -652,7 +653,7 @@ const std::vector<SignatureEntry>& s_signatureCatalog() {
         {"ltg", "regex",              {{"pattern","string"}}},  // returns a LtgRegex usertype
 
         // -------- LtgRegex methods (the object returned by `ltg:regex(pattern)`) --------
-        // boost::regex semantics, with Lua-style 1-based positions for `find` and the same
+        // std::regex (ECMAScript) semantics, with Lua-style 1-based positions for `find` and the same
         // (string, count) shape as string.gsub for `gsub`. `match` returns capture values as
         // multiple results (or nil); `gmatch` returns a Lua iterator.
         {"LtgRegex", "test",   {{"input","string"}}},
