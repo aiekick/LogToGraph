@@ -23,5 +23,5 @@ set(GLAD_INCLUDE_DIR ${glad_SOURCE_DIR}/include CACHE INTERNAL "")
 set(GLAD_LIBRARIES glad CACHE INTERNAL "")
 
 if(MSVC)
-	set_property(TARGET glad PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	set_property(TARGET glad PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:DebugDLL>") # on garde DLL only in debug mode, since MSVC bad debugging without
 endif()

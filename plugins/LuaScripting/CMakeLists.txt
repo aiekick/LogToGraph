@@ -116,7 +116,7 @@ if (${BUILD_SHARED_LIBS})
 endif()
 
 if (MSVC)
-	set_property(TARGET ${PROJECT} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	set_property(TARGET ${PROJECT} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:DebugDLL>") # on garde DLL only in debug mode, since MSVC bad debugging without
 endif()
 
 target_include_directories(${PROJECT} PRIVATE

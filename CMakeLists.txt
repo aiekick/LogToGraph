@@ -45,7 +45,7 @@ else()
 	set(ARCH x32)
 endif()
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:DebugDLL>") # on garde DLL only in debug mode, since MSVC bad debugging without
 
 # some times for unknown reason, the lib file is not generated so no symbols are exported.
 # this option force all shared lib to export theirs symbols
@@ -235,7 +235,7 @@ set_target_properties(${PROJECT} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBI
 set_target_properties(${PROJECT} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${FINAL_BIN_DIR})
 
 if(MSVC)
-    set_property(TARGET ${PROJECT} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set_property(TARGET ${PROJECT} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:DebugDLL>") # on garde DLL only in debug mode, since MSVC bad debugging without
 endif()
 
 ########################################################

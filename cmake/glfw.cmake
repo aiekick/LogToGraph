@@ -32,5 +32,5 @@ set(GLFW_INCLUDE_DIR ${glfw_SOURCE_DIR}/include CACHE INTERNAL "")
 set(GLFW_LIBRARIES glfw CACHE INTERNAL "")
 
 if(MSVC)
-	set_property(TARGET glfw PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	set_property(TARGET glfw PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:DebugDLL>") # on garde DLL only in debug mode, since MSVC bad debugging without
 endif()
