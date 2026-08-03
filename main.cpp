@@ -24,6 +24,9 @@ limitations under the License.
 #include <ezlibs/ezLog.hpp>
 #include <ezlibs/ezTools.hpp>
 
+static int g_frameStart = 0;
+static int g_frameEnd = 0;
+
 int main(int argc, char** argv) {
 #ifdef _MSC_VER
 #ifdef _DEBUG
@@ -34,6 +37,16 @@ int main(int argc, char** argv) {
     _CrtMemCheckpoint(&sOld);  // take a snapshot
 #endif
 #endif
+
+    // Parse frame range arguments for comparing signals across frames
+    for (int i = 1; i < argc; ++i) {
+        std::string arg(argv[i]);
+        if (arg == "--frame-start" && i + 1 < argc) {
+            g_frameStart = std::stoi(argv[++i]);
+        } else if (arg == "--frame-end" && i + 1 < argc) {
+            g_frameEnd = std::stoi(argv[++i]);
+        }
+    }
 
     ez::Log::initSingleton();  // new singleton model: explicit init/unit
     try {
